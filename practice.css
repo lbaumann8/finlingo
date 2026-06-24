@@ -1,0 +1,1101 @@
+/* ════════════════════════════════════════════════════════════
+   PRACTICE — mastery-based practice tab + focused session.
+   Restrained, professional, dark-theme native. Mastery is never
+   communicated by colour alone (always a text label + score).
+   ════════════════════════════════════════════════════════════ */
+
+/* Mastery state accents — low-saturation, calm. */
+:root {
+  --pm-new: var(--muted);
+  --pm-learning: #6f8fb3;   /* subtle blue */
+  --pm-familiar: #5aa39c;   /* subtle teal */
+  --pm-strong: var(--green-text);
+  --pm-mastered: #3fb377;   /* slightly brighter green */
+  --pm-review: var(--gold-text);
+
+  /* Restrained per-unit accents (dark theme — slightly brighter). Used sparingly
+     for the unit icon, progress segments, and the watermark only. */
+  --u1-accent: #3fae74;   /* forest green */
+  --u2-accent: #6f8fb3;   /* muted blue */
+  --u3-accent: #59a39b;   /* slate teal */
+  --u4-accent: #a982a8;   /* muted plum */
+  --u5-accent: #bd955a;   /* bronze */
+  --u6-accent: #6d82c0;   /* deep navy */
+}
+[data-theme="light"] {
+  --u1-accent: #2f7d52;
+  --u2-accent: #3f6ea5;
+  --u3-accent: #357d76;
+  --u4-accent: #7a4f73;
+  --u5-accent: #8a6a34;
+  --u6-accent: #3a4d86;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.practice-header { margin: 4px 0 18px; }
+.practice-h1 {
+  font-family: var(--font-d);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+}
+.practice-sub {
+  font-family: var(--font-b);
+  font-size: 0.86rem;
+  color: var(--text-sub);
+  margin: 4px 0 0;
+}
+.practice-summary {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.practice-summary-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.practice-summary-num {
+  font-family: var(--font-num);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.practice-summary-label {
+  font-family: var(--font-b);
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
+/* ── Daily Practice card ────────────────────────────────────── */
+.practice-daily {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+/* Unlocked → the primary action on the page: restrained green emphasis. */
+.practice-daily-ready {
+  border-color: var(--green-dim);
+  background:
+    linear-gradient(180deg, var(--green-dim) 0%, transparent 60%),
+    var(--bg2);
+  box-shadow: var(--shadow);
+}
+.practice-daily-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.practice-daily-ready .practice-daily-head { margin-bottom: 14px; }
+.practice-daily-ready .practice-est {
+  display: block;
+  margin-top: 6px;
+}
+.practice-daily-cta { width: 100%; }
+.practice-daily-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--green-dim);
+  color: var(--green-text);
+}
+.practice-daily-icon svg { width: 19px; height: 19px; }
+.practice-daily-locked .practice-daily-icon { background: var(--bg3); color: var(--muted); }
+.practice-daily-headings { min-width: 0; }
+.practice-daily-kicker {
+  font-family: var(--font-m, var(--font-b));
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green-text);
+  margin-bottom: 4px;
+}
+.practice-daily-copy {
+  font-family: var(--font-b);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-sub);
+  margin: 0;
+}
+.practice-daily-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.practice-est {
+  font-family: var(--font-num);
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.practice-daily-foot .btn { flex-shrink: 0; }
+
+/* ── Overall Mastery (compact ring + text equivalent) ───────── */
+.practice-overall {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.pm-overall-title { margin-bottom: 10px; }
+.pm-overall-body { display: flex; align-items: center; gap: 14px; }
+.pm-ring-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+.pm-ring { width: 52px; height: 52px; transform: rotate(-90deg); }
+.pm-ring-track { fill: none; stroke: var(--bg3); stroke-width: 3; }
+.pm-ring-fill {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(.34,1.05,.64,1);
+}
+.pm-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pm-overall-text { min-width: 0; }
+.pm-overall-headline {
+  font-family: var(--font-b);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.pm-overall-state {
+  font-family: var(--font-b);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ── Next-action row (current frontier / next review) ────────── */
+.practice-next {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.12s, border-color 0.12s;
+}
+.practice-next:hover { background: var(--bg3); }
+.practice-next:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: 2px; }
+.practice-next-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.practice-next-eyebrow {
+  font-family: var(--font-m, var(--font-b));
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green-text);
+}
+.practice-next-title {
+  font-family: var(--font-b);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+}
+.practice-next-meta {
+  font-family: var(--font-b);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.practice-next-chev { flex-shrink: 0; display: flex; color: var(--muted); }
+.practice-next-chev svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Sections ───────────────────────────────────────────────── */
+.practice-section { margin-bottom: 22px; }
+.practice-section-head { margin-bottom: 10px; }
+.practice-section-title {
+  font-family: var(--font-d);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ── Mastery badges + bars ──────────────────────────────────── */
+.pm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-b);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pm-badge.pm-new      { color: var(--pm-new); }
+.pm-badge.pm-learning { color: var(--pm-learning); border-color: rgba(111,143,179,0.35); }
+.pm-badge.pm-familiar { color: var(--pm-familiar); border-color: rgba(90,163,156,0.35); }
+.pm-badge.pm-strong   { color: var(--pm-strong);   border-color: var(--green-dim); }
+.pm-badge.pm-mastered { color: var(--pm-mastered); border-color: var(--green-dim); background: var(--green-dim); }
+.pm-badge.pm-review   { color: var(--pm-review);   border-color: var(--gold-dim); background: var(--gold-dim); }
+
+.pm-bar {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.pm-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--muted);
+  transition: width 0.5s cubic-bezier(.34,1.2,.64,1);
+}
+.pm-bar-fill.pm-new      { background: var(--pm-new); }
+.pm-bar-fill.pm-learning { background: var(--pm-learning); }
+.pm-bar-fill.pm-familiar { background: var(--pm-familiar); }
+.pm-bar-fill.pm-strong   { background: var(--pm-strong); }
+.pm-bar-fill.pm-mastered { background: var(--pm-mastered); }
+
+/* ── Header lead-in ─────────────────────────────────────────── */
+.practice-lead {
+  font-family: var(--font-b);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+/* ── Lock glyph (decorative; always beside text) ────────────── */
+.pm-lock { width: 12px; height: 12px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Locked Daily Practice ──────────────────────────────────── */
+/* Muted button, never a faded primary. Keeps opacity 1 so reduced-contrast
+   text stays readable; the lock icon + label carry the disabled meaning. */
+.btn-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  flex-shrink: 0;
+  background: var(--bg3);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+}
+.btn-locked:disabled { opacity: 1; cursor: not-allowed; }
+.btn-locked .pm-lock { width: 13px; height: 13px; }
+.practice-daily-locked .practice-daily-kicker { color: var(--muted); }
+.practice-daily-link {
+  display: inline-block;
+  width: auto;
+  margin-top: 12px;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  font-family: var(--font-b);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--green-text);
+  cursor: pointer;
+  text-align: left;
+}
+.practice-daily-link:hover { text-decoration: underline; }
+.practice-daily-link:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Your Mastery — unit accordions ─────────────────────────── */
+.pm-units { display: flex; flex-direction: column; gap: 8px; }
+.pm-unit {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.pm-unit.is-open { border-color: var(--border2); }
+/* Active unit — restrained green accent so the current frontier reads clearly. */
+.pm-unit-active { border-color: var(--green-dim); }
+.pm-unit-active.is-open { border-color: var(--green); }
+.pm-unit-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pm-unit-head:hover { background: var(--bg3); }
+.pm-unit-head:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: -2px; }
+
+/* Unit line-icon chip — one family, identical size/scale/treatment for all six. */
+.pm-unit-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.pm-unit-icon svg { width: 21px; height: 21px; }
+/* Locked unit — accessible reduced contrast, never broken-looking. */
+.pm-unit-locked .pm-unit-icon { color: var(--muted); }
+
+.pm-unit-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pm-unit-eyebrow {
+  font-family: var(--font-m, var(--font-b));
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pm-unit-name {
+  font-family: var(--font-d);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-top: 2px;
+}
+.pm-unit-locked .pm-unit-name { color: var(--text-sub); }
+
+/* Continuous unit progress bar — mastered / total concepts. */
+.pm-unit-bar {
+  display: block;
+  height: 4px;
+  margin-top: 8px;
+  max-width: 260px;
+  border-radius: 99px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.pm-unit-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width 0.5s cubic-bezier(.34,1.2,.64,1);
+}
+.pm-unit-completed .pm-unit-bar-fill { background: var(--pm-mastered); }
+.pm-unit-locked .pm-unit-bar-fill { background: var(--muted); }
+.pm-unit-meta {
+  font-family: var(--font-b);
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Unit status — plain text, small icon; never a large pill. */
+.pm-unit-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-b);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.pm-unit-status.is-active { color: var(--green-text); }
+.pm-unit-status.is-done { color: var(--pm-mastered); }
+.pm-unit-status.is-locked { color: var(--muted); }
+.pm-unit-status svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.4; }
+.pm-unit-status .pm-lock { stroke-width: 2; }
+
+.pm-unit-chev { flex-shrink: 0; display: flex; color: var(--muted); transition: transform 0.18s ease; }
+.pm-unit-chev svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+.pm-unit.is-open .pm-unit-chev { transform: rotate(90deg); }
+.pm-unit-panel { border-top: 1px solid var(--border); }
+.pm-unit-panel[hidden] { display: none; }
+
+/* ── Expanded unit: vertical mastery path ───────────────────── */
+.pm-skill-list { display: flex; flex-direction: column; padding: 4px 0; }
+.pm-skill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px 11px 40px;
+  background: none;
+  border: none;
+}
+/* Fine vertical connector running through the node column. */
+.pm-skill::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--border2);
+}
+.pm-skill-list > .pm-skill:first-child::before { top: 21px; }
+.pm-skill-list > .pm-skill:last-child::before { bottom: auto; height: 21px; }
+.pm-skill-open { cursor: pointer; transition: background 0.12s; }
+.pm-skill-open:hover { background: var(--bg3); }
+.pm-skill-open:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: -2px; }
+
+/* Path nodes — state also written in text; never colour alone. */
+.pm-node {
+  position: absolute;
+  left: 13px;
+  top: 15px;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.pm-node-locked { background: var(--bg2); border: 1.5px solid var(--border2); }
+.pm-node.pm-new { background: var(--pm-new); }
+.pm-node.pm-learning { background: var(--pm-learning); }
+.pm-node.pm-familiar { background: var(--pm-familiar); }
+.pm-node.pm-strong { background: var(--pm-strong); }
+.pm-node-mastered { background: var(--pm-mastered); display: flex; align-items: center; justify-content: center; }
+.pm-node-mastered svg { width: 9px; height: 9px; stroke: #fff; }
+.pm-node.is-due { outline: 2px solid var(--gold-text); outline-offset: 1px; }
+
+.pm-skill-main { flex: 1; min-width: 0; }
+.pm-skill-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pm-skill-name {
+  font-family: var(--font-b);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-skill-state {
+  font-family: var(--font-b);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.pm-skill-state .pm-state { font-weight: 700; }
+.pm-state.pm-new { color: var(--pm-new); }
+.pm-state.pm-learning { color: var(--pm-learning); }
+.pm-state.pm-familiar { color: var(--pm-familiar); }
+.pm-state.pm-strong { color: var(--pm-strong); }
+.pm-state.pm-mastered { color: var(--pm-mastered); }
+.pm-skill-date {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.pm-skill-chev { flex-shrink: 0; display: flex; color: var(--muted); }
+.pm-skill-chev svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* Locked skill — visible, muted, not interactive. No score/bar/date. */
+.pm-skill-locked { cursor: default; }
+.pm-skill-locked .pm-skill-name { color: var(--text-sub); }
+.pm-skill-sub {
+  font-family: var(--font-b);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.pm-skill-lock { flex-shrink: 0; display: flex; color: var(--muted2, var(--muted)); }
+
+/* "Show all N concepts" / "Show fewer" — progressive disclosure control. */
+.pm-skill-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--font-b);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--green-text);
+  transition: background 0.12s;
+}
+.pm-skill-more:hover { background: var(--bg3); }
+.pm-skill-more:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: -2px; }
+.pm-skill-more svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform 0.18s ease; }
+.pm-skill-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+/* One-shot unlock highlight — subtle, fades on its own, no looping. */
+@keyframes pmUnlockFlash {
+  0%   { background: var(--green-dim); }
+  100% { background: transparent; }
+}
+.pm-skill-flash { animation: pmUnlockFlash 2.4s ease-out 1; }
+@media (prefers-reduced-motion: reduce) {
+  .pm-skill-flash { animation: none; }
+}
+
+/* ── Narrow screens ─────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .pm-unit-bar { max-width: none; }
+  .pm-unit-status span:not(.pm-lock):last-child { display: none; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   FOCUSED SESSION SCREEN
+   ════════════════════════════════════════════════════════════ */
+.ps-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 14px;
+}
+.ps-exit {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+.ps-exit:hover { background: var(--bg3); color: var(--text); }
+.ps-exit:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: 2px; }
+.ps-exit svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+.ps-head-meta { min-width: 0; }
+.ps-head-title {
+  font-family: var(--font-d);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.ps-progress-label {
+  font-family: var(--font-num);
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.ps-track {
+  height: 4px;
+  border-radius: 99px;
+  background: var(--bg3);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.ps-track-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--green);
+  transition: width 0.35s ease;
+}
+.ps-question {
+  font-family: var(--font-d);
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+.ps-choices { display: flex; flex-direction: column; gap: 9px; }
+.ps-choice {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 14px;
+  min-height: 52px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.ps-choice:hover:not(:disabled) { background: var(--bg3); border-color: var(--border2); }
+.ps-choice:focus-visible { outline: 2px solid rgba(0,184,74,0.32); outline-offset: 2px; }
+.ps-choice:disabled { cursor: default; }
+.ps-choice-letter {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  font-family: var(--font-num);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ps-choice-text {
+  flex: 1;
+  font-family: var(--font-b);
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+.ps-choice-mark { flex-shrink: 0; color: var(--green-text); font-weight: 700; }
+.ps-choice.is-selected { border-color: var(--green); background: var(--bg3); }
+.ps-choice.is-selected .ps-choice-letter { border-color: var(--green); color: var(--green-text); }
+.ps-choice.is-correct {
+  border-color: var(--green-dim);
+  background: var(--green-dim);
+}
+.ps-choice.is-correct .ps-choice-letter { border-color: var(--green-text); color: var(--green-text); }
+.ps-choice.is-incorrect {
+  border-color: var(--red-dim);
+  background: var(--red-dim);
+}
+.ps-choice.is-incorrect .ps-choice-letter { border-color: var(--red-text); color: var(--red-text); }
+
+.ps-feedback {
+  margin-top: 16px;
+  padding: 13px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+}
+.ps-feedback.is-good { border-color: var(--green-dim); background: var(--green-dim); }
+.ps-feedback.is-note { border-color: var(--gold-dim); background: var(--gold-dim); }
+.ps-feedback-tag {
+  font-family: var(--font-b);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+.ps-feedback.is-good .ps-feedback-tag { color: var(--green-text); }
+.ps-feedback.is-note .ps-feedback-tag { color: var(--gold-text); }
+.ps-feedback-body {
+  font-family: var(--font-b);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+.ps-actions { margin-top: 20px; display: flex; gap: 10px; }
+.ps-actions .btn { flex: 1; }
+
+/* ── Completion ─────────────────────────────────────────────── */
+.pc-wrap { padding-top: 8px; }
+.pc-hero { text-align: center; margin-bottom: 22px; }
+.pc-hero-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--green-dim);
+}
+.pc-hero-icon svg { width: 24px; height: 24px; stroke: var(--green-text); fill: none; stroke-width: 2.4; }
+.pc-hero-title {
+  font-family: var(--font-d);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  color: var(--text);
+}
+.pc-hero-sub {
+  font-family: var(--font-b);
+  font-size: 0.84rem;
+  color: var(--text-sub);
+  margin-top: 5px;
+}
+.pc-stat-grid { display: flex; gap: 8px; margin-bottom: 22px; }
+.pc-stat {
+  flex: 1;
+  text-align: center;
+  padding: 12px 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pc-stat-val {
+  font-family: var(--font-num);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pc-stat-label {
+  font-family: var(--font-b);
+  font-size: 0.64rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.pc-section-title {
+  font-family: var(--font-d);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.pc-mastery-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.pc-mastery-row {
+  padding: 12px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pc-mastery-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.pc-mastery-name {
+  font-family: var(--font-b);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.pc-mastery-meta {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.pc-review-note {
+  font-family: var(--font-b);
+  font-size: 0.8rem;
+  color: var(--gold-text);
+  line-height: 1.5;
+  padding: 12px 14px;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.pc-actions { margin-top: 4px; }
+
+/* ════════════════════════════════════════════════════════════
+   MASTERY — Financial Fluency Ladder (premium, de-gamified)
+   ════════════════════════════════════════════════════════════ */
+.mastery-hero { margin: 4px 0 20px; }
+.mastery-h1 {
+  font-family: var(--font-d);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.16;
+  color: var(--text);
+  margin: 0;
+}
+.mastery-accent { color: var(--green-text); }
+.mastery-sub {
+  font-family: var(--font-b);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-sub);
+  margin: 12px 0 0;
+  max-width: 34ch;
+}
+
+/* ── Financial Fluency — the single progress metric ─────────── */
+.fluency-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+}
+.fluency-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.fluency-kicker {
+  font-family: var(--font-m, var(--font-b));
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--green-text);
+}
+.fluency-level {
+  font-family: var(--font-d);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 5px;
+}
+.fluency-pct {
+  font-family: var(--font-num);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.fluency-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.fluency-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--green);
+  transition: width 0.6s cubic-bezier(.34,1.05,.64,1);
+}
+.fluency-meta {
+  font-family: var(--font-b);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 9px;
+}
+
+/* ── The ladder ─────────────────────────────────────────────── */
+.fluency-ladder-section { margin-bottom: 22px; }
+.fl-ladder { display: flex; flex-direction: column; }
+.fl-level {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.fl-level:hover:not(.fl-level-locked) { background: var(--bg2); }
+.fl-level:focus-visible { outline: 2px solid rgba(15,138,72,0.35); outline-offset: -2px; }
+.fl-level-locked { cursor: default; opacity: 0.72; }
+
+/* Vertical connector behind the node column. */
+.fl-rail {
+  position: absolute;
+  left: 25px;
+  top: 50%;
+  height: 100%;
+  width: 2px;
+  background: var(--border2);
+  z-index: 0;
+}
+.fl-rail.is-last { display: none; }
+
+.fl-node {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num);
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.fl-node-current  { background: var(--green); color: #fff; }
+.fl-node-available { background: var(--bg3); color: var(--text-sub); border: 1px solid var(--border2); }
+.fl-node-done {
+  background: var(--green-dim);
+  color: var(--green-text);
+  border: 1px solid var(--green-dim);
+}
+.fl-node-done svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.6; }
+.fl-node-locked { background: var(--bg3); color: var(--muted); }
+.fl-node-locked .pm-lock { width: 14px; height: 14px; }
+
+.fl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fl-eyebrow {
+  font-family: var(--font-m, var(--font-b));
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fl-level-current .fl-eyebrow { color: var(--green-text); }
+.fl-name {
+  font-family: var(--font-d);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-top: 2px;
+}
+.fl-bar {
+  display: block;
+  height: 4px;
+  max-width: 200px;
+  margin-top: 9px;
+  border-radius: 99px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.fl-bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--green); }
+.fl-level-completed .fl-bar-fill { background: var(--green-text); }
+.fl-meta {
+  font-family: var(--font-b);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 7px;
+}
+.fl-chev { flex-shrink: 0; display: flex; color: var(--muted); }
+.fl-chev svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Continue Learning card ─────────────────────────────────── */
+.fl-continue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.12s;
+}
+.fl-continue:hover { background: var(--bg3); }
+.fl-continue:focus-visible { outline: 2px solid rgba(15,138,72,0.35); outline-offset: 2px; }
+.fl-continue-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--green-dim);
+  color: var(--green-text);
+}
+.fl-continue-icon svg { width: 20px; height: 20px; }
+.fl-continue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fl-continue-title { font-family: var(--font-d); font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.fl-continue-sub { font-family: var(--font-b); font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
+
+/* ════════════════════════════════════════════════════════════
+   MASTERY — premium pass: bigger type, more air, depth, hero art
+   (later cascade intentionally overrides the values above)
+   ════════════════════════════════════════════════════════════ */
+.mastery-hero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 30px;
+}
+.mastery-hero-text { flex: 1; min-width: 0; }
+.mastery-hero-art {
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+  margin-right: -8px;
+}
+.mastery-hero-art svg { width: 100%; height: 100%; display: block; }
+.mastery-h1 { font-size: 1.95rem; line-height: 1.12; letter-spacing: -0.03em; }
+.mastery-sub { font-size: 0.92rem; line-height: 1.55; margin-top: 14px; max-width: 26ch; }
+
+.practice-section-title { font-size: 1.18rem; }
+
+.fluency-card {
+  padding: 22px;
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 30px;
+}
+.fluency-kicker { font-size: 0.64rem; }
+.fluency-level { font-size: 1.12rem; margin-top: 6px; }
+.fluency-pct { font-size: 1.7rem; }
+.fluency-bar { height: 10px; }
+.fluency-meta { font-size: 0.8rem; margin-top: 12px; }
+
+.fluency-ladder-section { margin-bottom: 30px; }
+.fl-level { padding: 15px 10px; border-radius: 16px; }
+.fl-node { width: 40px; height: 40px; font-size: 1rem; }
+.fl-rail { left: 29px; }
+.fl-eyebrow { font-size: 0.62rem; }
+.fl-name { font-size: 1.1rem; }
+.fl-bar { height: 5px; max-width: 220px; margin-top: 10px; }
+.fl-meta { font-size: 0.76rem; margin-top: 8px; }
+.fl-chev svg { width: 20px; height: 20px; }
+
+.fl-continue { padding: 18px; border-radius: 18px; box-shadow: var(--shadow-md); }
+.fl-continue-icon { width: 48px; height: 48px; border-radius: 14px; }
+.fl-continue-icon svg { width: 24px; height: 24px; }
+.fl-continue-title { font-size: 1.05rem; }
+.fl-continue-sub { font-size: 0.78rem; margin-top: 4px; }
+
+.practice-daily { padding: 20px; border-radius: 18px; box-shadow: var(--shadow-md); margin-bottom: 30px; }
+.practice-daily-icon { width: 44px; height: 44px; border-radius: 12px; }
+.practice-daily-icon svg { width: 23px; height: 23px; }
+.practice-daily-kicker { font-size: 0.66rem; }
+.practice-daily-copy { font-size: 0.9rem; line-height: 1.5; }
+.practice-daily-cta { width: 100%; padding: 15px; font-size: 0.98rem; border-radius: 12px; }
+.practice-est { font-size: 0.8rem; }
+
+.practice-section-head { margin-bottom: 14px; }

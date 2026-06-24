@@ -1,0 +1,250 @@
+/* ============================================================
+   theme.css
+   Finlingo design system — restrained, editorial, finance-grade.
+
+   - Single accent: emerald green. Gold is reserved for streaks
+     only. Red is reserved for losses.
+   - No metallic gradients, no decorative shadows, no glow.
+   - Type: Inter (display + body), IBM Plex Mono (numerals only).
+   ============================================================ */
+
+/* ── DARK MODE (DEFAULT) ─────────────────────────────────────── */
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────
+     Deliberately near-black, with very small luminance steps so
+     elevation reads as structure rather than decoration.        */
+  --bg:       #0a0b0e;          /* page background              */
+  --bg2:      #14171d;          /* card / input surface (filled, no border needed) */
+  --bg3:      #1c2029;          /* hover, inactive fill         */
+  --surface:  #14171d;           /* elevated layers              */
+
+  /* ── Borders ─────────────────────────────────────────────────
+     Hairline first, structural second. Not "near-invisible".   */
+  --border:   #1f242e;
+  --border2:  #2c333f;
+
+  /* ── Text scale ──────────────────────────────────────────────
+     Off-white primary, no pure white anywhere. Body recedes;
+     headings hold the column.                                  */
+  --text:       #e6e8ec;
+  --text-sub:   #aab0bb;
+  --muted:      #7d8593;
+  --muted2:     #565d6a;
+
+  /* ── Accents ─────────────────────────────────────────────────
+     Emerald is the brand and the only positive signal.         */
+  --green:      #ffffff;
+  --green-dim:  rgba(255,255,255,0.10);
+  --green-text: #ffffff;
+
+  --red:        #c03b3b;
+  --red-dim:    rgba(192,59,59,0.12);
+  --red-text:   #e96a6a;
+
+  /* Gold — reserved for streaks. Flat tone, no gradient. */
+  --gold:       #b08a2c;
+  --gold-dim:   rgba(176,138,44,0.12);
+  --gold-text:  #d4a843;
+
+  /* Platinum — flat slate. No metallic gradients. */
+  --plat:               #aab2bf;
+  --plat-dim:           rgba(170,178,191,0.10);
+  --plat-text:          #e6e8ec;
+  --plat-border:        rgba(170,178,191,0.18);
+  --plat-border-strong: rgba(170,178,191,0.34);
+  --plat-card:          var(--bg2);
+  --plat-cta:           #e6e8ec;
+  --plat-cta-hover:     #ffffff;
+  --plat-shadow:        none;
+
+  /* Shared finance-accent surface (used for "boost" callouts) */
+  --boost-surface:      var(--bg2);
+  --boost-border:       rgba(255,255,255,0.18);
+  --boost-icon-surface: rgba(255,255,255,0.08);
+  --boost-icon-border:  rgba(255,255,255,0.16);
+  --boost-label:        var(--green-text);
+
+  /* High-contrast neutral surfaces (active tabs, dark chips) */
+  --contrast-strong-bg:       #1d222c;
+  --contrast-strong-bg-hover: #252b37;
+  --contrast-strong-text:     #f4f6fa;
+  --contrast-strong-border:   rgba(170,178,191,0.18);
+
+  /* ── Typography ──────────────────────────────────────────────
+     Single sans-serif (Inter) for everything textual.
+     IBM Plex Mono is RESERVED for numeric values: XP counts,
+     dollar amounts, percentages, ticker symbols. Use --font-num
+     ONLY for those. Labels, headings, body, buttons, descriptions,
+     and form labels all use --font-b.
+
+     --font-m is kept for backward compatibility but now points
+     at Inter — every legacy `var(--font-m)` site renders as
+     sans-serif. Numeric selectors have been migrated to --font-num. */
+  --font-d:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-b:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-m:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── Geometry ────────────────────────────────────────────────
+     Slimmer radii. Cards aren't pillows.                       */
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-pill:  99px;
+
+  /* ── Shadows — minimal. Used for the app shell only. ──────── */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.45);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
+
+  /* ── App shell ── */
+  --shell-bg:     #07080a;
+  --shell-shadow: 0 16px 48px rgba(0,0,0,0.55);
+
+  /* ── Topbar / Nav ── */
+  --topbar-bg:  #0b0d10;
+  --nav-bg:     #0b0d10;
+
+  /* ── Primary button — high contrast, flat. ── */
+  --btn-primary-bg:   #e6e8ec;
+  --btn-primary-text: #0b0d10;
+}
+
+
+/* ── LIGHT MODE ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:       #ffffff;
+  --bg2:      #f6f7f9;
+  --bg3:      #eef0f3;
+  --surface:  #ffffff;
+
+  --border:   #e6e8ec;
+  --border2:  #d2d6dd;
+
+  --text:     #0b0d10;
+  --text-sub: #3a414c;
+  --muted:    #6b7280;
+  --muted2:   #98a0ad;
+
+  --green:      #ffffff;
+  --green-dim:  rgba(255,255,255,0.10);
+  --green-text: #ffffff;
+
+  --red:        #c0322f;
+  --red-dim:    rgba(192,50,47,0.08);
+  --red-text:   #a82323;
+
+  --gold:       #9a7616;
+  --gold-dim:   rgba(154,118,22,0.10);
+  --gold-text:  #7a5e10;
+
+  --plat:               #5d6775;
+  --plat-dim:           rgba(93,103,117,0.10);
+  --plat-text:          #1f2937;
+  --plat-border:        rgba(93,103,117,0.18);
+  --plat-border-strong: rgba(93,103,117,0.34);
+  --plat-card:          var(--bg2);
+  --plat-cta:           #0b0d10;
+  --plat-cta-hover:     #1d222c;
+  --plat-shadow:        none;
+
+  --boost-surface:      var(--bg2);
+  --boost-border:       rgba(15,138,72,0.22);
+  --boost-icon-surface: rgba(15,138,72,0.10);
+  --boost-icon-border:  rgba(15,138,72,0.20);
+  --boost-label:        var(--green-text);
+
+  --contrast-strong-bg:       #0b0d10;
+  --contrast-strong-bg-hover: #1d222c;
+  --contrast-strong-text:     #ffffff;
+  --contrast-strong-border:   rgba(11,13,16,0.18);
+
+  --shadow-sm:  0 1px 2px rgba(15,18,24,0.06);
+  --shadow-md:  0 4px 16px rgba(15,18,24,0.08);
+  --shadow-lg:  0 12px 40px rgba(15,18,24,0.10);
+
+  --shell-bg:     #f1f3f6;
+  --shell-shadow: 0 16px 48px rgba(15,18,24,0.10);
+
+  --topbar-bg:  #ffffff;
+  --nav-bg:     #ffffff;
+
+  --btn-primary-bg:   #0b0d10;
+  --btn-primary-text: #ffffff;
+}
+
+
+/* ── GLOBAL SMOOTH TRANSITION (on theme toggle) ──────────────── */
+body.theme-transitioning,
+body.theme-transitioning * {
+  transition:
+    background-color 0.18s ease,
+    border-color     0.18s ease,
+    color            0.18s ease,
+    box-shadow       0.18s ease !important;
+}
+
+
+/* ── BODY-COPY SOFTENING ─────────────────────────────────────── */
+.course-body       { color: var(--text-sub); }
+.course-body p     { color: var(--text-sub); }
+.course-body strong{ color: var(--text); }
+
+.choice       { color: var(--text-sub); }
+.choice.selected,
+.choice.correct,
+.choice.incorrect { color: var(--text); }
+
+.fb-body { color: var(--muted); }
+
+.recent-title  { color: var(--text); }
+.recent-unit   { color: var(--muted2); }
+
+.next-sub { color: var(--muted); }
+
+.lb-name { color: var(--text); }
+.lb-sub  { color: var(--muted2); }
+.lb-xp   { color: var(--text-sub); }
+
+.pstat-val       { color: var(--text); }
+.profile-row-val { color: var(--text-sub); }
+
+.tier-desc { color: var(--muted); }
+
+.result-sub { color: var(--muted); }
+
+.auth-tagline { color: var(--muted); }
+
+
+/* ── ICON SOFTENING ──────────────────────────────────────────── */
+.pill svg { opacity: 0.8; }
+
+.nb svg { opacity: 0.7; }
+.nb.active svg { opacity: 1; }
+
+.profile-row-icon svg { opacity: 0.75; }
+
+.pn.locked .pn-icon svg  { opacity: 0.45; }
+.pn.completed .pn-icon svg { opacity: 0.85; }
+
+
+/* ── THEME TOGGLE BUTTON ─────────────────────────────────────── */
+.theme-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.14s, border-color 0.14s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--bg3); border-color: var(--border2); }
+.theme-toggle svg   { width: 13px; height: 13px; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+
+.theme-toggle .icon-sun  { display: none; }
+.theme-toggle .icon-moon { display: block; }
+[data-theme="light"] .theme-toggle .icon-sun  { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }

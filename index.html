@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
+  <title>Finlingo</title>
+
+  <!-- SEO / PWA meta tags -->
+  <meta name="description" content="Learn the language of finance. Daily lessons in markets, banking, and investing for students and early-career professionals."/>
+  <meta name="theme-color" content="#0a0a0a"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Finlingo"/>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text y='.9em' font-size='72' x='12'>F</text></svg>"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text y='.86em' font-size='66' x='20' fill='%23e6e8ec'>F</text></svg>"/>
+
+  <!-- PWA manifest — injected dynamically by js/app.js -->
+  <link rel="manifest" id="pwaManifest"/>
+
+  <!-- Google Fonts — Inter for everything textual, IBM Plex Mono for numerals only -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!--
+    CSS — split by concern:
+      base.css    → variables, reset, app shell, topbar, nav, shared components
+      screens.css → styles for each screen (auth, profile, leaderboard, path, course, quiz, result)
+      ui.css      → floating/overlay components (toast, modal, edit sheet, share card, banners)
+  -->
+  <link rel="stylesheet" href="theme.css"/>
+  <link rel="stylesheet" href="base.css?v=redesign-2"/>
+  <link rel="stylesheet" href="screens.css?v=redesign-2"/>
+  <link rel="stylesheet" href="ui.css?v=free-clean-1"/>
+  <link rel="stylesheet" href="practice.css?v=redesign-2"/>
+  <!-- Visual refinement pass — loaded last so it wins the cascade. -->
+  <link rel="stylesheet" href="refine.css?v=white-selection-1"/>
+  <!-- Ask-first components — loaded after refine so they win. -->
+  <link rel="stylesheet" href="coach.css?v=stream-reveal-1"/>
+</head>
+<body class="entry-gate-visible">
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SHELL
+     The outer .app card contains every screen, the topbar,
+     the bottom nav, and all overlay/modal elements.
+════════════════════════════════════════════════════════════ -->
+<div class="app">
+
+  <div class="xp-pop" id="xpPop" aria-hidden="true"></div>
+  <div class="xp-pop" id="cashPop" aria-hidden="true" style="right:auto;left:50%;transform:translateX(-50%)"></div>
+
+  <!-- ── TOPBAR (hidden until authenticated) ───────────────── -->
+  <div class="topbar" id="mainTopbar" style="display:none;">
+    <div class="topbar-row">
+      <div class="topbar-lead">
+        <button class="nav-hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawerRoot" onclick="NavDrawer && NavDrawer.open()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        </button>
+        <div class="brand"><span class="brand-fin">Fin</span><span class="brand-lingo">lingo</span></div>
+      </div>
+      <!-- New Chat — shown only on the Ask page (toggled by syncTopbarNewChat()). -->
+      <button class="topbar-newchat" id="topbarNewChat" type="button" aria-label="Start new chat" hidden
+              onclick="window.CoachPage && CoachPage.newChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── LEFT NAV DRAWER (chats + account) — built by navDrawer.js ── -->
+  <div id="navDrawerRoot" aria-hidden="true"></div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: AUTH
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen auth-page-screen" id="authScreen" aria-labelledby="authScreenTitle">
+    <header class="auth-page-header">
+      <button class="auth-back-btn" type="button" aria-label="Back" onclick="closeAuthModal()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </header>
+    <div class="auth-wrap">
+      <div class="auth-logo" id="authScreenTitle"><span class="brand-fin">Fin</span><span class="brand-lingo">lingo</span></div>
+      <div class="auth-tagline">Learn the language of finance</div>
+
+      <!-- Post-signup success state -->
+      <div class="auth-success-screen" id="authSuccessScreen">
+        <div class="auth-success-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="auth-success-title" id="authSuccessTitle">Account created!</div>
+        <div class="auth-success-sub"   id="authSuccessSub">Welcome to Finlingo. Let's start learning.</div>
+        <button class="btn btn-primary" onclick="enterApp()" style="width:100%;">Get Started <svg class="ui-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+
+      <!-- Normal auth form (rendered by auth.js) -->
+      <div id="authFormWrap" style="width:100%">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabSignIn" onclick="switchAuthTab('signin')">Sign in</button>
+          <button class="auth-tab"        id="tabCreate" onclick="switchAuthTab('create')">Create account</button>
+        </div>
+        <!-- Auth-level error/success banner -->
+        <div class="auth-banner" id="authBanner">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="authBannerMsg">Error message</span>
+        </div>
+        <!-- Fields injected here by renderAuthForm() in auth.js -->
+        <div class="auth-form" id="authForm"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+     SCREEN: ASK
+     Built by renderCoach() in coachPage.js.
+═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="coachScreen">
+    <div id="coachRoot"></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+     SCREEN: HOME
+═══════════════════════════════════════════════════════ -->
+<div class="screen" id="homeScreen">
+  <div class="home-dashboard">
+
+  <!-- Notification opt-in prompt (shown once, conditionally) -->
+  <div class="notif-prompt" id="notifPrompt">
+    <div class="notif-prompt-icon">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div class="notif-prompt-info">
+      <div class="notif-prompt-title">Daily learning reminder</div>
+      <div class="notif-prompt-sub">Get a quiet reminder to review one concept.</div>
+    </div>
+    <button class="notif-prompt-btn"     onclick="requestNotifPermission()">Enable</button>
+    <button class="notif-prompt-dismiss" onclick="dismissNotifPrompt()" style="font-size:0.9rem;">✕</button>
+  </div>
+
+  <!-- ── 1. WELCOME ──────────────────────────────────────── -->
+  <div class="home-welcome">
+    <div class="home-welcome-kicker" id="homeWelcomeKicker">Welcome to Finlingo</div>
+    <div class="home-welcome-title" id="homeWelcomeTitle">Build your financial confidence.</div>
+    <div class="home-welcome-copy">Finlingo teaches money through real-world decisions — short lessons and everyday scenarios you'll actually use.</div>
+  </div>
+
+  <!-- ── 2. CONTINUE LEARNING ────────────────────────────── -->
+  <div class="home-hero-card">
+    <div class="hero-eyebrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           style="width:11px;height:11px;flex-shrink:0;">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+      <span id="heroEyebrow">Continue Learning</span>
+    </div>
+    <div class="hero-title" id="nextTitle">Lesson 1</div>
+    <div class="hero-progress" id="heroProgress"></div>
+    <div class="hero-sub"   id="nextSub">Start your first lesson.</div>
+    <button class="btn hero-btn" id="continueBtn">Start Learning</button>
+  </div>
+
+  <!-- ── 3. FINANCIAL CONFIDENCE ─────────────────────────── -->
+  <section class="home-section home-skills-section">
+    <div class="home-section-head">
+      <div class="home-section-copy">
+        <div class="home-section-title">Financial Confidence</div>
+      </div>
+    </div>
+    <div id="skillProgressCard"></div>
+  </section>
+
+  <!-- ── 5. MARKET SNAPSHOT ──────────────────────────────── -->
+  <section class="home-section home-market-section">
+    <div class="home-section-head">
+      <div class="home-section-copy">
+        <div class="home-section-title">Market Snapshot</div>
+      </div>
+    </div>
+    <div id="homeMarketSnapshot"></div>
+  </section>
+
+  </div>
+</div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: PRACTICE
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="ranksScreen">
+    <!-- Mastery-based Practice page, rendered by renderPracticePage() in practice.js -->
+    <div id="practiceRoot"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: PRACTICE SESSION (focused adaptive session)
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="practiceSessionScreen">
+    <div id="practiceSessionRoot"></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: PATH (lesson list)
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="pathScreen">
+    <!-- Hero, filter chips, lesson sections + learning path injected by renderPath() in app.js -->
+    <div class="lesson-path" id="lessonPath"></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: MICRO-LESSON (interactive unit player)
+       Driven by microLessons.js (openMicroUnit / MicroUnit).
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="microLessonScreen">
+    <div id="microUnitRoot"></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: COURSE (lesson intro / reading)
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="courseScreen">
+    <div class="course-header">
+      <div class="course-header-top">
+        <div>
+          <div class="course-unit"  id="courseUnit">Finance Foundations</div>
+          <div class="course-title" id="courseTitle">Lesson 1 — What Is a Stock?</div>
+        </div>
+        <button type="button" class="ask-finlingo-btn" onclick="openAskFinLingo('lesson')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+          Ask
+        </button>
+      </div>
+      <!-- Reading-time, question-count, difficulty chips -->
+      <div class="course-meta"  id="courseMeta"></div>
+      <div class="lesson-ai-tools" aria-label="Learning tools">
+        <button type="button" onclick="runAskFinLingoMode('example','lesson')">Give Example</button>
+        <button type="button" onclick="runAskFinLingoMode('quiz','lesson')">Quiz Me</button>
+        <button type="button" onclick="runAskFinLingoMode('challenge','lesson')">Challenge Me</button>
+        <button type="button" onclick="runAskFinLingoMode('connect_known','lesson')">Connect This to What I Know</button>
+      </div>
+    </div>
+    <!-- SVG visual + HTML reading body injected by openCourse() in quiz.js -->
+    <div class="course-body" id="courseBody"></div>
+    <div class="action-row course-action-row">
+      <button class="btn btn-secondary" id="coursePrevBtn" style="display:none">Previous</button>
+      <button class="btn btn-primary" id="startQuizBtn">Start Quiz</button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: QUIZ
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="quizScreen">
+    <div class="quiz-meta-row">
+      <span class="quiz-label" id="quizProg">Question 1 of 3</span>
+      <span class="quiz-label" id="quizLesson">Lesson 1</span>
+    </div>
+    <div class="quiz-track"><div class="quiz-fill" id="quizFill" style="width:0%"></div></div>
+    <!-- Unit chip -->
+    <div class="unit-chip">
+      <svg viewBox="0 0 24 24" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span id="unitText">Unit 1 • Money & Markets</span>
+    </div>
+    <div class="quiz-momentum" id="quizMomentum" style="display:none;"></div>
+    <!-- Question text -->
+    <div class="question" id="questionText">Loading…</div>
+    <!-- Answer choices injected by renderQuestion() in quiz.js -->
+    <div class="choices" id="choices"></div>
+    <!-- Feedback box — updated by checkAnswer() in quiz.js -->
+    <div class="fb-box" id="fbBox">
+      <div class="fb-head neutral">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Pick an answer
+      </div>
+      <div class="fb-body">Choose the one that fits best.</div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-secondary" id="checkBtn" disabled>Check</button>
+      <button class="btn btn-primary"   id="nextBtn"  disabled>Next</button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: RESULT
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="resultScreen">
+    <div class="result-hero">
+      <div class="result-icon" id="resultIcon">
+        <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4H4a2 2 0 0 0-2 2v1c0 4.4 2.9 8.2 7 9.5M17 4h3a2 2 0 0 1 2 2v1c0 4.4-2.9 8.2-7 9.5M5 4h14"/></svg>
+      </div>
+      <div class="result-title" id="resultTitle">Lesson Complete</div>
+      <div class="result-sub"   id="resultSub">Review what you learned and continue when ready.</div>
+    </div>
+    <div class="result-grid">
+      <div class="rs"><div class="rs-label">Score</div>    <div class="rs-val" id="rScore">—</div></div>
+      <div class="rs"><div class="rs-label">Questions</div><div class="rs-val" id="rXp">—</div></div>
+      <div class="rs"><div class="rs-label">Lessons Completed</div><div class="rs-val" id="rLevel">—</div></div>
+      <div class="rs"><div class="rs-label">Concepts Reviewed</div><div class="rs-val" id="rStreak">—</div></div>
+      <div class="rs"><div class="rs-label">Reviews Due</div><div class="rs-val" id="rCash">—</div></div>
+    </div>
+    <div class="result-ai-card" id="resultAiCard" style="display:none;">
+      <div>
+        <span>Reinforce this lesson</span>
+        <strong>Check your understanding with three new questions.</strong>
+      </div>
+      <button type="button" onclick="runAskFinLingoMode('quiz','lesson')">Quiz Me</button>
+    </div>
+    <div class="lesson-ai-tools result-ai-tools" id="resultAiTools" aria-label="Learning tools" style="display:none;">
+      <button type="button" onclick="runAskFinLingoMode('connect_known','lesson')">Connect This to What I Know</button>
+      <button type="button" onclick="runAskFinLingoMode('example','lesson')">Give Example</button>
+      <button type="button" onclick="runAskFinLingoMode('challenge','lesson')">Challenge Me</button>
+    </div>
+    <div class="lesson-confusion-card" id="lessonConfusionCard" style="display:none;">
+      <div>
+        <span>Learning memory</span>
+        <strong>What part was confusing?</strong>
+        <p>FinLingo will use this locally to make future explanations clearer.</p>
+      </div>
+      <textarea id="lessonConfusionInput" rows="2" maxlength="260" placeholder="Example: diversification, bond prices, P/E ratio..."></textarea>
+      <button type="button" onclick="saveLessonConfusionMemory()">Save note</button>
+    </div>
+    <!-- Share card -->
+    <div class="share-card-wrap" id="shareCardWrap" style="display:none;">
+      <canvas id="shareCanvas" width="600" height="300" style="display:none;"></canvas>
+      <div class="share-preview" id="sharePreview"></div>
+      <button class="btn btn-share" id="shareBtn" onclick="generateShareCard()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:5px;">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Share progress
+      </button>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-secondary" id="backHomeBtn">Home</button>
+      <button class="btn btn-primary"   id="nextLessonBtn">Next Lesson</button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: PROFILE
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="profileScreen">
+    <!-- Avatar, name, email, learning profile badge -->
+    <div class="profile-header">
+      <div class="avatar-ring" onclick="openEditSheet('avatar')" id="avatarRing">
+        <span class="avatar-initials" id="avatarInitials">?</span>
+        <div class="avatar-edit-badge">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </div>
+      <div class="profile-name-display"  id="profileNameDisplay">—</div>
+      <div class="profile-email-display" id="profileEmailDisplay">—</div>
+      <div class="profile-level-badge"   id="profileLevelBadge">Learning profile</div>
+      <div id="profileBoostBadge" class="compounding-boost-slot profile-boost-slot"></div>
+    </div>
+
+    <!-- Learning progress stats -->
+    <div class="profile-stats-grid">
+      <div class="pstat"><div class="pstat-val" id="pstatXp">0</div>    <div class="pstat-label">Lessons completed</div></div>
+      <div class="pstat"><div class="pstat-val" id="pstatStreak">0</div><div class="pstat-label">Concepts reviewed</div></div>
+      <div class="pstat"><div class="pstat-val" id="pstatAcc">—</div>   <div class="pstat-label">Accuracy</div></div>
+      <div class="pstat"><div class="pstat-val" id="pstatCash">0</div><div class="pstat-label">Reviews due</div></div>
+    </div>
+    <!-- Tab switcher -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchProfileTab('account')">Account</button>
+      <button class="profile-tab"        onclick="switchProfileTab('progress')">Progress</button>
+    </div>
+
+    <!-- ── Account Tab ───────────────────────────────────── -->
+    <div class="profile-tab-panel active" id="ptab-account">
+      <div class="profile-section-title">Account</div>
+      <div class="profile-card">
+        <div class="profile-row">
+          <div class="profile-row-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div class="profile-row-info">
+            <div class="profile-row-label">Display Name</div>
+            <div class="profile-row-val" id="pRowName">—</div>
+          </div>
+          <button class="profile-row-action" onclick="openEditSheet('name')">Edit</button>
+        </div>
+        <div class="profile-row">
+          <div class="profile-row-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="profile-row-info">
+            <div class="profile-row-label">Email</div>
+            <div class="profile-row-val" id="pRowEmail">—</div>
+          </div>
+          <button class="profile-row-action" onclick="openEditSheet('email')">Edit</button>
+        </div>
+        <div class="profile-row">
+          <div class="profile-row-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="profile-row-info">
+            <div class="profile-row-label">Password</div>
+            <div class="profile-row-val">••••••••</div>
+          </div>
+          <button class="profile-row-action" onclick="openEditSheet('password')">Change</button>
+        </div>
+      </div>
+
+      <div class="profile-section-title">Settings</div>
+      <div class="profile-card">
+        <div class="profile-row">
+          <div class="profile-row-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07A10 10 0 0 0 19.07 4.93z"/></svg></div>
+          <div class="profile-row-info">
+            <div class="profile-row-label">Member Since</div>
+            <div class="profile-row-val" id="pRowJoined">—</div>
+          </div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-row-icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+          <div class="profile-row-info">
+            <div class="profile-row-label">Reset Progress</div>
+            <div class="profile-row-val placeholder">Clears lessons, reviews, and accuracy</div>
+          </div>
+          <button class="profile-row-action" onclick="confirmReset()" style="color:var(--red-text);border-color:var(--red-dim);">Reset</button>
+        </div>
+      </div>
+      <div id="profileDevSection" style="display:none;">
+        <div class="profile-section-title">Developer</div>
+        <div class="profile-card profile-dev-card" id="profileDevCard"></div>
+      </div>
+      <button class="btn btn-danger" onclick="signOut()" style="margin-top:4px;">Sign Out</button>
+    </div>
+
+    <!-- ── Progress Tab ──────────────────────────────────── -->
+    <div class="profile-tab-panel" id="ptab-progress">
+      <div id="confidenceScoreCard"></div>
+      <div id="masterySummaryCard"></div>
+      <div id="fluencySummaryCard"></div>
+      <div class="profile-section-title" style="margin-top:4px;">Unit Progress</div>
+      <!-- Progress bars injected by renderProfileScreen() in profile.js -->
+      <div class="progress-list" id="unitProgressList"></div>
+    </div>
+
+  </div><!-- /profileScreen -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       OVERLAY COMPONENTS
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Toast notification -->
+  <div class="toast" id="appToast"></div>
+
+  <!-- In-app confirm/info modal -->
+  <div class="modal-overlay" id="appModal">
+    <div class="modal-box" id="appModalBox">
+      <div class="modal-header">
+        <button class="modal-close" id="modalCloseBtn" aria-label="Close" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+            <path d="M6 6l12 12"/>
+            <path d="M18 6L6 18"/>
+          </svg>
+        </button>
+        <div class="modal-icon" id="modalIcon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <div class="modal-title" id="modalTitle">Confirm</div>
+      </div>
+      <div class="modal-body"    id="modalBody">Are you sure?</div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Edit bottom sheet (name / email / password / avatar) -->
+  <div class="edit-overlay" id="editOverlay" onclick="closeEditSheet(event)">
+    <div class="edit-sheet" onclick="event.stopPropagation()">
+      <div class="edit-sheet-title">
+        <span id="editSheetTitle">Edit</span>
+        <button class="edit-close" onclick="closeEditSheet()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="edit-fields" id="editFields"></div>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Settings bottom sheet (appearance / account / reset / sign out) -->
+  <div class="edit-overlay" id="settingsOverlay" onclick="closeSettings(event)">
+    <div class="edit-sheet" onclick="event.stopPropagation()" role="dialog" aria-label="Settings" aria-modal="true">
+      <div class="edit-sheet-title">
+        <span>Settings</span>
+        <button class="edit-close" onclick="closeSettings()" aria-label="Close settings">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="settingsSheetBody"></div>
+    </div>
+  </div>
+
+  <!-- PWA install banner -->
+  <div class="install-banner" id="installBanner">
+    <div class="install-banner-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="install-banner-info">
+      <div class="install-banner-title">Add to Home Screen</div>
+      <div class="install-banner-sub">Add Finlingo to your home screen for quick access.</div>
+    </div>
+    <button class="install-banner-btn"   onclick="installPWA()">Install</button>
+    <button class="install-banner-close" onclick="dismissInstall()" style="font-size:0.9rem;">✕</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: MARKET — Interactive finance features hub
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="marketScreen">
+    <!-- Hero + market story injected by renderMarket() in market.js -->
+    <div id="marketFeatureList"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       MARKET FEATURE MODAL
+       Full-screen overlay for scenarios, portfolio simulator.
+       Content injected by market.js.
+  ═══════════════════════════════════════════════════════ -->
+  <div class="mkt-modal-overlay" id="marketModal">
+    <div class="mkt-modal-box" id="marketModalBox">
+      <!-- content injected by market.js -->
+    </div>
+  </div>
+
+  <div class="ask-tutor-backdrop" id="askTutorBackdrop" onclick="closeAskFinLingo()"></div>
+  <aside class="ask-tutor-panel" id="askTutorPanel" aria-hidden="true" aria-labelledby="askTutorTitle">
+    <div class="ask-tutor-head">
+      <div>
+        <div class="ask-tutor-eyebrow">Ask</div>
+        <div class="ask-tutor-title" id="askTutorTitle">Ask</div>
+        <div class="ask-tutor-context" id="askTutorContext">Plain-English finance help</div>
+      </div>
+      <button type="button" class="ask-tutor-close" onclick="closeAskFinLingo()" aria-label="Close Ask">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ask-tutor-quick-actions" id="askTutorQuickActions"></div>
+    <div class="ask-tutor-messages" id="askTutorMessages" aria-live="polite"></div>
+    <div class="ask-tutor-boundary">Educational explanations only — no personalized investment, tax, or legal advice.</div>
+    <form class="ask-tutor-form" id="askTutorForm" onsubmit="submitAskFinLingo(event)">
+      <label class="sr-only" for="askTutorInput">Ask a finance question</label>
+      <textarea id="askTutorInput" rows="3" maxlength="1000" placeholder="Ask about this concept…" onkeydown="handleAskFinLingoKeydown(event)"></textarea>
+      <div class="ask-tutor-form-foot">
+        <span>Enter to send · Shift+Enter for a new line</span>
+        <button type="submit" class="ask-tutor-send" id="askTutorSend" aria-label="Send question">
+          <svg class="ui-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </aside>
+  <button type="button" class="ask-floating-button" id="askFloatingButton" onclick="openAskFinLingo()" aria-label="Open Ask">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+    <span>Ask</span>
+  </button>
+
+  <!-- ══════════════════════════════════════════════════════
+       GUIDED DEMO
+       A polished, scripted walkthrough of the learning loop.
+       Markup injected by claudeDemo.js.
+  ═══════════════════════════════════════════════════════ -->
+  <div class="claude-demo-overlay" id="claudeDemoOverlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="FinLingo guided demo"></div>
+
+  <!-- Chat history slide-over (Ask conversations). Injected by chats.js. -->
+  <div class="chat-history-overlay" id="chatHistoryOverlay" aria-hidden="true"></div>
+
+<!--
+  JAVASCRIPT — load order matters!
+  Each file depends on the ones above it.
+
+  1. data.js      → constants only (no dependencies)
+  2. supabase.js  → Supabase API helpers (no dependencies)
+  3. state.js     → S, save(), today(), getLevel() — needs data.js + supabase.js
+  4. progression.js → central rewards + progression summaries
+  5. reviewEngine.js → weak areas, mastery, spaced review queue
+  6. auth.js      → auth form, doAuth(), enterApp() — needs state.js + supabase.js + ui functions
+  7. quiz.js      → openCourse(), startLesson(), etc. — needs state.js + data.js
+  8. profile.js   → renderProfileScreen(), signOut(), etc. — needs state.js + data.js
+  9. app.js       → topbar, screens, home, ranks, path, PWA, init — needs ALL of the above
+-->
+
+<script src="uiIcons.js?v=newchat-1"></script>
+<script src="data.js?v=desktop-1"></script>
+<script src="lessonBank.js"></script>
+<script src="dailyQuestionBank.js"></script>
+<script src="supabase.js"></script>
+<script src="state.js?v=free-clean-1"></script>
+<script src="progression.js?v=free-clean-1"></script>
+<script src="reviewEngine.js"></script>
+<script src="auth.js"></script>
+<script src="quiz.js?v=ai-features-1"></script>
+<script src="questionEngine.js"></script>
+<script src="profile.js?v=redesign-1"></script>
+<script src="onboarding.js?v=app-demo-1"></script>
+<script src="personalization.js"></script>
+<script src="dailyLoop.js"></script>
+<script src="fluencyEngine.js"></script>
+<script src="app.js?v=swipe-delete-1"></script>
+<script src="market.js?v=market-qqq-2"></script>
+<script src="practice.js?v=desktop-1"></script>
+<script src="tutor.js?v=ask-v3-1"></script>
+<script src="microUnits.js?v=slides-1"></script>
+<script src="microLessons.js?v=swipe-delete-1"></script>
+<script src="chats.js?v=market-topic-display-1"></script>
+<script src="coachPage.js?v=stream-reveal-1"></script>
+<script src="learnSwipe.js?v=swipe-delete-1"></script>
+<script src="navDrawer.js?v=newchat-1"></script>
+
+</body>
+</html>
