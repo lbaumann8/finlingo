@@ -3163,6 +3163,16 @@ function renderV3LearnWorkspace(container) {
     if (info.started) return `Lesson ${Math.min(info.total, info.currentLessonIndex + 1)} of ${info.total}`;
     return `${info.total} lesson${info.total === 1 ? '' : 's'} · Not started`;
   };
+  // Progress fill = current lesson / total, so it stays in lockstep with the
+  // "Lesson X of Y" line: Lesson 1 of 5 is exactly 20%, not 0%. We intentionally
+  // do NOT gate this on a lesson being marked complete.
+  const _progressPct = info => {
+    if (!info.started || info.completed) return 0;
+    const lesson = Math.min(info.total, info.currentLessonIndex + 1);
+    return Math.round((lesson / Math.max(1, info.total)) * 100);
+  };
+  // Subtle right-facing chevron used as an affordance on every unit card.
+  const _chevron = '<svg class="v3-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   const _a11y = (title, info) => {
     if (info.completed) return `Open review for ${title}, ${_subtitle(info)}`;
     if (info.status === 'recap_pending') return `Open ${title}, recap quiz next`;
@@ -3205,8 +3215,9 @@ function renderV3LearnWorkspace(container) {
             <span class="v3-unit-copy">
               <strong>${title}</strong>
               <small>${_subtitle(card.info)}</small>
-              ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${Math.round((card.info.completedCount / Math.max(1, card.info.total)) * 100)}%"></i></span>` : ''}
+              ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(card.info)}%"></i></span>` : ''}
             </span>
+            ${_chevron}
           </button>
         </div>
         <button type="button" class="v3-unit-kbd-delete" aria-label="Delete ${title}" onclick="LearnUnitDelete.request('${uid}', { via: 'keyboard' })">Delete unit</button>
@@ -3222,8 +3233,9 @@ function renderV3LearnWorkspace(container) {
         <span class="v3-unit-copy">
           <strong>${title}</strong>
           <small>${_subtitle(card.info)}</small>
-          ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${Math.round((card.info.completedCount / Math.max(1, card.info.total)) * 100)}%"></i></span>` : ''}
+          ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(card.info)}%"></i></span>` : ''}
         </span>
+        ${_chevron}
       </button>`;
   };
   // Active units (in-progress + not-started) share one unlabeled list so there
@@ -3276,21 +3288,56 @@ function renderV3LearnWorkspace(container) {
   });
   const presetUnits = _groupedList(presetCards, _presetCard);
 
+  // ── Continue learning: one featured card for the most-recently-opened
+  // in-progress unit across both tabs. Clicking it reopens the current lesson.
+  // Hidden entirely (no empty space) when nothing is in progress.
+  const _resumeCandidates = myCards
+    .map(c => ({ kind: 'ai', unit: c.unit, info: c.info, openId: c.unit.id }))
+    .concat(presetCards.map(c => ({ kind: 'preset', unit: c.unit, info: c.info, openId: 'preset_unit_' + Number(c.unit.id) })))
+    .filter(c => c.info.started && !c.info.completed)
+    .sort((a, b) => _ts(b.info.lastOpenedAt) - _ts(a.info.lastOpenedAt));
+  const _resume = _resumeCandidates[0] || null;
+  const continueSection = _resume ? (() => {
+    const rawTitle = _resume.kind === 'ai'
+      ? cleanGeneratedListItemText(_resume.unit.title || 'Generated unit')
+      : (_resume.unit.title || _resume.unit.name || 'Preset unit');
+    const title = escapeAppHtml(rawTitle);
+    const oid = escapeAppHtml(String(_resume.openId));
+    const sub = _subtitle(_resume.info);
+    return `
+      <section class="v3-continue" aria-label="Continue learning">
+        <span class="v3-continue-label">Continue learning</span>
+        <button type="button" class="v3-continue-card" aria-label="Resume ${title}, ${escapeAppHtml(sub)}" onclick="openMicroUnit('${oid}')">
+          <span class="v3-unit-icon">${_learnUnitIcon(_resume.kind)}</span>
+          <span class="v3-unit-copy">
+            <strong>${title}</strong>
+            <small>${sub}</small>
+            <span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(_resume.info)}%"></i></span>
+          </span>
+          <span class="v3-continue-cta">Continue${_chevron}</span>
+        </button>
+      </section>`;
+  })() : '';
+
   const editBtn = '';
 
   container.innerHTML = `
     <div class="v3-learn-shell">
       <header class="v3-learn-header">
-        <div>
-          <span class="v3-learn-kicker">Learn</span>
-          <h1>Your learning path,<br>built on demand.</h1>
-          <p>Start with a question. FinLingo turns it into a focused unit and keeps the default curriculum ready when you need structure.</p>
-        </div>
+        <span class="v3-learn-kicker">Learn</span>
+        <h1>Your learning path,<br>built on demand.</h1>
+        <p>Ask a question to create a focused unit, or continue learning from the curriculum.</p>
+        <button type="button" class="v3-learn-primary" onclick="startAskForNewUnit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Create a unit
+        </button>
       </header>
+
+      ${continueSection}
 
       <section class="v3-learn-tabs" role="tablist" aria-label="Learn units">
         <button type="button" role="tab" aria-selected="${active === 'my' ? 'true' : 'false'}" class="${active === 'my' ? 'active' : ''}" onclick="switchLearnUnitsTab('my')">
-          My Units
+          Your Units
         </button>
         <button type="button" role="tab" aria-selected="${active === 'preset' ? 'true' : 'false'}" class="${active === 'preset' ? 'active' : ''}" onclick="switchLearnUnitsTab('preset')">
           Preset Units
@@ -3383,7 +3430,7 @@ const LearnUnitMenu = {
       '<div class="unit-confirm-backdrop" onclick="LearnUnitMenu._closeConfirm()"></div>' +
       '<div class="unit-confirm" role="dialog" aria-modal="true" aria-labelledby="unitConfirmTitle">' +
       '  <h3 id="unitConfirmTitle">Delete this unit?</h3>' +
-      '  <p>This removes the unit and its saved progress from My Units.</p>' +
+      '  <p>This removes the unit and its saved progress from Your Units.</p>' +
       '  <div class="unit-confirm-actions">' +
       '    <button type="button" class="unit-confirm-cancel" onclick="LearnUnitMenu._closeConfirm()">Cancel</button>' +
       '    <button type="button" class="unit-confirm-delete" onclick="LearnUnitMenu._doDelete(\'' + unitId + '\')">Delete</button>' +

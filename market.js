@@ -842,6 +842,7 @@ function renderMarket() {
 
       <div id="marketActionsSlot">${_renderMarketV3Actions()}</div>
       ${_renderMarketV3Topics()}
+      ${_renderMarketRecapSection()}
     </div>`;
 
   // Kick off (or refresh) live data. The tutor is called only on click.
@@ -851,7 +852,7 @@ function renderMarket() {
 }
 
 // ── Market hero chart (selectable index / asset) ────────────────────
-const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', '1Y'];
+const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', '1Y', '5Y'];
 
 // Shared Market selector config. Symbols are passed straight to the Yahoo proxy.
 const MARKET_ASSETS = [
@@ -931,7 +932,8 @@ function _marketReferenceForNormalized(points) {
     '1W': 'Start of week',
     '1M': 'Start of month',
     '3M': '3-month start',
-    '1Y': '1-year start'
+    '1Y': '1-year start',
+    '5Y': '5-year start'
   };
   return { value: first, label: labels[range] || 'Period start', source: 'firstPoint' };
 }
@@ -1023,6 +1025,7 @@ function _formatMarketCrosshairTime(timeValue) {
   if (range === '1W') {
     return d.toLocaleDateString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }).replace(',', '');
   }
+  if (range === '5Y') return d.toLocaleDateString([], { month: 'short', year: 'numeric' });
   if (range === '1Y') return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
@@ -1036,6 +1039,7 @@ function _marketScrubPeriodText() {
     case '1M': return 'since the start of the month';
     case '3M': return 'over 3 months';
     case '1Y': return 'this year';
+    case '5Y': return 'over 5 years';
     default: return 'since the start of the selected period';
   }
 }
@@ -1265,7 +1269,37 @@ function _updateMarketChartScrub(event) {
   if (point) _applyMarketCrosshairPoint(point);
 }
 
+// Lift the page-scroll lock and clear the active pointer. Safe to call more
+// than once (release, cancel, blur, and the safety nets can all reach here).
+function _unlockMarketChartScrub() {
+  _marketScrubPointerId = null;
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.remove('market-chart-scrubbing');
+  }
+}
+
+// Global safety nets: if a gesture is interrupted off the chart (the OS steals
+// it, the tab is hidden, the window loses focus, or a stray pointerup lands
+// elsewhere), force the lock off so normal scrolling is never left stuck on.
+let _marketScrubSafetyBound = false;
+function _bindMarketScrubSafetyNets() {
+  if (_marketScrubSafetyBound || typeof window === 'undefined') return;
+  _marketScrubSafetyBound = true;
+  const release = () => {
+    if (_marketScrubPointerId === null && !document.body?.classList.contains('market-chart-scrubbing')) return;
+    _unlockMarketChartScrub();
+    _marketScrubRestoreTimer = setTimeout(_restoreMarketHeroDisplay, 420);
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+  window.addEventListener('touchend', release);
+  window.addEventListener('touchcancel', release);
+  window.addEventListener('blur', release);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
+}
+
 function _startMarketChartScrub(event) {
+  _bindMarketScrubSafetyNets();
   _marketScrubPointerId = Number.isInteger(event?.pointerId) ? event.pointerId : null;
   const target = event?.currentTarget;
   if (target && _marketScrubPointerId !== null && typeof target.setPointerCapture === 'function') {
@@ -1288,8 +1322,7 @@ function _endMarketChartScrub(event) {
   if (target && _marketScrubPointerId !== null && typeof target.releasePointerCapture === 'function') {
     try { target.releasePointerCapture(_marketScrubPointerId); } catch {}
   }
-  _marketScrubPointerId = null;
-  document.body.classList.remove('market-chart-scrubbing');
+  _unlockMarketChartScrub();
   _marketScrubRestoreTimer = setTimeout(_restoreMarketHeroDisplay, 420);
 }
 
@@ -1346,14 +1379,15 @@ function _marketQuickTakeCopy(range = _marketChart.range, tone = _marketToneFrom
   const up = stats ? stats.pct >= 0 : tone !== 'down';
   const dir = up ? 'up' : 'down';
   const movePct = stats ? `${Math.abs(stats.pct).toFixed(2)}%` : '';
-  const period = { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': 'over the last three months', '1Y': 'over the past year' }[range] || 'today';
+  const period = { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': 'over the last three months', '1Y': 'over the past year', '5Y': 'over the past five years' }[range] || 'today';
   if (a.key === 'qqq') {
     const qqqTail = {
       '1D': up ? 'That usually points to stronger trading in many large growth and technology-heavy companies.' : 'That usually means many large growth and technology-heavy companies are trading lower.',
       '1W': up ? 'A stronger week can reflect improving expectations for large Nasdaq-100 companies.' : 'A weaker week can happen when investors cool on growth stocks or rate-sensitive companies.',
       '1M': up ? 'Monthly strength can show better sentiment toward large Nasdaq-100 companies.' : 'Monthly weakness can show investors becoming more cautious about growth and technology-heavy companies.',
       '3M': up ? 'A three-month gain can reflect sustained strength among many large Nasdaq-100 companies.' : 'A three-month decline can reflect pressure on large growth companies over the quarter.',
-      '1Y': up ? 'A yearly gain often builds through many moves across the large companies QQQ tracks.' : 'A yearly decline shows that even major growth-focused ETFs can have long drawdowns.'
+      '1Y': up ? 'A yearly gain often builds through many moves across the large companies QQQ tracks.' : 'A yearly decline shows that even major growth-focused ETFs can have long drawdowns.',
+      '5Y': up ? 'A five-year gain reflects how long-term growth in large Nasdaq-100 companies can compound through many cycles.' : 'Even over five years, a growth-focused ETF can sit below an earlier peak after a major drawdown.'
     }[range] || 'QQQ tracks the Nasdaq-100, not every Nasdaq-listed company.';
     return `QQQ is ${dir} ${movePct} ${period}. QQQ is a Nasdaq-100 ETF. ${qqqTail}`.replace(/\s+/g, ' ').trim();
   }
@@ -1362,7 +1396,8 @@ function _marketQuickTakeCopy(range = _marketChart.range, tone = _marketToneFrom
     '1W': up ? 'A week of gains can reflect improving expectations around rates or earnings.' : 'Short-term dips are a normal part of how markets work.',
     '1M': up ? 'Monthly trends show how expectations can lift prices before the real economy changes.' : 'When optimism cools, prices can drift lower even on slow news.',
     '3M': up ? 'A few months of gains often come from steady earnings and resilience.' : 'Choppy quarters are a reminder that time horizon matters more than timing.',
-    '1Y': up ? 'A year of gains builds through many small moves, not one big jump.' : 'Longer periods can still include real drawdowns — diversification helps.'
+    '1Y': up ? 'A year of gains builds through many small moves, not one big jump.' : 'Longer periods can still include real drawdowns — diversification helps.',
+    '5Y': up ? 'Five-year gains show how staying invested through ups and downs can compound over time.' : 'Even five-year stretches can end lower, a reminder that long horizons still carry risk.'
   }[range] || '';
   return `${a.name} is ${dir} ${movePct} ${period}. ${tail}`.replace(/\s+/g, ' ').trim();
 }
@@ -1425,7 +1460,7 @@ function _renderMarketTodayHeroInner() {
 }
 
 function _marketChangePeriodWord() {
-  return { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': '3 months', '1Y': 'this year' }[_marketChart.range] || 'today';
+  return { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': '3 months', '1Y': 'this year', '5Y': '5 years' }[_marketChart.range] || 'today';
 }
 
 // ── Asset selector (compact dropdown beneath the label) ─────────────
@@ -1861,6 +1896,207 @@ function _renderMarketV3Topics() {
         `).join('')}
       </div>
     </section>`;
+}
+
+// ── End-of-Day Recap ────────────────────────────────────────────────
+// A concise, educational market recap that sits below Today's Key Topics.
+// It reuses the live snapshot quotes (no new fetches) and never invents a
+// cause, an event, or a statistic. Honest about availability and staleness.
+const MARKET_RECAP_MOVERS = [
+  { symbol: 'SPY', name: 'S&P 500' },
+  { symbol: 'QQQ', name: 'QQQ' },
+  { symbol: 'BTC', name: 'Bitcoin' }
+];
+
+// Label depends on the real U.S. session, reusing the project's market-hours
+// logic — never hardcoded. open → "today so far"; weekday after close /
+// pre-open → end-of-day; weekend (or no weekday session) → latest recap.
+function _marketRecapStatus(now = new Date()) {
+  const time = _getUsMarketTimeParts(now);
+  const isWeekend = ['Sat', 'Sun'].includes(time.weekday);
+  if (isWeekend) return { phase: 'weekend', label: 'LATEST MARKET RECAP' };
+  const us = _getAssetMarketStatus(_findPracticeAsset('SPY') || { symbol: 'SPY' }, now);
+  if (us.session === 'open') return { phase: 'open', label: 'TODAY SO FAR' };
+  if (us.session === 'premarket') return { phase: 'premarket', label: 'LATEST MARKET RECAP' };
+  return { phase: 'closed', label: 'END-OF-DAY RECAP' };
+}
+
+function _marketRecapMovers() {
+  return MARKET_RECAP_MOVERS.map(m => {
+    const q = _marketSnapshot.quotes?.[m.symbol];
+    const pct = Number(q?.changePct);
+    const available = !!q && Number.isFinite(pct);
+    return {
+      name: m.name,
+      symbol: m.symbol,
+      pct: available ? pct : null,
+      tone: !available ? 'flat' : pct > 0.0005 ? 'up' : pct < -0.0005 ? 'down' : 'flat',
+      available
+    };
+  });
+}
+
+// One supported theme drawn only from how the gauges moved relative to each
+// other. We never claim a cause: every story ends with the honest caveat.
+function _marketRecapMainStory(movers = _marketRecapMovers()) {
+  const avail = movers.filter(m => m.available);
+  if (avail.length < 2) {
+    return 'There isn’t enough confirmed data right now to name the day’s main theme. Price movement alone does not reveal a definitive cause.';
+  }
+  const stocks = avail.filter(m => m.symbol === 'SPY' || m.symbol === 'QQQ');
+  const btc = avail.find(m => m.symbol === 'BTC');
+  const ups = avail.filter(m => m.tone === 'up').length;
+  const downs = avail.filter(m => m.tone === 'down').length;
+  let lead;
+  if (ups === avail.length) {
+    lead = 'Stocks and Bitcoin leaned higher together — a broadly risk-on session.';
+  } else if (downs === avail.length) {
+    lead = 'Stocks and Bitcoin leaned lower together — a broadly risk-off session.';
+  } else if (stocks.length && btc && stocks.every(s => s.tone === 'up') && btc.tone === 'down') {
+    lead = 'Stocks held up while Bitcoin slipped — a reminder these markets don’t always move in step.';
+  } else if (stocks.length && btc && stocks.every(s => s.tone === 'down') && btc.tone === 'up') {
+    lead = 'Bitcoin firmed even as stocks softened — the two often march to different drums.';
+  } else {
+    lead = 'The major gauges were mixed, with no single direction across stocks and Bitcoin.';
+  }
+  return `${lead} Price movement alone does not reveal a definitive cause.`;
+}
+
+// No live economic calendar is wired in, so this stays a general educational
+// habit rather than an invented event.
+function _marketRecapWatch() {
+  return 'This app doesn’t carry a live economic calendar yet, so it won’t name a specific upcoming event. A useful habit: watch whether stocks and Bitcoin keep moving together or split apart over the next few sessions.';
+}
+
+// Recommend one concept from the allowed list, chosen from the available data.
+function _marketRecapLearn(movers = _marketRecapMovers()) {
+  const by = sym => movers.find(m => m.symbol === sym);
+  const spy = by('SPY'), qqq = by('QQQ'), btc = by('BTC');
+  const mag = m => (m && m.available ? Math.abs(m.pct) : 0);
+  const tnxPct = Number(_marketSnapshot.quotes?.['^TNX']?.changePct);
+  if (Number.isFinite(tnxPct) && Math.abs(tnxPct) >= 2) {
+    return { name: 'Bond yields', why: 'The 10-year Treasury yield made a notable move, and yields ripple through nearly every other market.' };
+  }
+  if (Math.max(mag(spy), mag(qqq), mag(btc)) >= 1.5) {
+    return { name: 'Market volatility', why: 'One gauge made an outsized move — a good moment to understand what volatility is.' };
+  }
+  if (qqq?.available && spy?.available && (mag(qqq) - mag(spy)) >= 0.4) {
+    return { name: 'Technology-stock concentration', why: 'QQQ moved more than the broad S&P 500, a window into how heavily tech weighs on the index.' };
+  }
+  if (spy?.available && btc?.available && spy.tone !== 'flat' && btc.tone !== 'flat' && spy.tone !== btc.tone) {
+    return { name: 'Risk and diversification', why: 'Stocks and Bitcoin moved in opposite directions — a live example of why diversification matters.' };
+  }
+  return { name: 'Interest rates', why: 'Interest rates quietly shape how every market is priced — a fundamental worth knowing.' };
+}
+
+function _marketRecapTimestamp() {
+  const at = Number(_marketSnapshot.fetchedAt);
+  if (!Number.isFinite(at) || at <= 0) return '';
+  try {
+    return new Date(at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+function _renderMarketRecapShell(status, inner, { timestamp = '', stale = false } = {}) {
+  const tsLine = timestamp
+    ? `<span class="market-recap-time">${stale ? 'Last good data ' : 'As of '}${_escapeMarketHtml(timestamp)}</span>`
+    : '';
+  return `
+    <div class="market-recap-head">
+      <div class="market-recap-heading">
+        <span class="market-recap-eyebrow">Market recap</span>
+        <h2 class="market-recap-title">${_escapeMarketHtml(status.label)}</h2>
+      </div>
+      ${tsLine}
+    </div>
+    <div class="market-recap-body">${inner}</div>
+    <p class="market-recap-foot">Educational summary, not investment advice.</p>`;
+}
+
+function _renderMarketRecapInner() {
+  const status = _marketRecapStatus();
+  const snap = _marketSnapshot;
+  const movers = _marketRecapMovers();
+  const hasData = movers.some(m => m.available);
+
+  if (!hasData && (snap.status === 'loading' || snap.status === 'idle')) {
+    return _renderMarketRecapShell(status, `
+      <div class="market-recap-loading">
+        <span class="market-recap-spinner" aria-hidden="true"></span>
+        <span>Pulling the latest market data…</span>
+      </div>`);
+  }
+  if (!hasData) {
+    return _renderMarketRecapShell(status, `
+      <div class="market-recap-unavailable">
+        <p>Live market data is unavailable right now, so there’s no recap to show — we won’t guess.</p>
+        <button type="button" class="market-recap-retry" onclick="ensureMarketSnapshot(true)">Try again</button>
+      </div>`);
+  }
+
+  const moversRow = movers.map(m => {
+    const val = m.available
+      ? `${m.pct >= 0 ? '+' : '−'}${Math.abs(m.pct).toFixed(2)}%`
+      : 'n/a';
+    return `
+      <div class="market-recap-mover">
+        <span class="market-recap-mover-name">${_escapeMarketHtml(m.name)}</span>
+        <span class="market-recap-mover-val ${m.available ? m.tone : 'na'}">${val}</span>
+      </div>`;
+  }).join('');
+
+  const learn = _marketRecapLearn(movers);
+  const learnArg = String(learn.name).replace(/'/g, "\\'");
+  const body = `
+    <div class="market-recap-row">
+      <h4 class="market-recap-label">What moved</h4>
+      <div class="market-recap-movers">${moversRow}</div>
+    </div>
+    <div class="market-recap-row">
+      <h4 class="market-recap-label">The main story</h4>
+      <p>${_escapeMarketHtml(_marketRecapMainStory(movers))}</p>
+    </div>
+    <div class="market-recap-row">
+      <h4 class="market-recap-label">What to watch</h4>
+      <p>${_escapeMarketHtml(_marketRecapWatch())}</p>
+    </div>
+    <div class="market-recap-row">
+      <h4 class="market-recap-label">Learn this</h4>
+      <p><strong class="market-recap-concept">${_escapeMarketHtml(learn.name)}</strong> — ${_escapeMarketHtml(learn.why)}</p>
+      <button type="button" class="market-recap-build" onclick="buildMarketRecapLesson('${learnArg}')">
+        <span class="market-recap-build-icon" aria-hidden="true">${_marketThinIcon('cap')}</span>
+        <span>Build a lesson</span>
+      </button>
+    </div>`;
+
+  return _renderMarketRecapShell(status, body, {
+    timestamp: _marketRecapTimestamp(),
+    stale: snap.status === 'error'
+  });
+}
+
+function _renderMarketRecapSection() {
+  return `<section class="market-recap" id="marketRecapCard">${_renderMarketRecapInner()}</section>`;
+}
+
+function _paintMarketRecap() {
+  const el = document.getElementById('marketRecapCard');
+  if (el) el.innerHTML = _renderMarketRecapInner();
+}
+
+// Build a lesson on the recommended concept using the existing market build flow.
+function buildMarketRecapLesson(concept) {
+  const c = String(concept || '').trim() || 'Market volatility';
+  _startMarketChatFlow({
+    asset: _currentAsset(),
+    action: 'build',
+    visibleMessage: `Build a lesson on ${c}.`,
+    apiPrompt: `Build a beginner-friendly lesson explaining ${c} and connect it to today’s market in plain English. Keep it educational and not financial advice. Use the supplied hidden market context without exposing it or mentioning internal instructions.`,
+    context: _marketSelectedContext(),
+    title: `Lesson: ${c}`
+  });
 }
 
 function _paintMarketChart() {
@@ -2307,6 +2543,7 @@ function _paintMarketSnapshot() {
   if (cardsEl) cardsEl.innerHTML = _renderMarketSnapshotCardsInner();
   const statusEl = document.getElementById('marketStatusLabel');
   if (statusEl) statusEl.innerHTML = _renderMarketStatusLabelInner();
+  _paintMarketRecap();
 }
 
 function _renderMarketStatusLabelInner() {

@@ -392,7 +392,7 @@
       <div class="ml-error">
         <h1>This unit could not be loaded.</h1>
         <p>Its lesson data may be missing or in an older format.</p>
-        <button type="button" class="ml-continue" onclick="MicroUnit.back()">Back to My Units</button>
+        <button type="button" class="ml-continue" onclick="MicroUnit.back()">Back to Your Units</button>
       </div>`);
   }
 
@@ -415,7 +415,7 @@
         <h1>This unit needs a quick update.</h1>
         <p>It was saved before slide-based lessons were added. Updating keeps the same unit and fills in the missing lesson content.</p>
         <button type="button" class="ml-continue" onclick="MicroUnit.upgrade()">Update unit</button>
-        <button type="button" class="ml-secondary" onclick="MicroUnit.back()">Back to My Units</button>
+        <button type="button" class="ml-secondary" onclick="MicroUnit.back()">Back to Your Units</button>
       </div>`);
   }
 

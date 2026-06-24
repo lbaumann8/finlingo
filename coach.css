@@ -2238,14 +2238,81 @@ body:not(.entry-gate-visible) #mainNav,
 }
 
 /* ============================================================
+   LEARN + MARKET V3 — SHARED DESIGN TOKENS
+   Both surfaces share one visual language. These tokens are the
+   single source of truth for spacing, radius, borders, surfaces,
+   type hierarchy, market tones, and motion across both pages.
+   ============================================================ */
+:root {
+  /* Page frame — one standardized side padding + safe bottom clearance */
+  --v3-pad-x: 18px;
+  --v3-pad-top: 28px;
+  --v3-pad-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+
+  /* Spacing scale */
+  --v3-space-1: 6px;
+  --v3-space-2: 10px;
+  --v3-space-3: 14px;
+  --v3-space-4: 18px;
+  --v3-space-6: 24px;
+  --v3-section-gap: 30px;          /* separation between major sections */
+
+  /* Radius — one card radius, one control radius */
+  --v3-radius-card: 16px;
+  --v3-radius-control: 12px;
+  --v3-radius-chip: 10px;
+  --v3-radius-icon: 12px;
+  --v3-radius-pill: 999px;
+
+  /* Surfaces — lighter charcoal for interactive, darker for passive */
+  --v3-bg: #0B0D0F;
+  --v3-surface: #14171A;           /* interactive card base */
+  --v3-surface-hover: #161A1E;
+  --v3-surface-raised: #15191D;    /* featured / focal card */
+  --v3-surface-passive: #0F1215;   /* passive / quiet / completed */
+  --v3-overlay: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  --v3-overlay-hover: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
+  --v3-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* Borders — 1px hairline, single passive color */
+  --v3-border: #23272D;
+  --v3-border-strong: #2C323A;
+  --v3-border-hover: rgba(255,255,255,0.28);
+  --v3-divider: rgba(255,255,255,0.06);
+
+  /* Type hierarchy — eyebrow → heading → title → body → sub → meta */
+  --v3-eyebrow: #C7CDD6;
+  --v3-heading: #FFFFFF;           /* important page headings only */
+  --v3-title: #F5F5F5;             /* section + card titles */
+  --v3-body: #D1D5DB;
+  --v3-sub: #B6BECB;               /* secondary copy (raised contrast) */
+  --v3-muted: #9CA3AF;             /* metadata */
+  --v3-faint: #8A93A1;             /* de-emphasized metadata */
+
+  /* Market tones — green positive, red negative, gray unchanged */
+  --mkt-up: #22F05A;
+  --mkt-down: #F87171;
+  --mkt-flat: #D1D5DB;
+  --mkt-na: #8A93A1;
+
+  /* Motion — subtle, no bounce, 150–250ms */
+  --v3-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --v3-dur: 180ms;
+  --v3-dur-fast: 150ms;
+
+  /* Focus ring — visible, never color-only */
+  --v3-focus: rgba(255,255,255,0.78);
+}
+
+/* ============================================================
    LEARN V3 — UNIT LIBRARY
    My Units is the primary product surface. Preset Units is the
    structured backup. Cards mirror the attached premium dark mockup.
    ============================================================ */
 .v3-learn-shell {
   min-height: 100%;
-  padding: 28px 18px 118px;
-  background: #0B0D0F;
+  padding: var(--v3-pad-top) var(--v3-pad-x) var(--v3-pad-bottom);
+  background: var(--v3-bg);
   animation: v3-fade-up 360ms ease both;
 }
 
@@ -2256,33 +2323,130 @@ body:not(.entry-gate-visible) #mainNav,
 
 .v3-learn-header {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 14px;
-  padding-bottom: 24px;
+  display: block;
+  padding-bottom: var(--v3-space-4);
 }
 
 .v3-learn-kicker {
-  color: #FFFFFF;
-  font: 760 0.68rem/1 var(--font-b);
-  letter-spacing: 0.11em;
+  color: var(--v3-eyebrow);
+  font: 700 0.7rem/1 var(--font-b);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .v3-learn-header h1 {
-  margin: 12px 0 0;
-  color: #F5F5F5;
+  margin: 10px 0 0;
+  color: var(--v3-heading);
   font: 780 2rem/1.04 var(--font-b);
   letter-spacing: -0.06em;
+  text-wrap: balance;
 }
 
 .v3-learn-header p {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   max-width: 34ch;
-  color: #9CA3AF;
+  color: var(--v3-sub);
   font: 400 0.88rem/1.55 var(--font-b);
 }
+
+/* Primary action — the strongest control on the page. Opens the existing Ask
+   Finlingo / custom-unit creation flow (startAskForNewUnit). */
+.v3-learn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  margin-top: 16px;
+  padding: 0 18px;
+  border: 1px solid #FFFFFF;
+  border-radius: var(--v3-radius-control);
+  background: #FFFFFF;
+  color: #0B0D0F;
+  font: 740 0.86rem/1 var(--font-b);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform var(--v3-dur) var(--v3-ease), opacity var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease);
+}
+.v3-learn-primary svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.v3-learn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+.v3-learn-primary:active { transform: translateY(0); opacity: 0.92; }
+.v3-learn-primary:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 3px; }
+.v3-learn-primary:disabled,
+.v3-learn-primary[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.v3-learn-primary.is-loading { color: transparent; pointer-events: none; position: relative; }
+.v3-learn-primary.is-loading::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(11,13,15,0.25);
+  border-top-color: #0B0D0F;
+  animation: market-recap-spin 0.7s linear infinite;
+}
+
+/* ── Continue learning — single featured resume card ──────────────────── */
+.v3-continue {
+  display: block;
+  margin: 4px 0 6px;
+}
+.v3-continue-label {
+  display: block;
+  margin: 0 0 10px;
+  color: var(--v3-eyebrow);
+  font: 700 0.7rem/1 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.v3-continue-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid var(--v3-border-strong);
+  border-radius: var(--v3-radius-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012)),
+    var(--v3-surface-raised);
+  color: var(--v3-title);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  transition: transform var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease);
+}
+.v3-continue-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--v3-border-hover);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.v3-continue-card:active { transform: translateY(0); }
+.v3-continue-card:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 3px; }
+.v3-continue-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #FFFFFF;
+  font: 720 0.78rem/1 var(--font-b);
+  white-space: nowrap;
+}
+.v3-continue-cta .v3-chevron { width: 17px; height: 17px; opacity: 0.95; }
 
 .v3-new-unit-btn {
   display: inline-flex;
@@ -2321,8 +2485,8 @@ body:not(.entry-gate-visible) #mainNav,
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   padding: 5px;
-  border: 1px solid #23272D;
-  border-radius: 16px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
   background: rgba(20, 23, 26, 0.72);
   backdrop-filter: blur(20px);
 }
@@ -2331,18 +2495,33 @@ body:not(.entry-gate-visible) #mainNav,
   position: relative;
   min-height: 44px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--v3-radius-control);
   background: transparent;
-  color: #9CA3AF;
+  color: var(--v3-muted);
   font: 700 0.82rem/1 var(--font-b);
   cursor: pointer;
-  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+
+.v3-learn-tabs button:hover:not(.active) {
+  color: var(--v3-body);
+  background: rgba(255, 255, 255, 0.05);
+}
+.v3-learn-tabs button:active:not(.active) { transform: scale(0.985); }
+.v3-learn-tabs button:focus-visible {
+  outline: 2px solid var(--v3-focus);
+  outline-offset: 2px;
 }
 
 .v3-learn-tabs button.active {
   background: #FFFFFF;
   color: #0B0D0F;
   box-shadow: none;
+}
+.v3-learn-tabs button:disabled,
+.v3-learn-tabs button[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .v3-learn-tabs button.active::after {
@@ -2364,21 +2543,21 @@ body:not(.entry-gate-visible) #mainNav,
 }
 
 .v3-units-head span {
-  color: #FFFFFF;
-  font: 760 0.66rem/1 var(--font-b);
-  letter-spacing: 0.1em;
+  color: var(--v3-eyebrow);
+  font: 700 0.68rem/1 var(--font-b);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .v3-units-head h2 {
   margin: 7px 0 0;
-  color: #F5F5F5;
-  font: 740 1rem/1.15 var(--font-b);
+  color: var(--v3-title);
+  font: 740 1.05rem/1.15 var(--font-b);
   letter-spacing: -0.025em;
 }
 
 .v3-units-head small {
-  color: #9CA3AF;
+  color: var(--v3-sub);
   font: 650 0.72rem/1 var(--font-b);
   white-space: nowrap;
 }
@@ -2391,17 +2570,19 @@ body:not(.entry-gate-visible) #mainNav,
 
 /* "Edit / Done" text button beside the My Units heading. */
 .v3-units-edit {
-  padding: 5px 10px;
-  border: 1px solid #2A2F36;
-  border-radius: 8px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--v3-border-strong);
+  border-radius: var(--v3-radius-chip);
   background: transparent;
-  color: #C7CDD6;
+  color: var(--v3-eyebrow);
   font: 640 0.74rem/1 var(--font-b);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition: background var(--v3-dur-fast) var(--v3-ease), color var(--v3-dur-fast) var(--v3-ease), border-color var(--v3-dur-fast) var(--v3-ease);
 }
 .v3-units-edit:hover { background: rgba(255, 255, 255, 0.06); color: #FFFFFF; border-color: #3A414A; }
-.v3-units-edit:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+.v3-units-edit:active { background: rgba(255, 255, 255, 0.1); }
+.v3-units-edit:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 .v3-units-edit[aria-pressed="true"] { background: rgba(255, 255, 255, 0.10); color: #FFFFFF; border-color: #3A414A; }
 
 /* Stacked In progress / Completed groups within a tab. */
@@ -2413,14 +2594,14 @@ body:not(.entry-gate-visible) #mainNav,
 /* Section headings — small, secondary to the page title, left aligned. */
 .v3-section-heading {
   margin: 0 0 13px;
-  color: #C7CDD6;
+  color: var(--v3-eyebrow);
   font: 700 0.7rem/1 var(--font-b);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 /* Modest separation before the Completed group. */
-.v3-section-heading-completed { margin-top: 30px; }
-.v3-section-heading-spaced { margin-top: 30px; }
+.v3-section-heading-completed { margin-top: var(--v3-section-gap); }
+.v3-section-heading-spaced { margin-top: var(--v3-section-gap); }
 .v3-units-groups > .v3-section-heading:first-child { margin-top: 0; }
 
 .v3-unit-list {
@@ -2430,48 +2611,72 @@ body:not(.entry-gate-visible) #mainNav,
 
 .v3-unit-card {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 13px;
+  gap: 14px;
   width: 100%;
   min-height: 76px;
-  padding: 13px 13px;
-  border: 1px solid #23272D;
-  border-radius: 16px;
+  padding: 14px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.008)),
-    #14171A;
-  color: #F5F5F5;
+    var(--v3-surface);
+  color: var(--v3-title);
   text-align: left;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition: transform var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease);
 }
 
 .v3-unit-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.26);
+  border-color: var(--v3-border-hover);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.01)),
-    #161A1E;
+    var(--v3-surface-hover);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
 }
+.v3-unit-card:active,
+.v3-unit-main:active { transform: translateY(0); }
+.v3-unit-card-preset:focus-visible,
+.v3-unit-main:focus-visible {
+  outline: 2px solid var(--v3-focus);
+  outline-offset: 3px;
+}
+
+/* Subtle right-facing chevron affordance on every unit card. */
+.v3-chevron {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: #6B7480;
+  transition: color var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+.v3-unit-card:hover .v3-chevron,
+.v3-unit-main:hover .v3-chevron { color: var(--v3-eyebrow); transform: translateX(2px); }
+.v3-unit-card.is-complete .v3-chevron { color: #5C636E; }
 
 .v3-unit-icon {
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--v3-radius-icon);
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #FFFFFF;
 }
 
 .v3-unit-card-preset .v3-unit-icon {
-  background: #161A1E;
+  background: var(--v3-surface-hover);
   border-color: rgba(255, 255, 255, 0.18);
-  color: #F5F5F5;
+  color: var(--v3-title);
 }
 
 .v3-unit-icon svg {
@@ -2497,7 +2702,7 @@ body:not(.entry-gate-visible) #mainNav,
 .v3-unit-copy strong {
   display: block;
   overflow: hidden;
-  color: #F5F5F5;
+  color: var(--v3-title);
   font: 720 0.92rem/1.2 var(--font-b);
   letter-spacing: -0.018em;
   white-space: nowrap;
@@ -2507,7 +2712,7 @@ body:not(.entry-gate-visible) #mainNav,
 .v3-unit-copy small {
   display: block;
   margin-top: 5px;
-  color: #9CA3AF;
+  color: var(--v3-sub);
   font: 500 0.76rem/1 var(--font-b);
 }
 .v3-unit-progress {
@@ -2516,7 +2721,7 @@ body:not(.entry-gate-visible) #mainNav,
   height: 3px;
   margin-top: 9px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--v3-radius-pill);
   background: #262B31;
 }
 .v3-unit-progress i {
@@ -2524,15 +2729,15 @@ body:not(.entry-gate-visible) #mainNav,
   height: 100%;
   border-radius: inherit;
   background: #FFFFFF;
-  transition: width 0.4s ease;
+  transition: width 220ms var(--v3-ease);
 }
-.v3-unit-card.needs-review .v3-unit-copy small { color: #D18A65; }
+.v3-unit-card.needs-review .v3-unit-copy small { color: var(--v3-body); }
 
 /* ── Completed cards — darker, quieter, but NOT disabled ──────────────── */
 .v3-unit-card.is-complete {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0)),
-    #0F1215;
+    var(--v3-surface-passive);
   border-color: #1E2329;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
 }
@@ -2542,8 +2747,8 @@ body:not(.entry-gate-visible) #mainNav,
     #13171B;
   border-color: rgba(255,255,255,0.2);
 }
-.v3-unit-card.is-complete .v3-unit-copy strong { color: #C7CDD6; }
-.v3-unit-card.is-complete .v3-unit-copy small { color: #7E8794; }
+.v3-unit-card.is-complete .v3-unit-copy strong { color: var(--v3-eyebrow); }
+.v3-unit-card.is-complete .v3-unit-copy small { color: var(--v3-faint); }
 .v3-unit-card.is-complete .v3-unit-icon {
   background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.10);
@@ -2565,7 +2770,7 @@ body:not(.entry-gate-visible) #mainNav,
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--v3-radius-icon);
   background: rgba(255, 255, 255, 0.10);
   color: #FFFFFF;
 }
@@ -2579,13 +2784,13 @@ body:not(.entry-gate-visible) #mainNav,
 }
 
 .v3-empty-units strong {
-  color: #F5F5F5;
+  color: var(--v3-title);
   font: 720 0.96rem/1.25 var(--font-b);
 }
 
 .v3-empty-units p {
   margin: 0;
-  color: #9CA3AF;
+  color: var(--v3-muted);
   font: 400 0.82rem/1.55 var(--font-b);
 }
 
@@ -2672,13 +2877,8 @@ body:not(.entry-gate-visible) #mainNav {
 }
 
 @media (max-width: 390px) {
-  .v3-learn-header {
-    grid-template-columns: 1fr;
-  }
-
-  .v3-new-unit-btn {
-    justify-self: start;
-  }
+  .v3-learn-header h1 { font-size: 1.84rem; }
+  .v3-learn-primary { width: 100%; }
 }
 
 /* ============================================================
@@ -2688,13 +2888,13 @@ body:not(.entry-gate-visible) #mainNav {
    ============================================================ */
 #marketFeatureList {
   min-height: 100%;
-  background: #0B0D0F;
+  background: var(--v3-bg);
 }
 
 .market-v3-shell {
   min-height: 100%;
-  padding: 28px 18px 118px;
-  background: #0B0D0F;
+  padding: var(--v3-pad-top) var(--v3-pad-x) var(--v3-pad-bottom);
+  background: var(--v3-bg);
   animation: v3-fade-up 360ms ease both;
 }
 
@@ -2725,14 +2925,18 @@ body:not(.entry-gate-visible) #mainNav {
 .market-v3-icons button {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid #23272D;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--v3-border);
   border-radius: 50%;
   background: rgba(20, 23, 26, 0.78);
-  color: #F5F5F5;
+  color: var(--v3-title);
   cursor: pointer;
+  transition: background var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease);
 }
+.market-v3-icons button:hover { background: var(--v3-surface-hover); border-color: var(--v3-border-hover); }
+.market-v3-icons button:active { transform: scale(0.96); }
+.market-v3-icons button:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
 .market-v3-icons svg {
   width: 19px;
@@ -2753,22 +2957,24 @@ body:not(.entry-gate-visible) #mainNav {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-height: 44px;
   padding: 4px 8px 4px 0;
   border: 0;
   background: transparent;
-  color: #D1D5DB;
+  color: var(--v3-body);
   font: 500 0.98rem/1.1 var(--font-b);
   letter-spacing: -0.02em;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--v3-radius-chip);
+  transition: color var(--v3-dur) var(--v3-ease);
 }
 .market-v3-index-label:hover { color: #fff; }
-.market-v3-index-label:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 2px; }
+.market-v3-index-label:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
 .market-v3-index-label span {
-  color: #F5F5F5;
+  color: var(--v3-title);
   font-size: 0.92rem;
-  transition: transform .15s ease;
+  transition: transform var(--v3-dur-fast) var(--v3-ease);
 }
 .market-v3-index-label span.is-open { transform: rotate(180deg); }
 
@@ -2781,9 +2987,9 @@ body:not(.entry-gate-visible) #mainNav {
   z-index: 40;
   min-width: 184px;
   padding: 6px;
-  border: 1px solid #23262d;
-  border-radius: 14px;
-  background: #14161b;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-control);
+  background: var(--v3-surface);
   box-shadow: 0 16px 38px rgba(0,0,0,0.5);
 }
 .market-asset-menu.open { display: block; }
@@ -2793,16 +2999,20 @@ body:not(.entry-gate-visible) #mainNav {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 11px 12px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--v3-radius-chip);
   background: transparent;
   color: #f1f2f4;
   font: 600 0.92rem var(--font-b);
   text-align: left;
   cursor: pointer;
+  transition: background var(--v3-dur-fast) var(--v3-ease);
 }
 .market-asset-option:hover { background: #1d2026; }
+.market-asset-option:active { background: #22262d; }
+.market-asset-option:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
 .market-asset-option.is-selected { color: #fff; }
 .market-asset-copy {
   display: grid;
@@ -2810,14 +3020,14 @@ body:not(.entry-gate-visible) #mainNav {
   min-width: 0;
 }
 .market-asset-name {
-  color: #F5F5F5;
+  color: var(--v3-title);
   font: 680 0.92rem/1.05 var(--font-b);
 }
 .market-asset-desc {
-  color: #8F97A3;
+  color: var(--v3-muted);
   font: 500 0.74rem/1.1 var(--font-b);
 }
-.market-asset-check { display: inline-flex; width: 16px; color: #56c98a; }
+.market-asset-check { display: inline-flex; width: 16px; color: var(--v3-title); }
 .market-asset-check svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Inline Ask accordion (replaces the bottom sheet) */
@@ -2834,17 +3044,19 @@ body:not(.entry-gate-visible) #mainNav {
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: 44px;
   margin-top: 8px;
-  padding: 13px 14px;
+  padding: 12px 14px;
   border: 1px solid rgba(255,255,255,0.08);
   background:
     linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
-    #14171A;
+    var(--v3-surface);
   color: #eef0f2;
   font: 500 0.92rem var(--font-b);
   text-align: left;
   cursor: pointer;
-  border-radius: 13px;
+  border-radius: var(--v3-radius-control);
+  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
 .market-ask-row:hover {
   border-color: rgba(255,255,255,0.16);
@@ -2852,35 +3064,37 @@ body:not(.entry-gate-visible) #mainNav {
     linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.012)),
     #181C20;
 }
-.market-ask-row-icon { display: inline-flex; width: 20px; color: #D1D5DB; }
+.market-ask-row:active { transform: scale(0.99); }
+.market-ask-row:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+.market-ask-row-icon { display: inline-flex; width: 20px; color: var(--v3-body); }
 .market-ask-row-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .market-v3-ask-control i { transition: transform .15s ease; }
 .market-v3-ask-control.is-open i { transform: translateY(1px); }
 
 .market-v3-index-value {
   margin: 12px 0 0;
-  color: #F5F5F5;
+  color: var(--v3-title);
   font: 760 2.55rem/0.98 var(--font-num);
   letter-spacing: -0.06em;
 }
 
 .market-v3-change {
   margin-top: 10px;
-  color: #22F05A;
+  color: var(--mkt-up);
   font: 600 0.95rem/1.2 var(--font-b);
   letter-spacing: -0.01em;
 }
 
 .market-v3-change.down {
-  color: #F87171;
+  color: var(--mkt-down);
 }
 
 .market-v3-change.flat {
-  color: #D1D5DB;
+  color: var(--mkt-flat);
 }
 
 .market-v3-change span {
-  color: #D1D5DB;
+  color: var(--v3-body);
 }
 
 .market-v3-support {
@@ -2901,17 +3115,17 @@ body:not(.entry-gate-visible) #mainNav {
 }
 
 .market-v3-support strong.down {
-  color: #F87171;
+  color: var(--mkt-down);
 }
 
 .market-v3-support strong.flat {
-  color: #D1D5DB;
+  color: var(--mkt-flat);
 }
 
 .mkt-chart-canvas {
   position: relative;
   height: 178px;
-  margin: 10px -2px 0;
+  margin: 12px 0 0;
   overflow: hidden;
   border-radius: 0;
 }
@@ -2936,7 +3150,7 @@ body:not(.entry-gate-visible) #mainNav {
 }
 
 .mkt-hero-chart .mkt-hero-line {
-  stroke: #22F05A;
+  stroke: var(--mkt-up);
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -2986,16 +3200,50 @@ body:not(.entry-gate-visible) #mainNav {
 .mkt-chart-scrub-layer {
   fill: transparent;
   cursor: crosshair;
-  touch-action: pan-y;
+  /* The chart owns every press/drag gesture here — the browser must not
+     hijack it for vertical/horizontal scroll or pinch-zoom while inspecting. */
+  touch-action: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
 }
 
-.mkt-chart-scrub-layer:focus {
-  outline: none;
+.mkt-chart-scrub-layer:focus { outline: none; }
+
+/* Keyboard users still get a clearly visible focus ring on the scrub layer. */
+.mkt-chart-scrub-layer:focus-visible {
+  outline: 2px solid var(--mkt-up);
+  outline-offset: -2px;
 }
 
+/* Scope text-selection suppression to the interactive market area only —
+   the price header, chart, crosshair label, and timeframe controls. Content
+   outside this section (Quick Take, topics, the rest of the app) stays
+   normally selectable. */
+.market-v3-hero,
+.market-v3-hero .market-v3-index-value,
+.market-v3-hero .market-v3-change,
+.market-v3-hero .market-v3-index-label,
+.mkt-hero-chart,
+.mkt-crosshair-label,
+.mkt-range-toggle,
+.mkt-range-btn {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Only while a chart gesture is active: lock the page so it cannot scroll or
+   rubber-band under the finger. Added on pointerdown, removed on
+   release/cancel/interrupt — never a permanent body lock. */
 body.market-chart-scrubbing {
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .mkt-hero-chart.down {
@@ -3007,11 +3255,11 @@ body.market-chart-scrubbing {
 }
 
 .mkt-hero-chart.down .mkt-hero-line {
-  stroke: #F87171;
+  stroke: var(--mkt-down);
 }
 
 .mkt-hero-chart.flat .mkt-hero-line {
-  stroke: #D1D5DB;
+  stroke: var(--mkt-flat);
 }
 
 .mkt-hero-chart.flat .mkt-hero-fill-top {
@@ -3023,7 +3271,7 @@ body.market-chart-scrubbing {
   height: 100%;
   display: grid;
   place-items: center;
-  color: #9CA3AF;
+  color: var(--v3-muted);
   font: 500 0.82rem/1.4 var(--font-b);
 }
 
@@ -3033,58 +3281,76 @@ body.market-chart-scrubbing {
 }
 
 .mkt-hero-retry {
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid #23272D;
-  border-radius: 999px;
-  background: #14171A;
-  color: #F5F5F5;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-pill);
+  background: var(--v3-surface);
+  color: var(--v3-title);
   font: 650 0.74rem var(--font-b);
+  cursor: pointer;
+  transition: background var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease);
 }
+.mkt-hero-retry:hover { background: var(--v3-surface-hover); border-color: var(--v3-border-hover); }
+.mkt-hero-retry:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
 .mkt-range-toggle {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
-  min-height: 48px;
-  margin: 8px 6px 0;
+  min-height: 52px;
+  margin: 12px 0 0;
   padding: 4px;
-  border: 1px solid #23272D;
-  border-radius: 999px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-pill);
   background: rgba(20, 23, 26, 0.72);
   backdrop-filter: blur(20px);
+  /* Six controls share the row evenly; never scroll sideways on mobile. */
+  overflow: hidden;
 }
 
 .mkt-range-btn {
+  min-width: 0;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--v3-radius-pill);
   background: transparent;
-  color: #D1D5DB;
+  color: var(--v3-body);
   font: 680 0.9rem/1 var(--font-b);
   cursor: pointer;
-  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+
+/* Narrow phones: keep all six labels legible inside the equal grid tracks. */
+@media (max-width: 380px) {
+  .mkt-range-btn {
+    font-size: 0.82rem;
+  }
 }
 
 .mkt-range-btn:hover {
-  color: #F5F5F5;
+  color: var(--v3-title);
 }
+.mkt-range-btn:active { transform: scale(0.96); }
+.mkt-range-btn:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
 
 .mkt-range-btn.is-active {
   background: #FFFFFF;
   color: #0B0D0F;
   box-shadow: none;
 }
+.mkt-range-btn.is-active:hover { color: #0B0D0F; }
 
 .market-v3-quick-take {
-  margin-top: 20px;
-  padding: 17px 18px 18px;
-  border: 1px solid #23272D;
-  border-radius: 19px;
+  margin-top: var(--v3-section-gap);
+  padding: 18px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.008)),
-    #14171A;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-  transition: border-color 180ms ease, background 180ms ease;
+    var(--v3-surface);
+  box-shadow: var(--v3-inset);
+  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease);
 }
 
 .market-v3-card-head {
@@ -3095,8 +3361,8 @@ body.market-chart-scrubbing {
 
 .market-v3-card-head h2 {
   margin: 0;
-  color: #F5F5F5;
-  font: 760 1rem/1.1 var(--font-b);
+  color: var(--v3-title);
+  font: 760 1.04rem/1.1 var(--font-b);
   letter-spacing: -0.02em;
 }
 
@@ -3121,20 +3387,20 @@ body.market-chart-scrubbing {
 
 .market-v3-quick-take p {
   margin: 12px 0 0;
-  color: #D1D5DB;
+  color: var(--v3-body);
   font: 400 0.95rem/1.55 var(--font-b);
   letter-spacing: -0.01em;
 }
 
 .market-v3-actions {
-  margin-top: 16px;
+  margin-top: var(--v3-section-gap);
 }
 
 .market-v3-actions h2,
 .market-v3-section-row h2 {
   margin: 0;
-  color: #F5F5F5;
-  font: 760 1.2rem/1.1 var(--font-b);
+  color: var(--v3-title);
+  font: 760 1.15rem/1.1 var(--font-b);
   letter-spacing: -0.04em;
 }
 
@@ -3145,16 +3411,20 @@ body.market-chart-scrubbing {
   width: 100%;
   min-height: 54px;
   padding: 0 15px;
-  border: 1px solid #23272D;
-  border-radius: 16px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
   background:
     linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
-    #14171A;
-  color: #F5F5F5;
+    var(--v3-surface);
+  color: var(--v3-title);
   text-align: left;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
+.market-v3-ask-control:hover { border-color: var(--v3-border-hover); background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.012)), var(--v3-surface-hover); }
+.market-v3-ask-control:active { transform: scale(0.995); }
+.market-v3-ask-control:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
 .market-v3-ask-control span:nth-child(2) {
   flex: 1;
@@ -3213,12 +3483,12 @@ body.market-chart-scrubbing {
   bottom: 0;
   width: min(100%, 430px);
   padding: 16px 18px calc(22px + env(safe-area-inset-bottom));
-  border: 1px solid #23272D;
+  border: 1px solid var(--v3-border);
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012)),
-    #14171A;
+    var(--v3-surface);
   box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.38);
   transform: translate(-50%, 105%);
   transition: transform 220ms ease;
@@ -3272,7 +3542,7 @@ body.market-chart-scrubbing {
 }
 
 .market-v3-topics {
-  margin-top: 34px;
+  margin-top: var(--v3-section-gap);
 }
 
 .market-v3-section-row {
@@ -3315,27 +3585,31 @@ body.market-chart-scrubbing {
 .market-v3-topic-card {
   min-height: 96px;
   padding: 15px;
-  border: 1px solid #23272D;
-  border-radius: 15px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
   background:
     linear-gradient(145deg, rgba(255,255,255,0.032), rgba(255,255,255,0.006)),
-    #14171A;
-  color: #F5F5F5;
+    var(--v3-surface);
+  color: var(--v3-title);
   text-align: left;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: transform var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease);
 }
 
 .market-v3-topic-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.30);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--v3-border-hover);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012)),
+    var(--v3-surface-hover);
 }
+.market-v3-topic-card:active { transform: translateY(0); }
+.market-v3-topic-card:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 3px; }
 
 .market-v3-topic-card strong {
   display: block;
   margin-top: 0;
-  color: #F5F5F5;
+  color: var(--v3-title);
   font: 720 0.84rem/1.15 var(--font-b);
   letter-spacing: -0.02em;
 }
@@ -3343,7 +3617,7 @@ body.market-chart-scrubbing {
 .market-v3-topic-card small {
   display: block;
   margin-top: 8px;
-  color: #9CA3AF;
+  color: var(--v3-muted);
   font: 400 0.74rem/1.25 var(--font-b);
 }
 
@@ -3361,6 +3635,285 @@ body.market-chart-scrubbing {
   .market-v3-topic-grid::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ── End-of-Day Recap ─────────────────────────────────────────────── */
+/* One quiet card with subtle dividers. Same palette and radius as the
+   Quick Take / topic cards, but deliberately calmer than the hero chart. */
+.market-recap {
+  margin-top: var(--v3-section-gap);
+  padding: 18px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.003)),
+    var(--v3-surface-passive);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.market-recap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.market-recap-eyebrow {
+  display: block;
+  color: var(--v3-eyebrow);
+  font: 700 0.66rem/1 var(--font-b);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.market-recap-title {
+  margin: 6px 0 0;
+  color: var(--v3-title);
+  font: 760 1.04rem/1.1 var(--font-b);
+  letter-spacing: -0.01em;
+}
+
+.market-recap-time {
+  flex: none;
+  margin-top: 2px;
+  color: var(--v3-faint);
+  font: 500 0.72rem/1.2 var(--font-b);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.market-recap-body {
+  margin-top: 14px;
+}
+
+.market-recap-row {
+  padding: 13px 0;
+  border-top: 1px solid var(--v3-divider);
+}
+
+.market-recap-row:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.market-recap-label {
+  margin: 0;
+  color: var(--v3-muted);
+  font: 700 0.66rem/1 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.market-recap-row p {
+  margin: 7px 0 0;
+  color: var(--v3-body);
+  font: 400 0.9rem/1.5 var(--font-b);
+  letter-spacing: -0.01em;
+}
+
+.market-recap-concept {
+  color: var(--v3-title);
+  font-weight: 680;
+}
+
+.market-recap-movers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.market-recap-mover {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 11px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-chip);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.market-recap-mover-name {
+  color: var(--v3-body);
+  font: 560 0.82rem/1 var(--font-b);
+  letter-spacing: -0.01em;
+}
+
+.market-recap-mover-val {
+  font: 640 0.86rem/1 var(--font-num, var(--font-b));
+  font-variant-numeric: tabular-nums;
+}
+
+.market-recap-mover-val.up { color: var(--mkt-up); }
+.market-recap-mover-val.down { color: var(--mkt-down); }
+.market-recap-mover-val.flat { color: var(--mkt-flat); }
+.market-recap-mover-val.na { color: var(--mkt-na); }
+
+.market-recap-build {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-control);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.008)),
+    var(--v3-surface);
+  color: var(--v3-title);
+  font: 640 0.84rem/1 var(--font-b);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+
+.market-recap-build:hover {
+  transform: translateY(-1px);
+  border-color: var(--v3-border-hover);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012)),
+    var(--v3-surface-hover);
+}
+.market-recap-build:active { transform: translateY(0); }
+.market-recap-build:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+
+.market-recap-build-icon {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+  color: #F5F5F5;
+}
+
+.market-recap-build-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.market-recap-foot {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--v3-divider);
+  color: var(--v3-faint);
+  font: 500 0.72rem/1.4 var(--font-b);
+}
+
+.market-recap-loading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 0;
+  color: var(--v3-muted);
+  font: 500 0.88rem/1.3 var(--font-b);
+}
+
+.market-recap-spinner {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-top-color: #9CA3AF;
+  animation: market-recap-spin 0.7s linear infinite;
+}
+
+@keyframes market-recap-spin {
+  to { transform: rotate(360deg); }
+}
+
+.market-recap-unavailable p {
+  margin: 0;
+  color: var(--v3-muted);
+  font: 400 0.9rem/1.5 var(--font-b);
+}
+
+.market-recap-retry,
+.market-recap-build {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.market-recap-retry {
+  min-height: 44px;
+  margin-top: 11px;
+  padding: 0 16px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-control);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--v3-title);
+  font: 600 0.82rem/1 var(--font-b);
+  cursor: pointer;
+  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease);
+}
+
+.market-recap-retry:hover {
+  border-color: var(--v3-border-hover);
+  background: rgba(255, 255, 255, 0.08);
+}
+.market-recap-retry:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+
+/* ============================================================
+   V3 SHARED — disabled, loading, reduced-motion, overflow safety
+   Applies across both the Learn and Market surfaces.
+   ============================================================ */
+/* Disabled — never communicated by color alone (opacity + cursor + no lift). */
+.market-v3-ask-control:disabled,
+.market-v3-ask-control[aria-disabled="true"],
+.market-recap-build:disabled,
+.market-recap-build[aria-disabled="true"],
+.mkt-range-btn:disabled,
+.market-asset-option:disabled,
+.market-ask-row:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading — busy controls dim and surface a wait cursor. Pairs with the
+   existing .market-recap-spinner / .market-recap-loading affordances. */
+[aria-busy="true"].market-v3-ask-control,
+[aria-busy="true"].market-recap-build,
+[aria-busy="true"].v3-unit-card {
+  opacity: 0.7;
+  cursor: progress;
+  pointer-events: none;
+}
+
+/* No section may push the page sideways; only intended carousels scroll. */
+.v3-learn-shell,
+.market-v3-shell { overflow-x: clip; }
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-learn-shell,
+  .market-v3-shell,
+  .v3-units-panel { animation: none; }
+
+  .v3-learn-primary,
+  .v3-continue-card,
+  .v3-unit-card,
+  .v3-unit-main,
+  .v3-learn-tabs button,
+  .v3-chevron,
+  .market-v3-topic-card,
+  .market-v3-ask-control,
+  .market-ask-row,
+  .market-recap-build,
+  .mkt-range-btn,
+  .market-v3-icons button { transition: none; }
+
+  .v3-continue-card:hover,
+  .v3-unit-card:hover,
+  .market-v3-topic-card:hover,
+  .market-recap-build:hover,
+  .v3-learn-primary:hover { transform: none; }
+
+  .market-recap-spinner,
+  .v3-learn-primary.is-loading::after { animation: none; }
 }
 
 .v3-learn-header {
@@ -4890,14 +5443,14 @@ body:not(.entry-gate-visible) #mainNav {
 .v3-unit-card-ai { position: relative; display: block; padding: 0; overflow: hidden; --swipe-action-w: 76px; }
 .v3-unit-main {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 13px;
+  gap: 14px;
   width: 100%;
   min-height: 76px;
-  padding: 13px;
+  padding: 14px;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--v3-radius-card);
   background: transparent;
   color: inherit;
   text-align: left;
@@ -4907,6 +5460,8 @@ body:not(.entry-gate-visible) #mainNav {
 /* In Edit mode a small delete control sits at the far right of AI cards only;
    reserve room so the title never runs under it. */
 .v3-unit-card-ai.is-editing .v3-unit-main { padding-right: 46px; }
+/* In edit mode the delete control takes the right edge; drop the chevron. */
+.v3-unit-card-ai.is-editing .v3-chevron { display: none; }
 .v3-unit-delete {
   position: absolute;
   top: 50%;
