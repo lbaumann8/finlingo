@@ -450,15 +450,13 @@ function _showAuthBootScreen() {
   const mainTopbar = document.getElementById('mainTopbar');
   if (mainTopbar) mainTopbar.style.display = 'none';
   try {
-    if (typeof showWelcomeOnboarding === 'function') {
-      showWelcomeOnboarding();
-    } else if (typeof openAuthModal === 'function') {
+    if (typeof openAuthModal === 'function') {
       openAuthModal('signin', { dismissible: false });
     } else {
-      _renderBootFallback('Finlingo could not start because onboarding/auth did not load.');
+      _renderBootFallback('Finlingo could not start because auth did not load.');
     }
   } catch (err) {
-    console.error('[boot] onboarding/auth render failed:', err);
+    console.error('[boot] auth render failed:', err);
     _renderBootFallback('Finlingo could not start. Please refresh the page.');
   }
 }
@@ -889,11 +887,6 @@ function _resetTransientUiLayers({ preserveMarketModal = false } = {}) {
 
   if (window.NavDrawer && typeof window.NavDrawer.close === 'function') {
     window.NavDrawer.close();
-  }
-
-  const onboardingOverlay = document.getElementById('onboardingOverlay');
-  if (onboardingOverlay?.style.display === 'flex' && S.onboarding?.done) {
-    onboardingOverlay.style.display = 'none';
   }
 }
 
@@ -3288,56 +3281,21 @@ function renderV3LearnWorkspace(container) {
   });
   const presetUnits = _groupedList(presetCards, _presetCard);
 
-  // ── Continue learning: one featured card for the most-recently-opened
-  // in-progress unit across both tabs. Clicking it reopens the current lesson.
-  // Hidden entirely (no empty space) when nothing is in progress.
-  const _resumeCandidates = myCards
-    .map(c => ({ kind: 'ai', unit: c.unit, info: c.info, openId: c.unit.id }))
-    .concat(presetCards.map(c => ({ kind: 'preset', unit: c.unit, info: c.info, openId: 'preset_unit_' + Number(c.unit.id) })))
-    .filter(c => c.info.started && !c.info.completed)
-    .sort((a, b) => _ts(b.info.lastOpenedAt) - _ts(a.info.lastOpenedAt));
-  const _resume = _resumeCandidates[0] || null;
-  const continueSection = _resume ? (() => {
-    const rawTitle = _resume.kind === 'ai'
-      ? cleanGeneratedListItemText(_resume.unit.title || 'Generated unit')
-      : (_resume.unit.title || _resume.unit.name || 'Preset unit');
-    const title = escapeAppHtml(rawTitle);
-    const oid = escapeAppHtml(String(_resume.openId));
-    const sub = _subtitle(_resume.info);
-    return `
-      <section class="v3-continue" aria-label="Continue learning">
-        <span class="v3-continue-label">Continue learning</span>
-        <button type="button" class="v3-continue-card" aria-label="Resume ${title}, ${escapeAppHtml(sub)}" onclick="openMicroUnit('${oid}')">
-          <span class="v3-unit-icon">${_learnUnitIcon(_resume.kind)}</span>
-          <span class="v3-unit-copy">
-            <strong>${title}</strong>
-            <small>${sub}</small>
-            <span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(_resume.info)}%"></i></span>
-          </span>
-          <span class="v3-continue-cta">Continue${_chevron}</span>
-        </button>
-      </section>`;
-  })() : '';
-
   const editBtn = '';
 
   container.innerHTML = `
     <div class="v3-learn-shell">
       <header class="v3-learn-header">
-        <span class="v3-learn-kicker">Learn</span>
-        <h1>Your learning path,<br>built on demand.</h1>
-        <p>Ask a question to create a focused unit, or continue learning from the curriculum.</p>
-        <button type="button" class="v3-learn-primary" onclick="startAskForNewUnit()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Create a unit
-        </button>
+        <div>
+          <span class="v3-learn-kicker">Learn</span>
+          <h1>Your learning path,<br>built on demand.</h1>
+          <p>Start with a question. FinLingo turns it into a focused unit and keeps the default curriculum ready when you need structure.</p>
+        </div>
       </header>
-
-      ${continueSection}
 
       <section class="v3-learn-tabs" role="tablist" aria-label="Learn units">
         <button type="button" role="tab" aria-selected="${active === 'my' ? 'true' : 'false'}" class="${active === 'my' ? 'active' : ''}" onclick="switchLearnUnitsTab('my')">
-          Your Units
+          My Units
         </button>
         <button type="button" role="tab" aria-selected="${active === 'preset' ? 'true' : 'false'}" class="${active === 'preset' ? 'active' : ''}" onclick="switchLearnUnitsTab('preset')">
           Preset Units
@@ -3430,7 +3388,7 @@ const LearnUnitMenu = {
       '<div class="unit-confirm-backdrop" onclick="LearnUnitMenu._closeConfirm()"></div>' +
       '<div class="unit-confirm" role="dialog" aria-modal="true" aria-labelledby="unitConfirmTitle">' +
       '  <h3 id="unitConfirmTitle">Delete this unit?</h3>' +
-      '  <p>This removes the unit and its saved progress from Your Units.</p>' +
+      '  <p>This removes the unit and its saved progress from My Units.</p>' +
       '  <div class="unit-confirm-actions">' +
       '    <button type="button" class="unit-confirm-cancel" onclick="LearnUnitMenu._closeConfirm()">Cancel</button>' +
       '    <button type="button" class="unit-confirm-delete" onclick="LearnUnitMenu._doDelete(\'' + unitId + '\')">Delete</button>' +
@@ -3985,11 +3943,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       : null;
 
     if (!storedSession) {
-      if (S.user && !S.user.id && S.onboarding?.done) {
-        enterApp();
-        return;
+      // Onboarding removed: first-time / logged-out users enter directly as a
+      // guest instead of hitting an onboarding/sign-in gate. Existing local
+      // (guest) state is preserved — we only mint a guest identity when none
+      // exists, and never reset stored progress here.
+      if (!(S.user && !S.user.id)) {
+        S.user = { name: 'Guest', email: null, tier: 'standard', avatarColor: '#1a1a1a' };
+        if (!S.joinedDate) S.joinedDate = new Date().toISOString();
+        if (typeof save === 'function') save();
       }
-      _showAuthBootScreen();
+      enterApp();
       return;
     }
 

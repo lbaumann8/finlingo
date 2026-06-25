@@ -3642,7 +3642,7 @@ body.market-chart-scrubbing {
    Quick Take / topic cards, but deliberately calmer than the hero chart. */
 .market-recap {
   margin-top: var(--v3-section-gap);
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-card);
   background:
@@ -3683,11 +3683,11 @@ body.market-chart-scrubbing {
 }
 
 .market-recap-body {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .market-recap-row {
-  padding: 13px 0;
+  padding: 10px 0;
   border-top: 1px solid var(--v3-divider);
 }
 
@@ -3705,9 +3705,9 @@ body.market-chart-scrubbing {
 }
 
 .market-recap-row p {
-  margin: 7px 0 0;
+  margin: 6px 0 0;
   color: var(--v3-body);
-  font: 400 0.9rem/1.5 var(--font-b);
+  font: 400 0.89rem/1.45 var(--font-b);
   letter-spacing: -0.01em;
 }
 
@@ -3719,18 +3719,19 @@ body.market-chart-scrubbing {
 .market-recap-movers {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 9px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .market-recap-mover {
   display: flex;
   align-items: baseline;
-  gap: 7px;
-  padding: 7px 11px;
+  gap: 6px;
+  padding: 6px 10px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-chip);
   background: rgba(255, 255, 255, 0.018);
+  white-space: nowrap;
 }
 
 .market-recap-mover-name {
@@ -3753,8 +3754,8 @@ body.market-chart-scrubbing {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  margin-top: 12px;
+  min-height: 42px;
+  margin-top: 10px;
   padding: 0 16px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-control);
@@ -3796,8 +3797,8 @@ body.market-chart-scrubbing {
 }
 
 .market-recap-foot {
-  margin: 14px 0 0;
-  padding-top: 12px;
+  margin: 12px 0 0;
+  padding-top: 10px;
   border-top: 1px solid var(--v3-divider);
   color: var(--v3-faint);
   font: 500 0.72rem/1.4 var(--font-b);
@@ -6619,6 +6620,11 @@ body:not(.entry-gate-visible) #mainNav,
 .coach-page-shell.has-composer .coach-hero {
   flex: 1 1 auto !important;
   min-height: 0 !important;
+  /* Bias the vertically-centred title block upward (~80-120px) by trimming the
+     top padding and adding bottom padding, so the empty state feels less low
+     while the composer stays near the bottom. Stays responsive via clamp. */
+  padding-top: clamp(20px, 4vh, 44px) !important;
+  padding-bottom: clamp(140px, 26vh, 240px) !important;
 }
 
 .coach-thread {
@@ -6652,7 +6658,12 @@ body:not(.entry-gate-visible) #mainNav,
 }
 
 .coach-edu-note {
-  margin: 8px 0 0 !important;
+  /* Quieter and closer to the input: smaller text, tighter top gap, muted but
+     still readable on the dark surface. */
+  margin: 5px 0 0 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.01em !important;
+  color: #7A8089 !important;
 }
 
 .v3-learn-shell,

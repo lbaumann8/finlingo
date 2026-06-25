@@ -1941,59 +1941,88 @@ function _marketRecapMovers() {
 function _marketRecapMainStory(movers = _marketRecapMovers()) {
   const avail = movers.filter(m => m.available);
   if (avail.length < 2) {
-    return 'There isn’t enough confirmed data right now to name the day’s main theme. Price movement alone does not reveal a definitive cause.';
+    return 'There isn’t enough confirmed data to name today’s main theme yet.';
   }
   const stocks = avail.filter(m => m.symbol === 'SPY' || m.symbol === 'QQQ');
   const btc = avail.find(m => m.symbol === 'BTC');
   const ups = avail.filter(m => m.tone === 'up').length;
   const downs = avail.filter(m => m.tone === 'down').length;
+  const caveat = 'The price action alone does not confirm one specific cause.';
   let lead;
-  if (ups === avail.length) {
-    lead = 'Stocks and Bitcoin leaned higher together — a broadly risk-on session.';
-  } else if (downs === avail.length) {
-    lead = 'Stocks and Bitcoin leaned lower together — a broadly risk-off session.';
+  if (downs === avail.length) {
+    lead = 'Stocks and Bitcoin moved lower together, signaling a broadly cautious session.';
+  } else if (ups === avail.length) {
+    lead = 'Stocks and Bitcoin moved higher together in a broadly upbeat session.';
   } else if (stocks.length && btc && stocks.every(s => s.tone === 'up') && btc.tone === 'down') {
-    lead = 'Stocks held up while Bitcoin slipped — a reminder these markets don’t always move in step.';
+    lead = 'Stocks rose while Bitcoin slipped, so the two moved apart today.';
   } else if (stocks.length && btc && stocks.every(s => s.tone === 'down') && btc.tone === 'up') {
-    lead = 'Bitcoin firmed even as stocks softened — the two often march to different drums.';
+    lead = 'Bitcoin firmed while stocks fell, so the two moved apart today.';
   } else {
-    lead = 'The major gauges were mixed, with no single direction across stocks and Bitcoin.';
+    lead = 'Stocks and Bitcoin finished mixed, with no single direction across them.';
   }
-  return `${lead} Price movement alone does not reveal a definitive cause.`;
+  return `${lead} ${caveat}`;
 }
 
-// No live economic calendar is wired in, so this stays a general educational
-// habit rather than an invented event.
-function _marketRecapWatch() {
-  return 'This app doesn’t carry a live economic calendar yet, so it won’t name a specific upcoming event. A useful habit: watch whether stocks and Bitcoin keep moving together or split apart over the next few sessions.';
+// A concise, forward-looking observation built only from the displayed
+// movements — never an invented event and never a prediction stated as fact.
+function _marketRecapWatch(movers = _marketRecapMovers()) {
+  const avail = movers.filter(m => m.available);
+  const stocks = avail.filter(m => m.symbol === 'SPY' || m.symbol === 'QQQ');
+  const btc = avail.find(m => m.symbol === 'BTC');
+  if (stocks.length && btc && btc.tone !== 'flat' && stocks.every(s => s.tone !== 'flat')) {
+    if (stocks.every(s => s.tone === btc.tone)) {
+      return 'Watch whether stocks and Bitcoin continue moving together or begin to diverge over the next few sessions.';
+    }
+    return 'Stocks and Bitcoin moved in different directions today — worth watching whether that split holds or they realign.';
+  }
+  return 'Watch how stocks and Bitcoin move relative to each other over the next few sessions.';
 }
 
-// Recommend one concept from the allowed list, chosen from the available data.
+// Recommend one concept from the allowed list, chosen to match the displayed
+// movements. We never recommend yields/rates here because no Treasury data is
+// shown in this recap.
 function _marketRecapLearn(movers = _marketRecapMovers()) {
   const by = sym => movers.find(m => m.symbol === sym);
   const spy = by('SPY'), qqq = by('QQQ'), btc = by('BTC');
+  const avail = movers.filter(m => m.available);
   const mag = m => (m && m.available ? Math.abs(m.pct) : 0);
-  const tnxPct = Number(_marketSnapshot.quotes?.['^TNX']?.changePct);
-  if (Number.isFinite(tnxPct) && Math.abs(tnxPct) >= 2) {
-    return { name: 'Bond yields', why: 'The 10-year Treasury yield made a notable move, and yields ripple through nearly every other market.' };
+  const downs = avail.filter(m => m.tone === 'down').length;
+  const ups = avail.filter(m => m.tone === 'up').length;
+
+  // Everything fell together → risk-off.
+  if (avail.length >= 2 && downs === avail.length) {
+    return { name: 'Risk-off markets', why: 'Learn why stocks and speculative assets sometimes decline together when investors become more cautious.' };
   }
-  if (Math.max(mag(spy), mag(qqq), mag(btc)) >= 1.5) {
-    return { name: 'Market volatility', why: 'One gauge made an outsized move — a good moment to understand what volatility is.' };
-  }
-  if (qqq?.available && spy?.available && (mag(qqq) - mag(spy)) >= 0.4) {
-    return { name: 'Technology-stock concentration', why: 'QQQ moved more than the broad S&P 500, a window into how heavily tech weighs on the index.' };
-  }
+  // Stocks and Bitcoin split → correlation.
   if (spy?.available && btc?.available && spy.tone !== 'flat' && btc.tone !== 'flat' && spy.tone !== btc.tone) {
-    return { name: 'Risk and diversification', why: 'Stocks and Bitcoin moved in opposite directions — a live example of why diversification matters.' };
+    return { name: 'Market correlation', why: 'Learn why different assets sometimes move together and other times pull apart.' };
   }
-  return { name: 'Interest rates', why: 'Interest rates quietly shape how every market is priced — a fundamental worth knowing.' };
+  // Tech leading the move → tech concentration.
+  if (qqq?.available && spy?.available && (mag(qqq) - mag(spy)) >= 0.4) {
+    return { name: 'Technology-stock concentration', why: 'Learn how heavily a handful of technology names can weigh on the broad index.' };
+  }
+  // Any outsized single move → volatility.
+  if (Math.max(mag(spy), mag(qqq), mag(btc)) >= 1.5) {
+    return { name: 'Volatility', why: 'Learn what it means when prices swing sharply in a single session.' };
+  }
+  // Everything rose together → sentiment.
+  if (avail.length >= 2 && ups === avail.length) {
+    return { name: 'Investor sentiment', why: 'Learn how the mood of investors can lift stocks and speculative assets at the same time.' };
+  }
+  // Mixed / quiet → diversification.
+  return { name: 'Diversification', why: 'Learn how holding assets that don’t always move together can steady a portfolio.' };
 }
 
+// Eastern time, to match the U.S. market session the recap describes.
 function _marketRecapTimestamp() {
   const at = Number(_marketSnapshot.fetchedAt);
   if (!Number.isFinite(at) || at <= 0) return '';
   try {
-    return new Date(at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return new Date(at).toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
   } catch {
     return '';
   }
@@ -2001,7 +2030,7 @@ function _marketRecapTimestamp() {
 
 function _renderMarketRecapShell(status, inner, { timestamp = '', stale = false } = {}) {
   const tsLine = timestamp
-    ? `<span class="market-recap-time">${stale ? 'Last good data ' : 'As of '}${_escapeMarketHtml(timestamp)}</span>`
+    ? `<span class="market-recap-time">${stale ? 'Last good data ' : 'Updated '}${_escapeMarketHtml(timestamp)} ET</span>`
     : '';
   return `
     <div class="market-recap-head">
@@ -2060,7 +2089,7 @@ function _renderMarketRecapInner() {
     </div>
     <div class="market-recap-row">
       <h4 class="market-recap-label">What to watch</h4>
-      <p>${_escapeMarketHtml(_marketRecapWatch())}</p>
+      <p>${_escapeMarketHtml(_marketRecapWatch(movers))}</p>
     </div>
     <div class="market-recap-row">
       <h4 class="market-recap-label">Learn this</h4>

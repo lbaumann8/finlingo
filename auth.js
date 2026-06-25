@@ -102,10 +102,6 @@ function closeAuthModal(event) {
   if (!authScreen) return;
   if (event && event.target !== event.currentTarget) return;
   if (authScreen.dataset.dismissible === 'false' && !_authReturnContext?.screenId && !_authReturnContext?.account) {
-    if (!S.user && sessionStorage.getItem('finlingo_onboarding_entry') === '1') {
-      sessionStorage.removeItem('finlingo_onboarding_entry');
-      if (typeof showWelcomeOnboarding === 'function') showWelcomeOnboarding();
-    }
     return;
   }
   _returnFromAuthScreen();
@@ -116,11 +112,6 @@ function _returnFromAuthScreen() {
   if (!authScreen) return;
   authScreen.classList.remove('auth-modal-open', 'active');
   document.body.classList.remove('auth-modal-visible');
-  if (!S.user && sessionStorage.getItem('finlingo_onboarding_entry') === '1') {
-    sessionStorage.removeItem('finlingo_onboarding_entry');
-    if (typeof showWelcomeOnboarding === 'function') showWelcomeOnboarding();
-    return;
-  }
   const returnContext = _authReturnContext || {};
   const targetScreen = returnContext.screenId && document.getElementById(returnContext.screenId)
     ? returnContext.screenId
@@ -1192,10 +1183,6 @@ function guestLogin() {
   S.joinedDate = new Date().toISOString();
   S.streak     = 0;
   S.streakDate = null;
-  S.onboarding = {
-    done: true, goal: null, level: null, topics: [],
-    completedAt: new Date().toISOString()
-  };
   save();
   enterApp();
   showToast('Continue as guest');
@@ -1205,14 +1192,6 @@ function guestLogin() {
 // ── ENTER APP ─────────────────────────────────────────────────
 
 function enterApp() {
-  if (sessionStorage.getItem('finlingo_onboarding_entry') === '1') {
-    sessionStorage.removeItem('finlingo_onboarding_entry');
-    S.onboarding = {
-      done: true, goal: null, level: null, topics: [],
-      completedAt: new Date().toISOString()
-    };
-    save();
-  }
   document.getElementById('authSuccessScreen')?.classList.remove('show');
   const authFormWrap = document.getElementById('authFormWrap');
   if (authFormWrap) authFormWrap.style.display = '';
@@ -1223,10 +1202,9 @@ function enterApp() {
   document.body.classList.remove('auth-modal-visible');
   const mainTopbar = document.getElementById('mainTopbar');
   if (mainTopbar) mainTopbar.style.display = 'block';
-  // Show onboarding for first-time users; returning users go straight to home.
-  // maybeShowOnboarding() is defined in onboarding.js.
-  if (typeof maybeShowOnboarding === 'function') maybeShowOnboarding();
-  else if (typeof showHome === 'function') showHome();
+  // Onboarding removed — go straight to the default screen.
+  if (typeof enterWorkspaceShell === 'function') enterWorkspaceShell();
+  if (typeof showHome === 'function') showHome();
 }
 
 

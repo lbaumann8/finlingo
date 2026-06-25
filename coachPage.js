@@ -1166,6 +1166,7 @@
   async function coachAsk(rawText, opts) {
     opts = opts || {};
     if (busy) return;
+    _markAskActivity();   // submitting / follow-up action counts as Ask activity
     const text = String(rawText || '').trim();
     const intent = opts.intent || _detectIntent(text);
     const requestId = opts.requestId || _requestId();
@@ -1392,6 +1393,7 @@
         busy = false;
         busyLabel = '';
         busyMode = 'normal';
+        _markAskActivity();   // response finished displaying — refresh activity timestamp
         _emitBusyChanged();
         if (requestChatId === activeChatId) {
           _renderThread({
@@ -2758,10 +2760,12 @@
   }
   // Calm, premium pacing — type slowly, hold for 2s, erase gently, breathe
   // between prompts. (Apple-like, not a flicker.)
-  const TW_TYPE_MS = 165;
-  const TW_PAUSE_MS = 2600;
-  const TW_ERASE_MS = 85;
-  const TW_GAP_MS = 950;
+  // ~30% faster typing/erasing than before, with slightly shorter hold/gap so
+  // the rotation feels brisker while staying readable (not instant or jittery).
+  const TW_TYPE_MS = 115;
+  const TW_PAUSE_MS = 2100;
+  const TW_ERASE_MS = 60;
+  const TW_GAP_MS = 720;
   function _twTick() {
     const input = document.getElementById('coachInput');
     if (!input || !tw.active) return;
@@ -2771,7 +2775,7 @@
       input.setAttribute('placeholder', word.slice(0, tw.c));
       if (tw.c >= word.length) { tw.deleting = true; tw.timer = setTimeout(_twTick, TW_PAUSE_MS); return; }
       // Slight natural variation so it reads like real typing, not a metronome.
-      tw.timer = setTimeout(_twTick, TW_TYPE_MS + (tw.c % 3 === 0 ? 35 : 0));
+      tw.timer = setTimeout(_twTick, TW_TYPE_MS + (tw.c % 3 === 0 ? 24 : 0));
     } else {
       tw.c--;
       input.setAttribute('placeholder', word.slice(0, Math.max(0, tw.c)));
@@ -2793,6 +2797,7 @@
     const value = input ? input.value.trim() : '';
     if (!value) return false;
     if (input) input.value = '';
+    _checkAskInactivity();   // start a fresh chat first if idle past the threshold
     coachAsk(value);
     return false;
   }
@@ -2824,7 +2829,7 @@
               ${FinLingoIcons.right()}
             </button>
           </form>
-          <p class="coach-edu-note">For education only. Not financial advice.</p>
+          <p class="coach-edu-note">Educational only. Not financial advice.</p>
         </div>` : ''}
         <section class="coach-thread" id="coachThread" aria-live="polite"></section>
         ${showCompact ? `<div class="coach-compact-composer coach-bottom-composer">
@@ -2834,7 +2839,7 @@
               ${FinLingoIcons.right()}
             </button>
           </form>
-          <p class="coach-edu-note">For education only. Not financial advice.</p>
+          <p class="coach-edu-note">Educational only. Not financial advice.</p>
         </div>` : ''}
       </div>`;
 
@@ -2855,8 +2860,12 @@
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); }
       });
       if (showHero) {
-        input.addEventListener('focus', _stopTypewriter, { once: true });
-        input.addEventListener('input', _stopTypewriter, { once: true });
+        // First focus/typing is both an inactivity-check trigger (resets to a
+        // fresh chat before the user types if idle past the threshold) and the
+        // signal to stop the typewriter immediately.
+        const onFirstInteract = () => { _checkAskInactivity(); _stopTypewriter(); };
+        input.addEventListener('focus', onFirstInteract, { once: true });
+        input.addEventListener('input', onFirstInteract, { once: true });
         _startTypewriter();
       }
     }
@@ -2866,6 +2875,39 @@
   function _askScreenActive() {
     const s = document.getElementById('coachScreen');
     return s && s.classList.contains('active');
+  }
+
+  // ── Ask inactivity reset ────────────────────────────────────────────
+  // After 15 minutes without any Ask activity, start a fresh chat the next
+  // time the user returns to / focuses / interacts with Ask. The reset only
+  // happens on those return/focus/interaction triggers (never on a timer mid
+  // read) and never while a response is loading, so an actively-used chat is
+  // preserved. Reuses newChat() so there is a single new-chat reset path.
+  const ASK_INACTIVITY_MS = 15 * 60 * 1000; // 15 * 60 * 1000
+  const ASK_ACTIVITY_KEY = 'finlingo_ask_last_activity';
+  let _inactivityGuard = false;
+
+  function _markAskActivity() {
+    try { if (global.localStorage) localStorage.setItem(ASK_ACTIVITY_KEY, String(Date.now())); }
+    catch (_) {}
+  }
+  function _getAskLastActivity() {
+    try {
+      const v = global.localStorage ? localStorage.getItem(ASK_ACTIVITY_KEY) : null;
+      const n = v ? parseInt(v, 10) : 0;
+      return Number.isFinite(n) ? n : 0;
+    } catch (_) { return 0; }
+  }
+  function _checkAskInactivity() {
+    if (_inactivityGuard) return;        // avoid overlapping resets (visibility/focus/route)
+    if (!_askScreenActive()) return;     // never reset due to time spent on Learn/Market
+    if (busy) return;                    // never reset while a response is loading
+    const last = _getAskLastActivity();
+    if (last && (Date.now() - last > ASK_INACTIVITY_MS) && thread.length > 0) {
+      _inactivityGuard = true;
+      try { newChat(); } finally { _inactivityGuard = false; }
+    }
+    _markAskActivity();
   }
 
   function newChat() {
@@ -2896,9 +2938,18 @@
       if (_askScreenActive()) renderCoach();
     });
     global.addEventListener('finlingo:screen-changed', function (event) {
-      if (event?.detail?.id === 'coachScreen') _resumeUnitJobsForActiveChat();
+      if (event?.detail?.id === 'coachScreen') { _checkAskInactivity(); _resumeUnitJobsForActiveChat(); }
       else _stopAllUnitJobPolls();
     });
+    // Returning focus / making the tab visible again are inactivity-check
+    // triggers too. _checkAskInactivity() is a no-op unless Ask is the active
+    // screen, so Learn/Market time never triggers a reset.
+    global.addEventListener('focus', _checkAskInactivity);
+    if (global.document && global.document.addEventListener) {
+      global.document.addEventListener('visibilitychange', function () {
+        if (global.document.visibilityState === 'visible') _checkAskInactivity();
+      });
+    }
   }
 
   global.renderCoach = renderCoach;
