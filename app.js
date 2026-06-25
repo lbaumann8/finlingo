@@ -257,7 +257,7 @@ function openFinlingoAccount() {
           </div>
         </section>
 
-        <section class="account-section" aria-labelledby="accountDetailsLabel">
+        ${isAuthenticated ? `<section class="account-section" aria-labelledby="accountDetailsLabel">
           <h2 id="accountDetailsLabel">Account details</h2>
           <div class="account-list">
             <button type="button" class="account-row account-row-button" onclick="editAccountName()">
@@ -271,23 +271,7 @@ function openFinlingoAccount() {
               ${_accountChevron()}
             </button>
           </div>
-        </section>
-
-        <section class="account-section" aria-labelledby="accountLearningLabel">
-          <h2 id="accountLearningLabel">Learning</h2>
-          <div class="account-list">
-            <button type="button" class="account-row account-row-button" onclick="chooseAccountLearningLevel()">
-              <span>Learning level</span>
-              <strong>${_accountEsc(_accountLevel())}</strong>
-              ${_accountChevron()}
-            </button>
-            <button type="button" class="account-row account-row-button" onclick="openAccountProgressSummary()">
-              <span>Learning progress</span>
-              <strong>View progress</strong>
-              ${_accountChevron()}
-            </button>
-          </div>
-        </section>
+        </section>` : ''}
 
         <section class="account-section" aria-labelledby="accountActionsLabel">
           <h2 id="accountActionsLabel">Account</h2>
@@ -299,7 +283,7 @@ function openFinlingoAccount() {
         </section>
 
         <section class="account-section account-danger-section" aria-labelledby="accountDangerLabel">
-          <h2 id="accountDangerLabel">Danger zone</h2>
+          <h2 id="accountDangerLabel">DATA</h2>
           <button type="button" class="account-row account-row-button account-row-danger" onclick="confirmAccountResetProgress()">
             <span>Reset learning progress</span>
           </button>
@@ -3092,13 +3076,13 @@ function openPresetUnit(unitId) {
 }
 
 function renderV3LearnWorkspace(container) {
-  // Preset tab = the ORIGINAL curriculum units (UNITS_DEF), restored in order.
-  // The first two carry authored micro-lessons; the rest keep their original
-  // course flow. We never filter, reorder, or replace the source units.
+  // Preset tab = the ORIGINAL curriculum units (UNITS_DEF), in order. All six
+  // carry authored micro-lessons. We never filter, reorder, or replace the
+  // source units here.
   const rawPresetDefs = (typeof window !== 'undefined' && Array.isArray(window.UNITS_DEF))
     ? window.UNITS_DEF
     : (typeof UNITS_DEF !== 'undefined' && Array.isArray(UNITS_DEF) ? UNITS_DEF : []);
-  const presetDefs = _visiblePresetUnitDefs(rawPresetDefs);
+  const presetDefs = rawPresetDefs;
   const _md = (typeof window !== 'undefined') ? window.MicroData : null;
   const _hasMicro = id => !!(_md && typeof _md.presetUnitHasMicro === 'function' && _md.presetUnitHasMicro(id));
   const _presetMicroCount = id => {
@@ -3217,7 +3201,7 @@ function renderV3LearnWorkspace(container) {
       </div>`;
   };
   const _presetCard = card => {
-    const rawTitle = card.unit.title || card.unit.name || 'Preset unit';
+    const rawTitle = card.title || card.unit.title || card.unit.name || 'Preset unit';
     const title = escapeAppHtml(rawTitle);
     return `
       <button type="button" class="v3-unit-card v3-unit-card-preset${card.info.completed ? ' is-complete' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${escapeAppHtml(String(card.unit.id))}"
@@ -3277,7 +3261,7 @@ function renderV3LearnWorkspace(container) {
   // Preset Units.
   const presetCards = presetDefs.filter(unit => _hasMicro(unit.id)).map(unit => {
     const micro = (_MD && typeof _MD.getPresetMicroUnitByUnitId === 'function') ? _MD.getPresetMicroUnitByUnitId(unit.id) : null;
-    return { kind: 'preset', unit, info: _cardInfo(micro) };
+    return { kind: 'preset', unit, title: (micro && micro.title) || unit.title || unit.name, info: _cardInfo(micro) };
   });
   const presetUnits = _groupedList(presetCards, _presetCard);
 

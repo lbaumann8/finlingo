@@ -46,13 +46,17 @@
   // ── Footer identity ────────────────────────────────────────
   function _userInitials() {
     var u = (global.S && global.S.user) || null;
-    var name = (u && (u.name || u.email)) || 'You';
+    // Signed-out guests always show "GU" — never derive initials from a stored
+    // fallback name (e.g. an old "You"), which could resurface "YO".
+    var authed = !!(u && (u.id || u.email));
+    if (!authed) return 'GU';
+    var name = u.name || u.email || 'User';
     if (typeof global.getInitials === 'function') {
       try { var i = global.getInitials(name); if (i) return i; } catch (_) {}
     }
     var parts = String(name).trim().split(/\s+/);
     var out = ((parts[0] || '')[0] || '') + (parts.length > 1 ? (parts[parts.length - 1][0] || '') : '');
-    return (out || 'Y').toUpperCase();
+    return (out || 'U').toUpperCase();
   }
   function _userAvatarColor() {
     var u = (global.S && global.S.user) || null;

@@ -856,7 +856,7 @@ const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', '1Y', '5Y'];
 
 // Shared Market selector config. Symbols are passed straight to the Yahoo proxy.
 const MARKET_ASSETS = [
-  { key: 'sp500', name: 'S&P 500', symbol: '^GSPC', kind: 'index', type: 'index', currency: null, description: 'Broad U.S. market index' },
+  { key: 'sp500', name: 'S&P 500', symbol: 'SPY', kind: 'etf', type: 'ETF', currency: 'USD', description: 'S&P 500 index ETF', tracks: 'S&P 500' },
   { key: 'qqq', name: 'QQQ', symbol: 'QQQ', kind: 'etf', type: 'ETF', currency: 'USD', description: 'Nasdaq-100 ETF', tracks: 'Nasdaq-100' },
   { key: 'btc', name: 'Bitcoin', symbol: 'BTC-USD', kind: 'crypto', type: 'crypto', currency: 'USD', description: 'Cryptocurrency' }
 ];
@@ -923,6 +923,13 @@ function _marketReferenceForNormalized(points) {
   const first = Number(points[0].value);
   const previousClose = Number(_marketChart.previousClose);
   if (range === '1D') {
+    // Prefer the normalized snapshot's previous close (the same regular-session
+    // close the header, cards and recap use) so the chart baseline matches the
+    // headline change exactly; fall back to the chart's own previous close.
+    const snapPrev = Number(_normalizedMarketSnapshot(asset.key).previousClose);
+    if (Number.isFinite(snapPrev) && snapPrev > 0) {
+      return { value: snapPrev, label: 'Previous close', source: 'previousClose' };
+    }
     if (asset.kind !== 'crypto' && Number.isFinite(previousClose) && previousClose > 0) {
       return { value: previousClose, label: 'Previous close', source: 'previousClose' };
     }
@@ -994,6 +1001,57 @@ function _formatAssetChange(change) {
 
 function _marketDisplayStats() {
   return _marketChartStats() || _marketFallbackStats();
+}
+
+// ── Normalized market snapshot ──────────────────────────────────────
+// ONE source of truth per asset. The graph header, the headline change %, the
+// snapshot cards and the (on-page + AI) recap all read these values, so they
+// can never disagree. Every field comes from the SAME live quote — the
+// regular-session price and the previous *regular-session* close — so we never
+// mix an after-hours price in one place with a regular-session close in
+// another. `available: false` means live data has not loaded; callers should
+// show a delayed/unavailable state rather than invent numbers.
+const _ASSET_QUOTE_SYMBOL = { sp500: 'SPY', qqq: 'QQQ', btc: 'BTC' };
+function _assetQuoteSymbol(asset) {
+  const key = (asset && asset.key) || _marketChart.asset;
+  return _ASSET_QUOTE_SYMBOL[key] || (asset && asset.symbol) || 'SPY';
+}
+function _normalizedMarketSnapshot(assetKey) {
+  const asset = _marketAssetByKey(assetKey);
+  const symbol = _assetQuoteSymbol(asset);
+  const quote = _marketSnapshot.quotes ? _marketSnapshot.quotes[symbol] : null;
+  const status = _getAssetMarketStatus(_findPracticeAsset(symbol) || asset || { symbol });
+  const price = Number(quote && quote.price);
+  const prev = Number(quote && quote.previousClose);
+  const change = Number(quote && quote.change);
+  const pct = Number(quote && quote.changePct);
+  const available = Number.isFinite(price) && price > 0;
+  return {
+    assetKey: asset.key,
+    name: asset.name,
+    symbol,
+    currentPrice: available ? price : null,
+    previousClose: Number.isFinite(prev) && prev > 0 ? prev : null,
+    absoluteChange: available && Number.isFinite(change) ? change : null,
+    percentChange: available && Number.isFinite(pct) ? pct : null,
+    sessionStatus: status.session,           // open | premarket | afterhours | closed | crypto
+    sessionTone: status.tone,
+    timestamp: Number(_marketSnapshot.fetchedAt) || null,
+    // Regular-session quote; flagged stale when the last fetch errored.
+    source: _marketSnapshot.status === 'error' ? 'quotes (delayed)' : 'quotes',
+    available
+  };
+}
+// Dev-only: log all normalized snapshots once per fetch so the graph and recap
+// values can be compared directly in the console.
+function _logMarketSnapshots() {
+  try {
+    const dev = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
+      || /[?&]marketdebug=1/.test(location.search);
+    if (!dev) return;
+    const all = MARKET_ASSETS.map(a => _normalizedMarketSnapshot(a.key));
+    console.log('[market] normalized snapshots', all);
+  } catch (_) { /* logging must never break the page */ }
 }
 
 function _marketToneFromStats(stats = _marketDisplayStats()) {
@@ -1442,10 +1500,22 @@ function _renderMarketAssetMenu() {
 function _renderMarketTodayHeroInner() {
   const a = _currentAsset();
   const stats = _marketDisplayStats();
-  const tone = _marketToneFromStats(stats);
-  const priceText = stats ? _formatAssetValue(stats.last) : '—';
-  const pctText = stats ? `${stats.pct >= 0 ? '+' : '-'}${Math.abs(stats.pct).toFixed(2)}%` : '—';
-  const changeText = stats ? _formatAssetChange(stats.change) : '—';
+  // On the daily view the headline reads the SAME normalized snapshot the cards
+  // and recap use (regular-session price + previous regular close), so the three
+  // can never disagree. Longer ranges describe the chart period itself, so they
+  // keep using the chart's own first→last math.
+  const snap = _marketChart.range === '1D' ? _normalizedMarketSnapshot(a.key) : null;
+  const useSnap = !!(snap && snap.available && Number.isFinite(snap.percentChange));
+  const tone = useSnap
+    ? (snap.percentChange > 0 ? 'up' : snap.percentChange < 0 ? 'down' : 'flat')
+    : _marketToneFromStats(stats);
+  const priceText = useSnap ? _formatAssetValue(snap.currentPrice) : (stats ? _formatAssetValue(stats.last) : '—');
+  const pctText = useSnap
+    ? `${snap.percentChange >= 0 ? '+' : '-'}${Math.abs(snap.percentChange).toFixed(2)}%`
+    : (stats ? `${stats.pct >= 0 ? '+' : '-'}${Math.abs(stats.pct).toFixed(2)}%` : '—');
+  const changeText = useSnap
+    ? (Number.isFinite(snap.absoluteChange) ? _formatAssetChange(snap.absoluteChange) : '—')
+    : (stats ? _formatAssetChange(stats.change) : '—');
   return `
     <div class="market-v3-hero-copy">
       <div class="market-v3-index-select">
@@ -1903,9 +1973,9 @@ function _renderMarketV3Topics() {
 // It reuses the live snapshot quotes (no new fetches) and never invents a
 // cause, an event, or a statistic. Honest about availability and staleness.
 const MARKET_RECAP_MOVERS = [
-  { symbol: 'SPY', name: 'S&P 500' },
-  { symbol: 'QQQ', name: 'QQQ' },
-  { symbol: 'BTC', name: 'Bitcoin' }
+  { key: 'sp500', symbol: 'SPY', name: 'S&P 500' },
+  { key: 'qqq', symbol: 'QQQ', name: 'QQQ' },
+  { key: 'btc', symbol: 'BTC', name: 'Bitcoin' }
 ];
 
 // Label depends on the real U.S. session, reusing the project's market-hours
@@ -1923,12 +1993,15 @@ function _marketRecapStatus(now = new Date()) {
 
 function _marketRecapMovers() {
   return MARKET_RECAP_MOVERS.map(m => {
-    const q = _marketSnapshot.quotes?.[m.symbol];
-    const pct = Number(q?.changePct);
-    const available = !!q && Number.isFinite(pct);
+    // Same normalized snapshot the graph header reads, so the recap's % can
+    // never differ from the headline change for the same asset.
+    const snap = _normalizedMarketSnapshot(m.key);
+    const pct = Number(snap.percentChange);
+    const available = snap.available && Number.isFinite(pct);
     return {
       name: m.name,
       symbol: m.symbol,
+      key: m.key,
       pct: available ? pct : null,
       tone: !available ? 'flat' : pct > 0.0005 ? 'up' : pct < -0.0005 ? 'down' : 'flat',
       available
@@ -2550,6 +2623,7 @@ async function ensureMarketSnapshot(force = false) {
     _marketSnapshot.status = 'ready';
     _marketSnapshot.error = '';
     _marketSnapshot.fetchedAt = Date.now();
+    _logMarketSnapshots();
   } catch (err) {
     if (_marketSnapshot.status !== 'ready') {
       _marketSnapshot.status = 'error';

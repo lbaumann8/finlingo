@@ -7130,3 +7130,74 @@ body.auth-modal-visible .ask-tutor-backdrop {
     padding: 32px 24px calc(26px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* ============================================================
+   MICRO-LESSON: QUICK CHECK ARROW POSITION  (targeted fix)
+   The Quick Check question reserves feedback space below the choices so the
+   layout doesn't jump when an answer is checked. While the question is still
+   unanswered that reserved box is EMPTY, and on mobile it pushed the prev/next
+   arrows down into unused space — out of line with the arrows on regular
+   lesson cards. Collapse the reserved space only while it is empty; once an
+   answer is picked the slot fills with feedback and the arrows sit below it.
+   No visible effect on desktop (the nav row is pinned to the bottom anyway).
+   ============================================================ */
+.ml-feedback-slot:empty { min-height: 0; }
+
+/* ============================================================
+   MICRO-LESSON: FULL-SCREEN LESSON VIEW  (desktop break-out)
+   On mobile the whole app is already full-screen, so a lesson fills the
+   viewport. On desktop/tablet the app is a centered ~456px phone frame, which
+   made lessons open inside a constrained panel. When the lesson screen is
+   active we break it out of that frame with position:fixed so the lesson shell
+   fills the entire viewport, then keep the readable content in a comfortable
+   centered column so paragraph text never stretches across the full width.
+   Quick checks, feedback and the prev/next controls all live inside this view
+   unchanged; lesson progress/answers are still persisted by microLessons.js.
+   ============================================================ */
+@media (min-width: 501px) {
+  #microLessonScreen.active {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0b0c0f;
+  }
+  #microLessonScreen.active > #microUnitRoot {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+  /* Shell fills the viewport (full-bleed dark background) … */
+  #microLessonScreen.active .ml-shell {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding-inline: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* … while header and content keep a comfortable centered reading column. */
+  #microLessonScreen.active .ml-top,
+  #microLessonScreen.active .ml-lesson-content,
+  #microLessonScreen.active .ml-check-content,
+  #microLessonScreen.active .ml-recap-intro,
+  #microLessonScreen.active .ml-done {
+    width: 100%;
+    max-width: 680px;
+    margin-inline: auto;
+    padding-inline: 24px;
+    box-sizing: border-box;
+  }
+}

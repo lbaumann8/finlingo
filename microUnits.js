@@ -134,7 +134,7 @@
   const MICRO_UNITS = [
     {
       id: 'unit_stock_market_basics',
-      title: 'Stock Market Basics',
+      title: 'Money & Markets',
       description: 'What a stock is, why prices move, and how everyday investors take part.',
       lessons: [
         {
@@ -308,7 +308,7 @@
     },
     {
       id: 'unit_companies_and_ipos',
-      title: 'Companies & IPOs',
+      title: 'Understanding a Company',
       description: 'How companies raise money and become publicly traded.',
       lessons: [
         {
@@ -394,9 +394,183 @@
       ]
     },
     {
+      id: 'unit_building_a_portfolio',
+      title: 'Building a Portfolio',
+      description: 'How to combine investments into a balanced, resilient portfolio.',
+      lessons: [
+        {
+          title: 'What Is a Portfolio?',
+          coreIdea: 'A portfolio is the full collection of investments you own. Instead of judging one stock alone, you look at how all your holdings work together.',
+          example: 'Owning a few index funds, a bond fund, and some cash is a simple portfolio.',
+          takeaway: 'A portfolio is all of your investments viewed as one whole.',
+          question: {
+            prompt: 'A portfolio is best described as…',
+            choices: ['A single stock you own', 'The full collection of your investments', 'A type of bank account', 'A loan from a broker'],
+            correctAnswerIndex: 1,
+            explanation: 'Your portfolio is every investment you hold, seen together.'
+          }
+        },
+        {
+          title: 'Asset Allocation',
+          coreIdea: 'Asset allocation is how you split your money across types of investments, like stocks, bonds, and cash. This mix shapes both your growth and your risk.',
+          example: 'A common mix might be 70% stocks for growth and 30% bonds for stability.',
+          takeaway: 'Asset allocation is the mix of investment types in your portfolio.',
+          question: {
+            prompt: 'Asset allocation mainly decides…',
+            choices: ['Which single stock will win', 'How your money is split across investment types', 'When the market opens', 'Your tax rate'],
+            correctAnswerIndex: 1,
+            explanation: 'Allocation is how your money is divided among asset types.'
+          }
+        },
+        {
+          title: 'Mixing Different Assets',
+          coreIdea: 'Some assets tend to rise and fall at different times. Holding a mix means a weak stretch in one area can be softened by another.',
+          example: 'Bonds often hold steadier when stocks drop, cushioning the overall portfolio.',
+          takeaway: 'Combining assets that behave differently smooths the ride.',
+          question: {
+            prompt: 'Why hold assets that behave differently?',
+            choices: ['To guarantee gains', 'To smooth out the ups and downs', 'To avoid all investing', 'To pay fewer fees'],
+            correctAnswerIndex: 1,
+            explanation: 'Different assets balance each other, steadying your results.'
+          }
+        },
+        {
+          title: 'Dollar-Cost Averaging',
+          coreIdea: 'Dollar-cost averaging means investing a fixed amount on a regular schedule, no matter the price. It removes the pressure of guessing the perfect moment.',
+          example: 'Investing $100 every month buys more shares when prices are low and fewer when high.',
+          takeaway: 'Investing a set amount on a schedule beats trying to time the market.',
+          question: {
+            prompt: 'Dollar-cost averaging means you…',
+            choices: ['Invest a fixed amount on a regular schedule', 'Buy only at the lowest price', 'Sell everything each month', 'Avoid investing until prices fall'],
+            correctAnswerIndex: 0,
+            explanation: 'You invest the same amount regularly, regardless of price.'
+          }
+        },
+        {
+          title: 'Rebalancing',
+          coreIdea: 'Over time, strong performers grow into a bigger slice of your portfolio. Rebalancing trims them back to your target mix so your risk stays where you want it.',
+          example: 'If stocks grow from 70% to 80% of your money, you sell a little to return to 70%.',
+          takeaway: 'Rebalancing brings your portfolio back to its target mix.',
+          question: {
+            prompt: 'The point of rebalancing is to…',
+            choices: ['Chase the hottest investment', 'Return your portfolio to its target mix', 'Sell everything at once', 'Stop investing entirely'],
+            correctAnswerIndex: 1,
+            explanation: 'Rebalancing resets your allocation to keep risk in check.'
+          }
+        }
+      ],
+      recapQuiz: [
+        {
+          prompt: 'Your portfolio is…',
+          choices: ['One favorite stock', 'All of your investments together', 'A savings account', 'A broker’s loan'],
+          correctAnswerIndex: 1,
+          explanation: 'A portfolio is every investment you hold, viewed as a whole.'
+        },
+        {
+          prompt: 'Asset allocation is…',
+          choices: ['The mix of investment types you hold', 'A single company’s earnings', 'A market holiday', 'A type of tax'],
+          correctAnswerIndex: 0,
+          explanation: 'Allocation is how your money is split across asset types.'
+        },
+        {
+          prompt: 'Rebalancing helps you…',
+          choices: ['Keep your target mix and risk steady', 'Guarantee a profit', 'Avoid the market', 'Pay no fees'],
+          correctAnswerIndex: 0,
+          explanation: 'It returns your portfolio to the mix you chose.'
+        }
+      ]
+    },
+    {
+      id: 'unit_market_cycles',
+      title: 'Understanding Market Cycles',
+      description: 'Why markets rise and fall, and how to stay steady through it.',
+      lessons: [
+        {
+          title: 'What Is a Market Cycle?',
+          coreIdea: 'Markets tend to move in repeating phases of rising and falling prices. These ups and downs are normal and have happened throughout history.',
+          example: 'Markets climb for years, dip, and then recover and climb again over time.',
+          takeaway: 'Markets move in repeating cycles of rises and falls.',
+          question: {
+            prompt: 'A market cycle refers to…',
+            choices: ['Prices only ever rising', 'Repeating phases of rising and falling prices', 'A single bad day', 'A type of investment'],
+            correctAnswerIndex: 1,
+            explanation: 'Cycles are the normal pattern of markets rising and falling.'
+          }
+        },
+        {
+          title: 'Bull Markets',
+          coreIdea: 'A bull market is a long stretch of generally rising prices. Optimism is high, and many investors expect values to keep climbing.',
+          example: 'During a bull market, a broad index might rise steadily for several years.',
+          takeaway: 'A bull market is an extended period of rising prices.',
+          question: {
+            prompt: 'A bull market is a period of…',
+            choices: ['Falling prices', 'Rising prices', 'No trading', 'Guaranteed losses'],
+            correctAnswerIndex: 1,
+            explanation: 'A bull market is a sustained rise in prices.'
+          }
+        },
+        {
+          title: 'Bear Markets',
+          coreIdea: 'A bear market is a long stretch of falling prices, often a drop of 20% or more. They can feel scary but have always been followed by recoveries.',
+          example: 'A bear market might see a major index fall by a quarter before turning back up.',
+          takeaway: 'A bear market is an extended period of falling prices.',
+          question: {
+            prompt: 'A bear market usually means prices have…',
+            choices: ['Risen sharply', 'Fallen substantially', 'Stayed exactly flat', 'Disappeared'],
+            correctAnswerIndex: 1,
+            explanation: 'A bear market is a sustained, sizable decline in prices.'
+          }
+        },
+        {
+          title: 'Corrections & Volatility',
+          coreIdea: 'A correction is a smaller dip, often around 10%, and volatility is the day-to-day bouncing of prices. Both are a normal part of investing.',
+          example: 'A market might drop 10% over a few weeks, then recover without becoming a bear market.',
+          takeaway: 'Smaller dips and daily swings are a normal part of markets.',
+          question: {
+            prompt: 'A market correction is…',
+            choices: ['A permanent crash', 'A smaller, normal dip in prices', 'A guaranteed gain', 'A trading fee'],
+            correctAnswerIndex: 1,
+            explanation: 'Corrections are modest, common dips, not disasters.'
+          }
+        },
+        {
+          title: 'Staying Calm Through Cycles',
+          coreIdea: 'Reacting to every swing often leads to buying high and selling low. Staying invested through cycles lets long-term growth and recoveries work for you.',
+          example: 'Investors who held through past downturns generally saw their portfolios recover over time.',
+          takeaway: 'Staying steady through cycles usually beats panic-selling.',
+          question: {
+            prompt: 'During a downturn, a long-term investor usually does best by…',
+            choices: ['Selling everything in a panic', 'Staying invested and patient', 'Stopping all saving', 'Trying to guess the exact bottom'],
+            correctAnswerIndex: 1,
+            explanation: 'Patience through cycles tends to beat reacting to every swing.'
+          }
+        }
+      ],
+      recapQuiz: [
+        {
+          prompt: 'Market cycles describe…',
+          choices: ['Prices that only rise', 'Repeating rises and falls in prices', 'A single company', 'A type of tax'],
+          correctAnswerIndex: 1,
+          explanation: 'Markets move through repeating up-and-down phases.'
+        },
+        {
+          prompt: 'A bear market is a period of…',
+          choices: ['Rising prices', 'Falling prices', 'No change', 'Guaranteed gains'],
+          correctAnswerIndex: 1,
+          explanation: 'A bear market is a sustained decline in prices.'
+        },
+        {
+          prompt: 'Through market downturns, long-term investors usually do best by…',
+          choices: ['Panic-selling', 'Staying invested and patient', 'Quitting investing', 'Timing the exact bottom'],
+          correctAnswerIndex: 1,
+          explanation: 'Staying steady lets recoveries work in your favor.'
+        }
+      ]
+    },
+    {
       id: 'unit_money_and_inflation',
-      title: 'Money & Inflation',
-      description: 'How inflation, bonds, and interest rates shape everyday money.',
+      title: 'Real-World Money Decisions',
+      description: 'Everyday money choices around inflation, saving, and borrowing.',
       lessons: [
         {
           title: 'What Is Inflation?',
@@ -485,13 +659,17 @@
   const _presetById = {};
   MICRO_UNITS.forEach(u => { _presetById[u.id] = u; });
 
-  // Map the first two ORIGINAL curriculum units (UNITS_DEF ids 1 & 2) to
-  // authored micro-lessons, WITHOUT replacing the original unit objects: the
-  // unit keeps its real id/title/description/order; only its lesson CONTENT is
-  // provided here. Stable micro id `preset_unit_<n>` keys progress.
+  // Map the six ORIGINAL curriculum units (UNITS_DEF ids 1–6) to authored
+  // micro-lessons, WITHOUT replacing the original unit objects: each unit keeps
+  // its real id/title/description/order; only its lesson CONTENT is provided
+  // here. Stable micro id `preset_unit_<n>` keys progress.
   const PRESET_MICRO_SOURCE = {
     1: MICRO_UNITS[0], // → "Money & Markets"
-    2: MICRO_UNITS[1]  // → "Investing for Everyone"
+    2: MICRO_UNITS[1], // → "Investing Foundations"
+    3: MICRO_UNITS[2], // → "Understanding a Company"
+    4: MICRO_UNITS[3], // → "Building a Portfolio"
+    5: MICRO_UNITS[4], // → "Understanding Market Cycles"
+    6: MICRO_UNITS[5]  // → "Real-World Money Decisions"
   };
 
   function _originalUnit(unitId) {
@@ -510,8 +688,10 @@
     return normalizeUnit({
       id: 'preset_unit_' + Number(unitId),
       presetUnitId: Number(unitId),
-      title: orig.title || orig.name || src.title,
-      description: orig.description || src.description,
+      // Preset cards/players are titled by the authored micro-unit, decoupled
+      // from the legacy course unit names so they can be curated independently.
+      title: src.title || orig.title || orig.name,
+      description: src.description || orig.description,
       icon: orig.icon || '',
       lessons: src.lessons,
       recapQuiz: src.recapQuiz,
@@ -531,7 +711,7 @@
   }
 
   function presetUnits() {
-    return [1, 2].map(getPresetMicroUnitByUnitId).filter(Boolean);
+    return [1, 2, 3, 4, 5, 6].map(getPresetMicroUnitByUnitId).filter(Boolean);
   }
 
   // Validate a NORMALIZED unit. `ok` gates whether it can be played as-is:

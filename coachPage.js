@@ -2367,10 +2367,45 @@
     return 'Preparing unit';
   }
 
+  // Monotonic, lesson-count-keyed time estimate. We deliberately do NOT
+  // recompute a precise remaining duration — the estimate only ever steps
+  // downward (never back to a longer label) so it cannot appear to grow during
+  // generation. Levels (higher = less time left):
+  //   0 "A couple minutes remaining"  1 "About a minute remaining"
+  //   2 "Almost done"                 3 "Finishing up"
+  const UNIT_JOB_ETA_LABELS = [
+    'A couple minutes remaining',
+    'About a minute remaining',
+    'Almost done',
+    'Finishing up'
+  ];
+  function _unitJobEtaLevel(entry) {
+    // Recap-quiz creation + final validation/save are the final-processing stage.
+    if (entry.status === 'generating_quizzes' || entry.status === 'validating') return 3;
+    const total = _unitJobTargetLessons(entry) || 5;
+    const completed = Math.max(0, Math.min(total, Number(entry.completedLessonCount) || 0));
+    const remaining = total - completed;
+    const frac = total > 0 ? completed / total : 0;
+    // Last lesson (or all lessons) done → "Almost done".
+    if (remaining <= 1 || frac >= 0.8) return 2;
+    // Roughly the back half of the lesson run → "About a minute remaining".
+    if (frac >= 0.35) return 1;
+    // Early stages (incl. queued / outline) → conservative starting label.
+    return 0;
+  }
+  function _unitJobEtaText(entry) {
+    let level = _unitJobEtaLevel(entry);
+    const prev = Number(entry._etaLevel);
+    // Never move backward to a longer estimate.
+    if (Number.isFinite(prev) && prev > level) level = prev;
+    entry._etaLevel = level;
+    return UNIT_JOB_ETA_LABELS[Math.max(0, Math.min(UNIT_JOB_ETA_LABELS.length - 1, level))];
+  }
+
   function _unitJobSecondary(entry) {
     const completed = Math.max(0, Number(entry.completedLessonCount) || 0);
     const total = _unitJobTargetLessons(entry);
-    const eta = _formatEta(_unitJobEtaSeconds(entry));
+    const eta = _unitJobEtaText(entry);
     if (entry.status === 'queued' || entry.status === 'generating_outline') {
       return total ? `0 of ${total} lessons ready · ${eta}` : 'Preparing your unit…';
     }
@@ -2763,7 +2798,9 @@
   // ~30% faster typing/erasing than before, with slightly shorter hold/gap so
   // the rotation feels brisker while staying readable (not instant or jittery).
   const TW_TYPE_MS = 115;
-  const TW_PAUSE_MS = 2100;
+  // Hold a fully-typed prompt 500ms longer before erasing (per request) — the
+  // typing/erasing speeds and the post-erase gap are unchanged.
+  const TW_PAUSE_MS = 2600;
   const TW_ERASE_MS = 60;
   const TW_GAP_MS = 720;
   function _twTick() {
