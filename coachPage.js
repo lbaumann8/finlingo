@@ -2918,7 +2918,10 @@
     _ensureActiveLoaded(true);
     composerVisible = true;
     if (typeof showCoach === 'function') showCoach(); else renderCoach();
-    setTimeout(() => { const el = document.getElementById('coachInput'); if (el) el.focus(); }, 90);
+    // Intentionally do NOT auto-focus the input: focusing immediately stops the
+    // typewriter, so we leave the clean empty state with the example-prompt
+    // animation running (reduced-motion shows a static example). The user
+    // focusing/typing then stops it as usual.
   }
 
   function openChat(id) {
