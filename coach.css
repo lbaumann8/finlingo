@@ -6568,6 +6568,73 @@ body:not(.entry-gate-visible) #mainTopbar,
   overflow-x: hidden !important;
 }
 
+/* Hide the visible vertical scrollbar on the app's main scroll containers
+   (the active screen, plus the per-page inner scrollers that act as the main
+   scroller for Ask, the lesson player and the account page). Scrolling via
+   wheel, trackpad, touch and keyboard is fully preserved — only the scrollbar
+   chrome is hidden. Width, layout and overflow behavior are unchanged.
+   Cross-browser: Firefox (scrollbar-width), legacy Edge (-ms-overflow-style),
+   and Chrome/Safari/mobile WebKit (::-webkit-scrollbar). */
+.screen:not(#authScreen),
+.coach-thread,
+.ml-body,
+.account-page-body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.screen:not(#authScreen)::-webkit-scrollbar,
+.coach-thread::-webkit-scrollbar,
+.ml-body::-webkit-scrollbar,
+.account-page-body::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* ============================================================
+   TEXT SELECTION
+
+   Regular interface text (nav labels, headings, cards, buttons,
+   tabs, market values, lesson controls) is non-selectable so the
+   app feels like a native UI and stray drags don't highlight chrome.
+   Selection is re-enabled only for content the user may reasonably
+   want to copy: form fields, generated answers, and long-form
+   educational reading (lesson paragraphs, market explanations).
+   Cursor behavior and accessibility are unaffected. */
+.app {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Form fields — always selectable/editable. */
+input,
+textarea,
+select,
+[contenteditable],
+[contenteditable="true"],
+/* Generated answers (Ask + Market coach). */
+.coach-answer,
+.coach-answer-text,
+.coach-msg-body,
+.mc-answer,
+/* Long-form educational reading. */
+.course-body,
+.ml-lesson-content,
+.ml-instruction-card,
+.ml-check-content,
+.ml-recap-content,
+.ml-question,
+.ml-slide,
+.market-recap-body,
+.market-recap-concept {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
 body:not(.entry-gate-visible) #mainNav,
 .app > .nav {
   order: 2 !important;
@@ -6591,13 +6658,30 @@ body:not(.entry-gate-visible) #mainNav,
 
 #coachRoot,
 #microUnitRoot,
-#marketFeatureList,
-.lesson-path {
+#marketFeatureList {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   width: 100% !important;
   max-width: none !important;
   height: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* The Learn (path) screen scrolls itself (#pathScreen has overflow-y:auto and
+   is display:block). Its content wrapper must therefore size to its content —
+   NOT be pinned to height:100%. Pinning it forced the inner .v3-learn-shell to
+   flex-shrink to the viewport height while its cards overflowed past the
+   wrapper's painted background, which produced the black paint artifact at the
+   bottom of the list during scroll (and clipped the last preset unit). Letting
+   it grow keeps a full-height dark background when the list is short and
+   matches the rest of the page when it's long. */
+.lesson-path {
+  flex: 0 0 auto !important;
+  min-height: 100% !important;
+  height: auto !important;
+  width: 100% !important;
+  max-width: none !important;
   margin: 0 !important;
   border-radius: 0 !important;
 }

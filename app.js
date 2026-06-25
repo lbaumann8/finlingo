@@ -3273,7 +3273,7 @@ function renderV3LearnWorkspace(container) {
         <div>
           <span class="v3-learn-kicker">Learn</span>
           <h1>Your learning path,<br>built on demand.</h1>
-          <p>Start with a question. FinLingo turns it into a focused unit and keeps the default curriculum ready when you need structure.</p>
+          <p>Ask a question to build a focused unit, or explore the preset curriculum.</p>
         </div>
       </header>
 

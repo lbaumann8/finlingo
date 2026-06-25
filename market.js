@@ -1117,7 +1117,7 @@ function _setMarketHeroDisplay(value, change, pct, suffix) {
     const cls = _marketChangeClass(change);
     const pctText = `${pct >= 0 ? '+' : '-'}${Math.abs(pct || 0).toFixed(2)}%`;
     changeEl.className = `market-v3-change ${cls}`;
-    changeEl.innerHTML = `${_escapeMarketHtml(_formatAssetChange(change))} (${_escapeMarketHtml(pctText)}) <span>${_escapeMarketHtml(suffix || _marketChangePeriodWord())}</span>`;
+    changeEl.innerHTML = `${_escapeMarketHtml(_formatAssetChange(change))} (${_escapeMarketHtml(pctText)})`;
   }
 }
 
@@ -1202,10 +1202,12 @@ function _buildHeroChartSvg(points) {
     ? Math.max(pad.top + 12, Math.min(pad.top + plotH - 14, referenceY < pad.top + 20 ? referenceY + 14 : referenceY - 6))
     : null;
   const referenceLabel = hasReference ? _escapeMarketHtml(reference.label) : '';
+  // The dashed previous-close reference line is kept; the visible text label is
+  // intentionally omitted. The value still drives the line position and the
+  // chart's accessible aria-label below, so calculations and a11y are unchanged.
   const referenceLine = hasReference
     ? `<g class="mkt-reference-line" aria-hidden="true" data-source="${_escapeMarketHtml(reference.source)}">
         <line x1="${pad.left}" y1="${referenceY.toFixed(1)}" x2="${(pad.left + plotW).toFixed(1)}" y2="${referenceY.toFixed(1)}"/>
-        <text x="${(pad.left + plotW - 5).toFixed(1)}" y="${referenceLabelY.toFixed(1)}" text-anchor="end">${referenceLabel}</text>
       </g>`
     : '';
   _debugMarketHistory('hero_render_points', {
@@ -1523,7 +1525,7 @@ function _renderMarketTodayHeroInner() {
         ${_renderMarketAssetMenu()}
       </div>
       <h1 class="market-v3-index-value" id="marketHeroValue">${_escapeMarketHtml(priceText)}</h1>
-      <div class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)}) <span>${_escapeMarketHtml(_marketChangePeriodWord())}</span></div>
+      <div class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</div>
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}`;
