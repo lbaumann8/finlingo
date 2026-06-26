@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/*.py": {
-      "maxDuration": 60,
-      "excludeFiles": "{*.sqlite3,*.sqlite3-*,*.css,supabase/**,__pycache__/**,**/*.test.py,test_*.py,.vercel/**}"
-    }
-  },
   "rewrites": [
     { "source": "/api/unit-jobs/:id/cancel", "destination": "/api/unit-job-cancel?id=:id" },
     { "source": "/api/unit-jobs/:id/retry", "destination": "/api/unit-job-retry?id=:id" },
