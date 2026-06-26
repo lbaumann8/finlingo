@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-Finlingo local dev server.
+Finlingo local dev server (LOCAL DEVELOPMENT ONLY).
+
+Production no longer uses this process. The app is deployed on Vercel, where the
+frontend is served as static files and every `/api/*` route is an individual
+Vercel Python serverless function under `api/` (see README "Deploying to
+Vercel"). This file is kept only as a zero-dependency way to run the whole app
+locally without the Vercel CLI; it backs unit-generation jobs with the local
+SQLite store (`unit_jobs.py`) instead of Supabase. For production-parity local
+runs, use `vercel dev` instead.
 
 Drop-in replacement for `python3 -m http.server 8000`: it serves the static
 app exactly the same way, and additionally proxies the market-data endpoints

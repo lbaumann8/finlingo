@@ -5,6 +5,7 @@ finlingo_unit_jobs.sqlite3*
 .env
 .env.local
 .env.*
+!.env.example
 __pycache__/
 *.pyc
 .DS_Store

@@ -3040,6 +3040,36 @@ function toggleLearnEditMode() {
 }
 if (typeof window !== 'undefined') window.toggleLearnEditMode = toggleLearnEditMode;
 
+// Navigate to the Learn overview and bring a specific generated unit into view
+// WITHOUT opening it. Used by Ask's "View in Learn" action: the user lands on
+// the normal My Units list, sees the new unit scrolled into view and briefly
+// highlighted, and decides whether to open it themselves.
+function focusLearnUnit(unitId) {
+  learnUnitsActiveTab = 'my';
+  learnEditMode = false;
+  if (typeof showLearn === 'function') showLearn({ resetScroll: true });
+  else if (typeof showPath === 'function') showPath();
+  if (!unitId) return;
+  const escId = (window.CSS && typeof CSS.escape === 'function') ? CSS.escape(String(unitId)) : String(unitId).replace(/["\\]/g, '\\$&');
+  // The workspace re-renders asynchronously; retry briefly until the card exists.
+  const reveal = (attempt = 0) => {
+    const card = document.querySelector(`.v3-unit-card-ai[data-unit-id="${escId}"]`);
+    if (!card) {
+      if (attempt < 10) setTimeout(() => reveal(attempt + 1), 70);
+      return;
+    }
+    try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    catch (_) { card.scrollIntoView(); }
+    card.classList.remove('v3-unit-card-just-added');
+    // Force reflow so the animation restarts even if the class lingered.
+    void card.offsetWidth;
+    card.classList.add('v3-unit-card-just-added');
+    setTimeout(() => card.classList.remove('v3-unit-card-just-added'), 1900);
+  };
+  setTimeout(() => reveal(0), 90);
+}
+if (typeof window !== 'undefined') window.focusLearnUnit = focusLearnUnit;
+
 function focusAskForNewUnit() {
   if (typeof showCoach === 'function') {
     showCoach({ resetScroll: true });

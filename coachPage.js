@@ -175,8 +175,14 @@
     'validating'
   ]);
   const UNIT_JOB_POLL_MS = 1500;
-  const UNIT_JOB_NETWORK_TIMEOUT_MS = 10000;
+  // Each poll advances the durable job by one generation step on the server, so
+  // a single request can legitimately take several seconds (one Anthropic call).
+  // The ceiling sits comfortably above that so a productive step is never cut off.
+  const UNIT_JOB_NETWORK_TIMEOUT_MS = 25000;
   const UNIT_JOB_MAX_CONSECUTIVE_POLL_FAILURES = 5;
+  // After this many consecutive failures we stop retrying silently and surface a
+  // restrained error with Retry/Cancel, so the card never stays stuck forever.
+  const UNIT_JOB_MAX_HARD_POLL_FAILURES = 12;
   let userScrollLockedDuringGeneration = false;
   let unitJobTicker = null;          // 1s interval driving the live time estimate
   let answerReveal = null;           // active streamed-answer reveal controller
@@ -630,6 +636,19 @@
         }
       } catch (_) {
         poller.failures += 1;
+        if (poller.failures >= UNIT_JOB_MAX_HARD_POLL_FAILURES) {
+          // Give up gracefully rather than spin forever on "Preparing unit".
+          // The job is kept, so Retry resumes polling the same job (or, if the
+          // server already failed it, re-runs it) instead of starting over.
+          _stopUnitJobPoll(entry.jobId);
+          entry.status = 'failed';
+          entry.stage = 'failed';
+          entry.errorCategory = 'connection_lost';
+          entry.pollingIssue = '';
+          _persistThreadFor(chatId, messages);
+          if (chatId === activeChatId && _askScreenActive()) _renderThread({ preserveScroll: true });
+          return;
+        }
         if (poller.failures >= UNIT_JOB_MAX_CONSECUTIVE_POLL_FAILURES) {
           entry.pollingIssue = 'Progress is temporarily unavailable. FinLingo is still trying to reconnect.';
           _persistThreadFor(chatId, messages);
@@ -1487,11 +1506,29 @@
     }
     else if (action === 'save_unit') saveUnit(index);
     else if (action === 'start_lesson') {
-      // Open the generated unit (saved or not) directly in the micro-lesson player.
+      // "Start unit": open the generated unit directly in the micro-lesson
+      // player, beginning at the first lesson. Generated (job) units are saved
+      // into Learn first so they persist there after the user starts them.
+      if (entry.fromUnitJob && !entry.saved && entry.kind === 'unit') {
+        const savedUnit = _persistUnit(entry);
+        if (savedUnit) { entry.saved = true; entry.unitId = savedUnit.id; _persistActive(); }
+      }
       if (typeof openMicroUnit === 'function') {
         if (entry.saved && entry.unitId) openMicroUnit(entry.unitId);
         else openMicroUnit(_unitObjectFromEntry(entry));
       }
+    }
+    else if (action === 'view_in_learn') {
+      // "View in Learn": save the generated unit, then go to the Learn overview
+      // WITHOUT opening it or starting a lesson. The unit is scrolled into view
+      // and briefly highlighted so the user can choose to open it themselves.
+      let unitId = entry.unitId;
+      if (!entry.saved && entry.kind === 'unit') {
+        const savedUnit = _persistUnit(entry);
+        if (savedUnit) { entry.saved = true; entry.unitId = savedUnit.id; unitId = savedUnit.id; _persistActive(); }
+      }
+      if (typeof focusLearnUnit === 'function') focusLearnUnit(unitId);
+      else if (typeof showLearn === 'function') showLearn({ resetScroll: true });
     }
   }
 
@@ -1520,6 +1557,7 @@
       entry.status = 'queued';
       entry.stage = 'queued';
       entry.pollingIssue = '';
+      _resetUnitJobTiming(entry);
       _persistActive();
       _renderThread({ preserveScroll: true });
       try {
@@ -2259,6 +2297,18 @@
     return Number(entry.totalLessonCount) || Number(entry.depthSelection?.targetLessonCount) || 0;
   }
 
+  // Clear all time-estimate state for a job so a fresh (re)start counts down
+  // from a new estimate rather than inheriting an elapsed clock or the monotonic
+  // "Finishing up…" floor from a previous attempt.
+  function _resetUnitJobTiming(entry) {
+    if (!entry) return;
+    entry.generationStartedAt = _nowIso();
+    entry.lessonDurationsMs = [];
+    entry._lastStepAt = undefined;
+    entry._etaAt = undefined;
+    entry._etaLevel = undefined;
+  }
+
   // Record per-lesson generation durations as lessons complete so the time
   // estimate is grounded in this job's ACTUAL pace (rolling average), then
   // re-anchor the live ETA.
@@ -2367,31 +2417,34 @@
     return 'Preparing unit';
   }
 
-  // Monotonic, lesson-count-keyed time estimate. We deliberately do NOT
-  // recompute a precise remaining duration — the estimate only ever steps
-  // downward (never back to a longer label) so it cannot appear to grow during
-  // generation. Levels (higher = less time left):
-  //   0 "A couple minutes remaining"  1 "About a minute remaining"
-  //   2 "Almost done"                 3 "Finishing up"
+  // Centralized, countdown-style time estimate. It maps the live remaining-
+  // seconds value — smoothly counted down between polls by _unitJobEtaSeconds,
+  // which is anchored on real generation pace + lesson progress in
+  // _rawRemainingMs — onto a small ladder of human labels. The estimate is
+  // based on elapsed time AND the expected unit-generation duration, only ever
+  // steps DOWN (never back to a longer label), never shows "0 seconds" or a
+  // negative value, and falls through to "Finishing up…" once generation runs
+  // past the expected duration. This is the single source of truth for the
+  // estimate text; the 1s ticker simply re-reads it.
   const UNIT_JOB_ETA_LABELS = [
-    'A couple minutes remaining',
-    'About a minute remaining',
-    'Almost done',
-    'Finishing up'
+    'About 2 minutes remaining',   // 0
+    'About 1 minute remaining',    // 1
+    'About 45 seconds remaining',  // 2
+    'About 30 seconds remaining',  // 3
+    'About 15 seconds remaining',  // 4
+    'Finishing up…'                // 5
   ];
+  // Returns the ladder index for the current live estimate. Higher = less time.
   function _unitJobEtaLevel(entry) {
-    // Recap-quiz creation + final validation/save are the final-processing stage.
-    if (entry.status === 'generating_quizzes' || entry.status === 'validating') return 3;
-    const total = _unitJobTargetLessons(entry) || 5;
-    const completed = Math.max(0, Math.min(total, Number(entry.completedLessonCount) || 0));
-    const remaining = total - completed;
-    const frac = total > 0 ? completed / total : 0;
-    // Last lesson (or all lessons) done → "Almost done".
-    if (remaining <= 1 || frac >= 0.8) return 2;
-    // Roughly the back half of the lesson run → "About a minute remaining".
-    if (frac >= 0.35) return 1;
-    // Early stages (incl. queued / outline) → conservative starting label.
-    return 0;
+    // Recap-quiz creation + final validation/save are always the home stretch.
+    if (entry.status === 'generating_quizzes' || entry.status === 'validating') return 5;
+    const secs = _unitJobEtaSeconds(entry);   // already clamped to >= 0
+    if (secs > 90) return 0;
+    if (secs > 52) return 1;
+    if (secs > 37) return 2;
+    if (secs > 22) return 3;
+    if (secs > 8) return 4;
+    return 5;   // <= 8s (incl. 0) → "Finishing up…", never a bare "0 seconds"
   }
   function _unitJobEtaText(entry) {
     let level = _unitJobEtaLevel(entry);
@@ -2448,9 +2501,12 @@
 
   function _renderUnitJobEntry(entry, index) {
     if (entry.status === 'failed' || entry.status === 'start_failed') {
-      return _renderUnitErrorEntry(Object.assign({
-        note: 'One part of the unit could not be generated.'
-      }, entry), index);
+      const note = entry.errorCategory === 'connection_lost'
+        ? 'We lost connection while building this unit. Your progress was saved — retry to pick up where it left off.'
+        : entry.errorCategory === 'invalid_api_key'
+          ? 'Unit generation isn’t available right now.'
+          : 'One part of the unit could not be generated.';
+      return _renderUnitErrorEntry(Object.assign({ note }, entry), index);
     }
     if (entry.status === 'cancelled') {
       return `
@@ -2546,7 +2602,7 @@
         <div class="coach-next">
           <div class="coach-next-cards">
             <button type="button" class="coach-next-card" onclick="CoachPage.act(${index},'start_lesson')"><span class="coach-next-text">Start unit</span><span class="coach-next-arrow" aria-hidden="true">${FinLingoIcons.right()}</span></button>
-            <button type="button" class="coach-next-card" onclick="CoachPage.act(${index},'open_learn')"><span class="coach-next-text">View in Learn</span><span class="coach-next-arrow" aria-hidden="true">${FinLingoIcons.right()}</span></button>
+            <button type="button" class="coach-next-card" onclick="CoachPage.act(${index},'view_in_learn')"><span class="coach-next-text">View in Learn</span><span class="coach-next-arrow" aria-hidden="true">${FinLingoIcons.right()}</span></button>
           </div>
         </div>`;
     }

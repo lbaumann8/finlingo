@@ -5442,6 +5442,14 @@ body:not(.entry-gate-visible) #mainNav {
 /* AI card becomes a positioned wrapper; the main clickable area is a button.
    It also clips the sliding swipe surface to the card's rounded corners. */
 .v3-unit-card-ai { position: relative; display: block; padding: 0; overflow: hidden; --swipe-action-w: 76px; }
+/* Brief, non-intrusive flash when Ask's "View in Learn" scrolls a freshly
+   generated unit into view. Soft ring only — it never opens the unit. */
+.v3-unit-card-ai.v3-unit-card-just-added { animation: v3-unit-just-added 1.7s ease-out 1; border-radius: var(--v3-radius-card); }
+@keyframes v3-unit-just-added {
+  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  18%  { box-shadow: 0 0 0 3px var(--v3-border-hover); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
 .v3-unit-main {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto;
