@@ -2896,6 +2896,49 @@ body:not(.entry-gate-visible) #mainNav {
   padding: var(--v3-pad-top) var(--v3-pad-x) var(--v3-pad-bottom);
   background: var(--v3-bg);
   animation: v3-fade-up 360ms ease both;
+  /* Premium app feel: the Market page is not a selectable document. */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Single column by default (mobile + tablet). The shell is a query container so
+   the two-column split below keys off the ACTUAL content width, not the
+   viewport — the app frame is a fixed ~440px phone canvas on desktop, so a
+   viewport breakpoint would wrongly cram two columns into 440px. With a
+   container query the split only appears where the Market content is genuinely
+   wide enough (e.g. a wider/expanded frame), and stays single-column otherwise. */
+.market-v3-shell {
+  container-type: inline-size;
+  container-name: market;
+}
+.market-v3-grid {
+  display: block;
+  width: 100%;
+}
+.market-v3-col { min-width: 0; }
+
+/* Wide content area: a balanced, restrained two-column split. Left holds the
+   price + chart + Quick Take; right holds Ask, Topics and the Recap. Capped so
+   the content never stretches across very wide frames. */
+@container market (min-width: 820px) {
+  .market-v3-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    gap: 34px;
+    align-items: start;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  /* Sections already manage their own top spacing; remove the first one's gap
+     so both columns start flush at the top. */
+  .market-v3-col-secondary > div:first-child .market-v3-actions {
+    margin-top: 0;
+  }
+  .market-v3-col-primary .market-v3-hero {
+    padding-top: 2px;
+  }
 }
 
 .market-v3-hero {
@@ -3068,22 +3111,43 @@ body:not(.entry-gate-visible) #mainNav {
 .market-ask-row:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 .market-ask-row-icon { display: inline-flex; width: 20px; color: var(--v3-body); }
 .market-ask-row-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.market-v3-ask-control i { transition: transform .15s ease; }
-.market-v3-ask-control.is-open i { transform: translateY(1px); }
 
 .market-v3-index-value {
-  margin: 12px 0 0;
+  margin: 4px 0 0;
   color: var(--v3-title);
-  font: 760 2.55rem/0.98 var(--font-num);
+  font: 760 2.4rem/0.98 var(--font-num);
   letter-spacing: -0.06em;
 }
 
 .market-v3-change {
-  margin-top: 10px;
+  margin-top: 5px;
   color: var(--mkt-up);
   font: 600 0.95rem/1.2 var(--font-b);
   letter-spacing: -0.01em;
 }
+
+/* "Market open · Updated 1:41 PM ET" — quiet status line under the headline. */
+.market-v3-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+  color: var(--v3-muted);
+  font: 500 0.76rem/1.2 var(--font-b);
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+}
+.market-v3-status-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--v3-muted);
+}
+.market-v3-status-dot-open { background: var(--mkt-up); }
+.market-v3-status-dot-extended { background: #E5C07B; }
+.market-v3-status-dot-always-open { background: var(--mkt-up); }
+.market-v3-status-dot-closed { background: var(--v3-faint); }
 
 .market-v3-change.down {
   color: var(--mkt-down);
@@ -3124,8 +3188,8 @@ body:not(.entry-gate-visible) #mainNav {
 
 .mkt-chart-canvas {
   position: relative;
-  height: 178px;
-  margin: 12px 0 0;
+  height: 154px;
+  margin: 10px 0 0;
   overflow: hidden;
   border-radius: 0;
 }
@@ -3297,10 +3361,10 @@ body.market-chart-scrubbing {
 .mkt-range-toggle {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  min-height: 52px;
-  margin: 12px 0 0;
-  padding: 4px;
+  gap: 3px;
+  min-height: 34px;
+  margin: 10px 0 0;
+  padding: 3px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-pill);
   background: rgba(20, 23, 26, 0.72);
@@ -3316,7 +3380,7 @@ body.market-chart-scrubbing {
   border-radius: var(--v3-radius-pill);
   background: transparent;
   color: var(--v3-body);
-  font: 680 0.9rem/1 var(--font-b);
+  font: 660 0.82rem/1 var(--font-b);
   cursor: pointer;
   transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
@@ -3324,7 +3388,7 @@ body.market-chart-scrubbing {
 /* Narrow phones: keep all six labels legible inside the equal grid tracks. */
 @media (max-width: 380px) {
   .mkt-range-btn {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
   }
 }
 
@@ -3341,16 +3405,16 @@ body.market-chart-scrubbing {
 }
 .mkt-range-btn.is-active:hover { color: #0B0D0F; }
 
+/* Quick Take reads as a continuation of the chart, not a second floating card:
+   no full border or surface fill — just a soft divider above it. */
 .market-v3-quick-take {
-  margin-top: var(--v3-section-gap);
-  padding: 18px;
-  border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius-card);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.008)),
-    var(--v3-surface);
-  box-shadow: var(--v3-inset);
-  transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease);
+  margin-top: 14px;
+  padding: 14px 2px 2px;
+  border: 0;
+  border-top: 1px solid var(--v3-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .market-v3-card-head {
@@ -3404,39 +3468,53 @@ body.market-chart-scrubbing {
   letter-spacing: -0.04em;
 }
 
+/* Ask FinLingo: reads as an AI prompt, not a dropdown — a sparkle cue on the
+   left, a live typed example in the middle, and a send affordance on the right.
+   Slightly brighter border + inner glow gives it a touch more presence while
+   staying within the restrained dark palette. */
 .market-v3-ask-control {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   width: 100%;
-  min-height: 54px;
-  padding: 0 15px;
-  border: 1px solid var(--v3-border);
+  min-height: 56px;
+  padding: 0 8px 0 15px;
+  border: 1px solid var(--v3-border-hover);
   border-radius: var(--v3-radius-card);
   background:
-    linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
+    linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012)),
     var(--v3-surface);
   color: var(--v3-title);
   text-align: left;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
-.market-v3-ask-control:hover { border-color: var(--v3-border-hover); background: linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.012)), var(--v3-surface-hover); }
+.market-v3-ask-control:hover { border-color: rgba(255,255,255,0.28); background: linear-gradient(145deg, rgba(255,255,255,0.072), rgba(255,255,255,0.018)), var(--v3-surface-hover); }
 .market-v3-ask-control:active { transform: scale(0.995); }
 .market-v3-ask-control:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
-.market-v3-ask-control span:nth-child(2) {
+.market-v3-ask-text {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v3-body);
   font: 500 0.95rem/1.2 var(--font-b);
 }
-
-.market-v3-ask-control i {
-  color: #F5F5F5;
-  font-style: normal;
-  font-size: 1.1rem;
+/* Blinking caret after the typed text so it reads as a live prompt. */
+.market-v3-ask-text::after {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.16em;
+  background: var(--v3-muted);
+  animation: market-ask-caret 1.05s step-end infinite;
 }
+@keyframes market-ask-caret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
 .market-v3-ask-icon {
   display: grid;
@@ -3450,6 +3528,30 @@ body.market-chart-scrubbing {
   fill: none !important;
   stroke: currentColor !important;
   color: #F5F5F5 !important;
+}
+
+/* Round send affordance — the AI-action cue on the right. */
+.market-v3-ask-send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: #F5F5F5;
+  transition: background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+.market-v3-ask-control:hover .market-v3-ask-send { background: rgba(255,255,255,0.14); }
+.market-v3-ask-control.is-open .market-v3-ask-send { transform: rotate(90deg); }
+.market-v3-ask-send svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .market-ask-sheet-layer {
@@ -3621,19 +3723,36 @@ body.market-chart-scrubbing {
   font: 400 0.74rem/1.25 var(--font-b);
 }
 
-@media (max-width: 390px) {
+/* Mobile: a horizontal scroll row where the next card peeks in, hinting there's
+   more. Scrollbar hidden, momentum scrolling + snap kept for a smooth feel. */
+@media (max-width: 620px) {
   .market-v3-topic-grid {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(112px, 1fr);
+    grid-auto-columns: 64%;
     grid-template-columns: none;
+    gap: 10px;
     overflow-x: auto;
-    padding-bottom: 4px;
+    margin-right: calc(var(--v3-pad-x) * -1);
+    padding: 0 var(--v3-pad-x) 4px 0;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
 
   .market-v3-topic-grid::-webkit-scrollbar {
     display: none;
+  }
+
+  .market-v3-topic-card {
+    scroll-snap-align: start;
+  }
+}
+
+/* Tablet/narrow desktop (single column, but wide enough): three cards in a clean row. */
+@media (min-width: 621px) {
+  .market-v3-topic-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -3653,9 +3772,10 @@ body.market-chart-scrubbing {
 
 .market-recap-head {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 2px;
 }
 
 .market-recap-eyebrow {
@@ -3750,20 +3870,24 @@ body.market-chart-scrubbing {
 .market-recap-mover-val.flat { color: var(--mkt-flat); }
 .market-recap-mover-val.na { color: var(--mkt-na); }
 
+/* The lesson CTA is the recap's primary action — full-width and brighter than
+   the surrounding text so it clearly invites a tap, while staying restrained. */
 .market-recap-build {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  margin-top: 10px;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 12px;
   padding: 0 16px;
-  border: 1px solid var(--v3-border);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: var(--v3-radius-control);
   background:
-    linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.008)),
+    linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)),
     var(--v3-surface);
   color: var(--v3-title);
-  font: 640 0.84rem/1 var(--font-b);
+  font: 660 0.88rem/1 var(--font-b);
   letter-spacing: -0.01em;
   cursor: pointer;
   transition: border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
@@ -3771,9 +3895,9 @@ body.market-chart-scrubbing {
 
 .market-recap-build:hover {
   transform: translateY(-1px);
-  border-color: var(--v3-border-hover);
+  border-color: rgba(255,255,255,0.34);
   background:
-    linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012)),
+    linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.05)),
     var(--v3-surface-hover);
 }
 .market-recap-build:active { transform: translateY(0); }
@@ -3801,7 +3925,8 @@ body.market-chart-scrubbing {
   padding-top: 10px;
   border-top: 1px solid var(--v3-divider);
   color: var(--v3-faint);
-  font: 500 0.72rem/1.4 var(--font-b);
+  font: 400 0.68rem/1.4 var(--font-b);
+  opacity: 0.72;
 }
 
 .market-recap-loading {
@@ -3914,7 +4039,11 @@ body.market-chart-scrubbing {
   .v3-learn-primary:hover { transform: none; }
 
   .market-recap-spinner,
+  .market-v3-ask-text::after,
   .v3-learn-primary.is-loading::after { animation: none; }
+
+  .market-v3-ask-send { transition: none; }
+  .market-v3-ask-control.is-open .market-v3-ask-send { transform: none; }
 }
 
 .v3-learn-header {

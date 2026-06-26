@@ -2849,16 +2849,15 @@
     tw.i = 0; tw.c = 0; tw.deleting = false;
     _twTick();
   }
-  // Calm, premium pacing — type slowly, hold for 2s, erase gently, breathe
-  // between prompts. (Apple-like, not a flicker.)
-  // ~30% faster typing/erasing than before, with slightly shorter hold/gap so
-  // the rotation feels brisker while staying readable (not instant or jittery).
-  const TW_TYPE_MS = 115;
-  // Hold a fully-typed prompt 500ms longer before erasing (per request) — the
-  // typing/erasing speeds and the post-erase gap are unchanged.
-  const TW_PAUSE_MS = 2600;
-  const TW_ERASE_MS = 60;
-  const TW_GAP_MS = 720;
+  // Calm, premium pacing — type a prompt, hold it briefly, erase gently, then
+  // breathe before the next one. The hold is applied ONCE, after the sentence
+  // is fully typed (never per character). Sequence:
+  //   type complete question → wait FULL_TEXT_PAUSE → erase → wait
+  //   NEXT_PROMPT_PAUSE → type next.
+  const TYPE_SPEED = 115;          // per-character typing speed
+  const FULL_TEXT_PAUSE = 1000;    // hold once after a sentence is complete
+  const DELETE_SPEED = 60;         // per-character deletion speed
+  const NEXT_PROMPT_PAUSE = 720;   // pause before the next sentence begins
   function _twTick() {
     const input = document.getElementById('coachInput');
     if (!input || !tw.active) return;
@@ -2866,14 +2865,14 @@
     if (!tw.deleting) {
       tw.c++;
       input.setAttribute('placeholder', word.slice(0, tw.c));
-      if (tw.c >= word.length) { tw.deleting = true; tw.timer = setTimeout(_twTick, TW_PAUSE_MS); return; }
+      if (tw.c >= word.length) { tw.deleting = true; tw.timer = setTimeout(_twTick, FULL_TEXT_PAUSE); return; }
       // Slight natural variation so it reads like real typing, not a metronome.
-      tw.timer = setTimeout(_twTick, TW_TYPE_MS + (tw.c % 3 === 0 ? 24 : 0));
+      tw.timer = setTimeout(_twTick, TYPE_SPEED + (tw.c % 3 === 0 ? 24 : 0));
     } else {
       tw.c--;
       input.setAttribute('placeholder', word.slice(0, Math.max(0, tw.c)));
-      if (tw.c <= 0) { tw.deleting = false; tw.i++; tw.timer = setTimeout(_twTick, TW_GAP_MS); return; }
-      tw.timer = setTimeout(_twTick, TW_ERASE_MS);
+      if (tw.c <= 0) { tw.deleting = false; tw.i++; tw.timer = setTimeout(_twTick, NEXT_PROMPT_PAUSE); return; }
+      tw.timer = setTimeout(_twTick, DELETE_SPEED);
     }
   }
   function _stopTypewriter() {

@@ -830,25 +830,37 @@ function renderMarket() {
   const container = document.getElementById('marketFeatureList');
   if (!container) return;
 
+  // Stop any in-flight Ask typewriter before the DOM it writes into is replaced.
+  _stopMarketAskTypewriter();
+
+  // Single column on mobile; a balanced, restrained two-column split on desktop
+  // (left: price + chart + Quick Take, right: Ask + Topics + Recap).
   container.innerHTML = `
     <div class="market-v3-shell">
-      <section class="market-v3-hero" id="marketTodayHero">
-        ${_renderMarketTodayHeroInner()}
-      </section>
+      <div class="market-v3-grid">
+        <div class="market-v3-col market-v3-col-primary">
+          <section class="market-v3-hero" id="marketTodayHero">
+            ${_renderMarketTodayHeroInner()}
+          </section>
 
-      <section class="market-v3-quick-take" id="marketQuickTakeCard">
-        ${_renderMarketQuickTakeInner()}
-      </section>
+          <section class="market-v3-quick-take" id="marketQuickTakeCard">
+            ${_renderMarketQuickTakeInner()}
+          </section>
+        </div>
 
-      <div id="marketActionsSlot">${_renderMarketV3Actions()}</div>
-      ${_renderMarketV3Topics()}
-      ${_renderMarketRecapSection()}
+        <div class="market-v3-col market-v3-col-secondary">
+          <div id="marketActionsSlot">${_renderMarketV3Actions()}</div>
+          ${_renderMarketV3Topics()}
+          ${_renderMarketRecapSection()}
+        </div>
+      </div>
     </div>`;
 
   // Kick off (or refresh) live data. The tutor is called only on click.
   ensureMarketSnapshot();
   ensureMarketChart();
   _observeMarketChartResize();
+  _startMarketAskTypewriter();
 }
 
 // ── Market hero chart (selectable index / asset) ────────────────────
@@ -1526,6 +1538,7 @@ function _renderMarketTodayHeroInner() {
       </div>
       <h1 class="market-v3-index-value" id="marketHeroValue">${_escapeMarketHtml(priceText)}</h1>
       <div class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</div>
+      ${_marketHeroStatusLine()}
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}`;
@@ -1533,6 +1546,30 @@ function _renderMarketTodayHeroInner() {
 
 function _marketChangePeriodWord() {
   return { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': '3 months', '1Y': 'this year', '5Y': '5 years' }[_marketChart.range] || 'today';
+}
+
+// Compact "Market open · Updated 1:41 PM ET" line shown beneath the headline.
+// Reuses the real session status for the selected asset and the live snapshot
+// timestamp — never hardcoded. The status dot colour follows the same tones.
+function _marketHeroStatusLine() {
+  const status = _getAssetMarketStatus(_currentAsset());
+  const phraseBySession = {
+    open: 'Market open',
+    premarket: 'Pre-market',
+    afterhours: 'After-hours',
+    closed: 'Market closed',
+    crypto: 'Trading 24/7'
+  };
+  const phrase = phraseBySession[status.session] || status.label || '';
+  const ts = _marketRecapTimestamp();
+  const updated = ts ? `Updated ${ts} ET` : '';
+  const text = [phrase, updated].filter(Boolean).join(' · ');
+  if (!text) return '';
+  return `
+    <div class="market-v3-status" id="marketHeroStatus">
+      <span class="market-v3-status-dot market-v3-status-dot-${status.tone}" aria-hidden="true"></span>
+      <span>${_escapeMarketHtml(text)}</span>
+    </div>`;
 }
 
 // ── Asset selector (compact dropdown beneath the label) ─────────────
@@ -1591,6 +1628,8 @@ function selectMarketAsset(key) {
     _marketChartView = null;
     _marketChart.status = 'loading';
     _paintMarketChart();
+    // Keep the Ask examples ("Why did <asset> move?") in sync with the new asset.
+    _paintMarketAsk();
     ensureMarketChart(true);
   }
   const label = document.getElementById('marketAssetLabel');
@@ -1618,6 +1657,7 @@ function _marketThinIcon(kind) {
     bulb: '<svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M8 14a6 6 0 1 1 8 0c-.8.7-1 1.4-1 2H9c0-.6-.2-1.3-1-2z"/></svg>',
     question: '<svg viewBox="0 0 24 24"><path d="M9.5 9a2.8 2.8 0 1 1 4.5 2.2c-1.2.8-2 1.5-2 2.8"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="9"/></svg>',
     cap: '<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7 12v5c3 2 7 2 10 0v-5"/><path d="M21 9v6"/></svg>',
+    send: '<svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12 6l6 6-6 6"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22c4 0 7-2.7 7-6.8 0-2.8-1.5-5.1-4.5-7.2.1 2.4-.9 3.7-2.3 4.5.2-3.1-1-5.4-3.4-7.5.2 4.5-3.8 6.2-3.8 10.2C5 19.3 8 22 12 22z"/></svg>',
     check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
   };
@@ -1845,12 +1885,13 @@ function _renderMarketV3Actions() {
     ['quiz', 'question', `Quiz me on ${subj}`],
     ['build', 'cap', `Build a lesson from ${subj}`]
   ];
+  const firstExample = _marketAskExamples()[0] || 'Ask about today’s market';
   return `
     <section class="market-v3-actions">
-      <button type="button" class="market-v3-ask-control${_marketAskExpanded ? ' is-open' : ''}" onclick="toggleMarketAsk()" aria-expanded="${_marketAskExpanded ? 'true' : 'false'}" aria-controls="marketAskAccordion">
-        <span class="market-v3-ask-icon">${_marketThinIcon('chat')}</span>
-        <span>Ask about today's market...</span>
-        <i aria-hidden="true">${_marketAskExpanded ? '⌃' : '⌄'}</i>
+      <button type="button" class="market-v3-ask-control${_marketAskExpanded ? ' is-open' : ''}" onclick="toggleMarketAsk()" aria-expanded="${_marketAskExpanded ? 'true' : 'false'}" aria-controls="marketAskAccordion" aria-label="Ask FinLingo about today's market">
+        <span class="market-v3-ask-icon">${_marketThinIcon('spark')}</span>
+        <span class="market-v3-ask-text" id="marketAskExampleText">${_escapeMarketHtml(firstExample)}</span>
+        <span class="market-v3-ask-send" aria-hidden="true">${_marketThinIcon('send')}</span>
       </button>
       <div class="market-ask-accordion${_marketAskExpanded ? ' open' : ''}" id="marketAskAccordion" role="region" aria-label="Ask about today's market">
         <div class="market-ask-accordion-inner">
@@ -1872,7 +1913,91 @@ function toggleMarketAsk() {
 function _paintMarketAsk() {
   const slot = document.getElementById('marketActionsSlot');
   if (slot) slot.innerHTML = _renderMarketV3Actions();
+  _startMarketAskTypewriter();
 }
+
+// ── Ask control typewriter ──────────────────────────────────────────
+// Animates rotating example questions inside the "Ask FinLingo" control so it
+// reads as an AI prompt, not a static dropdown. Single shared timer with strict
+// teardown so navigating away (or a 60s snapshot re-render) never leaves an
+// orphaned loop running or speeds up after revisits.
+//
+// Sequence: type a full question → hold FULL_TEXT_PAUSE (1s) → erase →
+// wait NEXT_PROMPT_PAUSE → type the next one. The hold is applied once, after
+// the sentence is complete — never per character.
+const MARKET_TW_TYPE_SPEED = 115;       // per-character typing speed
+const MARKET_TW_FULL_TEXT_PAUSE = 1000; // hold after a sentence is fully typed
+const MARKET_TW_DELETE_SPEED = 60;      // per-character deletion speed
+const MARKET_TW_NEXT_PROMPT_PAUSE = 720;// pause before the next sentence
+const _marketAskTw = { timer: null, i: 0, c: 0, deleting: false, active: false };
+
+function _marketReducedMotion() {
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch { return false; }
+}
+
+function _marketAskExamples() {
+  const subj = _currentAsset().name;
+  return [
+    `Why did ${subj} move today?`,
+    'What should I learn from this?',
+    'Explain today’s market simply',
+    `Quiz me on ${subj}`
+  ];
+}
+
+function _startMarketAskTypewriter() {
+  _stopMarketAskTypewriter();
+  const el = document.getElementById('marketAskExampleText');
+  if (!el) return;
+  const examples = _marketAskExamples();
+  if (_marketReducedMotion()) { el.textContent = examples[0]; return; }
+  _marketAskTw.active = true;
+  _marketAskTw.i = 0;
+  _marketAskTw.c = 0;
+  _marketAskTw.deleting = false;
+  _marketAskTwTick();
+}
+
+function _marketAskTwTick() {
+  const el = document.getElementById('marketAskExampleText');
+  if (!el || !_marketAskTw.active) return;
+  const examples = _marketAskExamples();
+  const word = examples[_marketAskTw.i % examples.length];
+  if (!_marketAskTw.deleting) {
+    _marketAskTw.c++;
+    el.textContent = word.slice(0, _marketAskTw.c);
+    if (_marketAskTw.c >= word.length) {
+      // Sentence complete: hold once before erasing (not after each character).
+      _marketAskTw.deleting = true;
+      _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_FULL_TEXT_PAUSE);
+      return;
+    }
+    _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_TYPE_SPEED + (_marketAskTw.c % 3 === 0 ? 24 : 0));
+  } else {
+    _marketAskTw.c--;
+    el.textContent = word.slice(0, Math.max(0, _marketAskTw.c));
+    if (_marketAskTw.c <= 0) {
+      _marketAskTw.deleting = false;
+      _marketAskTw.i++;
+      _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_NEXT_PROMPT_PAUSE);
+      return;
+    }
+    _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_DELETE_SPEED);
+  }
+}
+
+function _stopMarketAskTypewriter() {
+  _marketAskTw.active = false;
+  if (_marketAskTw.timer) { clearTimeout(_marketAskTw.timer); _marketAskTw.timer = null; }
+}
+
+// Tear the loop down whenever the user leaves the Market screen.
+try {
+  window.addEventListener('finlingo:screen-changed', function (event) {
+    if (event?.detail?.id !== 'marketScreen') _stopMarketAskTypewriter();
+  });
+} catch (_) {}
 
 const MARKET_V3_TOPICS = [
   { title: 'Interest Rates', sub: 'What moves them' },
@@ -1892,13 +2017,63 @@ function _topicSupportLine(title) {
   return 'Market concept';
 }
 
+// Short, plain-English subtitles for the concepts the recap can surface.
+const MARKET_RECAP_CONCEPT_SUB = {
+  'Risk-off markets': 'Why assets fall together',
+  'Market correlation': 'Why assets diverge',
+  'Technology-stock concentration': 'Big names, big weight',
+  'Volatility': 'Sharp price swings',
+  'Investor sentiment': 'The market’s mood',
+  'Diversification': 'Spreading risk'
+};
+// Compact card titles where the canonical concept name is too long for a chip.
+const MARKET_RECAP_CONCEPT_TITLE = {
+  'Technology-stock concentration': 'Tech concentration'
+};
+
+// Topics now track today's tape: they lead with the concept the recap is
+// teaching and add themes implied by how the gauges actually moved, then fall
+// back to evergreen basics. We never invent a cause — only name concepts the
+// price action supports.
 function _getMarketV3Topics() {
-  const conn = typeof _getMarketConnection === 'function' ? _getMarketConnection() : null;
-  const dynamic = (conn?.links || []).slice(0, 3).map(item => ({
-    title: item.label,
-    sub: _topicSupportLine(item.label)
-  }));
-  const topics = dynamic.length >= 3 ? dynamic : MARKET_V3_TOPICS;
+  const movers = _marketRecapMovers();
+  const avail = movers.filter(m => m.available);
+  const topics = [];
+  const push = (title, sub) => {
+    const t = String(title || '').trim();
+    if (t && !topics.some(x => x.title === t)) topics.push({ title: t, sub: String(sub || '').trim() });
+  };
+
+  if (avail.length >= 2) {
+    const by = sym => movers.find(m => m.symbol === sym);
+    const spy = by('SPY'), qqq = by('QQQ'), btc = by('BTC');
+    const mag = m => (m && m.available ? Math.abs(m.pct) : 0);
+    const ups = avail.filter(m => m.tone === 'up').length;
+    const downs = avail.filter(m => m.tone === 'down').length;
+
+    // Lead with what the recap is teaching today.
+    const learn = _marketRecapLearn(movers);
+    push(
+      MARKET_RECAP_CONCEPT_TITLE[learn.name] || learn.name,
+      MARKET_RECAP_CONCEPT_SUB[learn.name] || _topicSupportLine(learn.name)
+    );
+
+    if (downs === avail.length) push('Risk-off markets', MARKET_RECAP_CONCEPT_SUB['Risk-off markets']);
+    else if (ups === avail.length) push('Investor sentiment', MARKET_RECAP_CONCEPT_SUB['Investor sentiment']);
+    if (spy?.available && btc?.available && spy.tone !== 'flat' && btc.tone !== 'flat' && spy.tone !== btc.tone) {
+      push('Market correlation', MARKET_RECAP_CONCEPT_SUB['Market correlation']);
+    }
+    if (qqq?.available && spy?.available && (mag(qqq) - mag(spy)) >= 0.4) {
+      push('Tech concentration', MARKET_RECAP_CONCEPT_SUB['Technology-stock concentration']);
+    }
+    if (Math.max(mag(spy), mag(qqq), mag(btc)) >= 1.5) {
+      push('Volatility', MARKET_RECAP_CONCEPT_SUB['Volatility']);
+    }
+  }
+
+  // Evergreen fillers so there are always three concise, useful topics.
+  MARKET_V3_TOPICS.forEach(t => push(t.title, t.sub));
+  push('Diversification', MARKET_RECAP_CONCEPT_SUB['Diversification']);
   return topics.slice(0, 3);
 }
 
@@ -2109,14 +2284,18 @@ function _renderMarketRecapShell(status, inner, { timestamp = '', stale = false 
     : '';
   return `
     <div class="market-recap-head">
-      <div class="market-recap-heading">
-        <span class="market-recap-eyebrow">Market recap</span>
-        <h2 class="market-recap-title">${_escapeMarketHtml(status.label)}</h2>
-      </div>
+      <span class="market-recap-eyebrow">Market recap</span>
       ${tsLine}
     </div>
     <div class="market-recap-body">${inner}</div>
     <p class="market-recap-foot">Educational summary, not investment advice.</p>`;
+}
+
+// First-section heading that honestly reflects the live session phase.
+function _marketRecapFirstLabel(phase) {
+  if (phase === 'open') return 'Today so far';
+  if (phase === 'closed') return 'How today closed';
+  return 'Latest moves';
 }
 
 function _renderMarketRecapInner() {
@@ -2153,25 +2332,24 @@ function _renderMarketRecapInner() {
 
   const learn = _marketRecapLearn(movers);
   const learnArg = String(learn.name).replace(/'/g, "\\'");
+  // Three clear sections — what happened, why it matters, the concept to learn —
+  // with the movement pills sitting above them and no duplicated explanation.
   const body = `
+    <div class="market-recap-movers">${moversRow}</div>
     <div class="market-recap-row">
-      <h4 class="market-recap-label">What moved</h4>
-      <div class="market-recap-movers">${moversRow}</div>
-    </div>
-    <div class="market-recap-row">
-      <h4 class="market-recap-label">The main story</h4>
+      <h4 class="market-recap-label">${_escapeMarketHtml(_marketRecapFirstLabel(status.phase))}</h4>
       <p>${_escapeMarketHtml(_marketRecapMainStory(movers))}</p>
     </div>
     <div class="market-recap-row">
-      <h4 class="market-recap-label">What to watch</h4>
+      <h4 class="market-recap-label">Why it matters</h4>
       <p>${_escapeMarketHtml(_marketRecapWatch(movers))}</p>
     </div>
-    <div class="market-recap-row">
-      <h4 class="market-recap-label">Learn this</h4>
+    <div class="market-recap-row market-recap-row-learn">
+      <h4 class="market-recap-label">Learn the concept</h4>
       <p><strong class="market-recap-concept">${_escapeMarketHtml(learn.name)}</strong> — ${_escapeMarketHtml(learn.why)}</p>
       <button type="button" class="market-recap-build" onclick="buildMarketRecapLesson('${learnArg}')">
         <span class="market-recap-build-icon" aria-hidden="true">${_marketThinIcon('cap')}</span>
-        <span>Build a lesson</span>
+        <span>Build a lesson on ${_escapeMarketHtml(learn.name.toLowerCase())}</span>
       </button>
     </div>`;
 
