@@ -1,0 +1,25 @@
+# Keep Vercel from auto-detecting local-development Python as serverless
+# functions. Only the handlers inside /api should ever become Vercel Python
+# functions; everything below is local-dev / test / tooling and must NOT be
+# uploaded or built.
+
+# Local-development server + its SQLite-backed job store + tests.
+# (Production /api/*.py functions do not import these.)
+server.py
+unit_jobs.py
+test_unit_jobs.py
+
+# Local-only Python dependency freeze (matplotlib/numpy/etc.) — nothing in the
+# deployed app imports these. Root requirements.txt stays (it is the empty,
+# stdlib-only manifest the /api functions build against).
+requirements-local.txt
+
+# Local SQLite job store + Python caches.
+*.sqlite3
+*.sqlite3-*
+__pycache__/
+*.pyc
+
+# Misc local cruft.
+.DS_Store
+.env.local
