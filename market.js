@@ -1497,9 +1497,10 @@ function _renderMarketChartGraphic() {
     chartBody = _buildHeroChartSvg(_marketChart.points);
     // HTML legend naming the dashed reference line ("Previous close" on 1D, the
     // period start on longer ranges). Kept out of the stretched SVG so the text
-    // is never distorted, and rendered INSIDE the plot area (lower-left) as a
-    // small muted caption. pointer-events are disabled so it can never intercept
-    // scrubbing or pointer interaction on the chart beneath it.
+    // is never distorted, and rendered INSIDE the plot area (top-right) as a
+    // small muted caption over a subtle translucent backing. pointer-events are
+    // disabled so it can never intercept scrubbing or pointer interaction on the
+    // chart beneath it.
     const ref = _marketReferenceForNormalized(_normalizeMarketChartPoints(_marketChart.points));
     if (ref && ref.label) {
       legend = `<div class="mkt-chart-legend" aria-hidden="true"><span class="mkt-chart-legend-dash"></span>${_escapeMarketHtml(ref.label)}</div>`;
