@@ -3114,11 +3114,67 @@ body:not(.entry-gate-visible) #mainNav {
 .market-ask-row-icon { display: inline-flex; width: 20px; color: var(--v3-body); }
 .market-ask-row-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Compact free-text input beneath the suggested questions. Submitting (Enter or
+   the send button) is the only point that hands off to Ask. */
+.market-ask-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.market-ask-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--v3-radius-control);
+  background: var(--v3-surface);
+  color: var(--v3-title);
+  font: 500 0.92rem var(--font-b);
+  letter-spacing: -0.01em;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.market-ask-input::placeholder { color: var(--v3-muted); }
+.market-ask-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.market-ask-input-send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  color: #F5F5F5;
+  cursor: pointer;
+  transition: background var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
+}
+.market-ask-input-send:hover { background: rgba(255, 255, 255, 0.16); }
+.market-ask-input-send:active { transform: scale(0.96); }
+.market-ask-input-send:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+.market-ask-input-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
 .market-v3-index-value {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--v3-title);
   font: 760 2.4rem/0.98 var(--font-num);
   letter-spacing: -0.06em;
+}
+
+/* "S&P 500 ETF · SPY" — makes clear the headline is the ETF's dollar price,
+   not the underlying index level. */
+.market-v3-index-sub {
+  margin-top: 1px;
+  color: var(--v3-faint);
+  font: 600 0.7rem/1.2 var(--font-b);
+  letter-spacing: 0.01em;
 }
 
 .market-v3-change {
@@ -3192,9 +3248,28 @@ body:not(.entry-gate-visible) #mainNav {
 .mkt-chart-canvas {
   position: relative;
   height: 154px;
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   overflow: hidden;
   border-radius: 0;
+}
+
+/* Caption naming the dashed reference line — HTML (not SVG text, which the
+   chart's non-uniform scaling would stretch) and placed just below the chart so
+   it never overlaps the line or clips at an edge. */
+.mkt-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 2px 0;
+  color: var(--v3-faint);
+  font: 600 0.66rem/1 var(--font-b);
+  letter-spacing: 0.01em;
+}
+.mkt-chart-legend-dash {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 1px dashed rgba(209, 213, 219, 0.5);
 }
 
 .mkt-hero-chart {
@@ -3361,29 +3436,31 @@ body.market-chart-scrubbing {
 .mkt-hero-retry:hover { background: var(--v3-surface-hover); border-color: var(--v3-border-hover); }
 .mkt-hero-retry:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
+/* Light, compact range control: no heavy container — just six evenly spaced
+   labels, with the selected one wearing a subtle translucent pill. */
 .mkt-range-toggle {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-  min-height: 30px;
-  margin: 8px 0 0;
-  padding: 2px;
-  border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius-pill);
-  background: rgba(20, 23, 26, 0.72);
-  backdrop-filter: blur(20px);
+  gap: 4px;
+  min-height: 26px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   /* Six controls share the row evenly; never scroll sideways on mobile. */
   overflow: hidden;
 }
 
 .mkt-range-btn {
   min-width: 0;
+  min-height: 26px;
   padding: 0;
   border: 0;
   border-radius: var(--v3-radius-pill);
   background: transparent;
-  color: var(--v3-body);
-  font: 640 0.79rem/1 var(--font-b);
+  color: var(--v3-muted);
+  font: 640 0.78rem/1 var(--font-b);
   cursor: pointer;
   transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
@@ -3402,11 +3479,11 @@ body.market-chart-scrubbing {
 .mkt-range-btn:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
 
 .mkt-range-btn.is-active {
-  background: #FFFFFF;
-  color: #0B0D0F;
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--v3-title);
   box-shadow: none;
 }
-.mkt-range-btn.is-active:hover { color: #0B0D0F; }
+.mkt-range-btn.is-active:hover { color: var(--v3-title); }
 
 /* Quick Take reads as a continuation of the chart, not a second floating card:
    no full border or surface fill — just a soft divider above it. */
@@ -3457,6 +3534,84 @@ body.market-chart-scrubbing {
   color: var(--v3-body);
   font: 400 0.95rem/1.55 var(--font-b);
   letter-spacing: -0.01em;
+}
+
+/* ── Market insight (merged Quick Take + Recap) ─────────────────────
+   Reads as one continuation of the chart, not a second floating card: a soft
+   divider above, then summary → what moved → what to watch → learn next, each
+   separated by quiet dividers instead of nested boxes. */
+.market-v3-insight {
+  margin-top: 12px;
+  padding: 14px 2px 2px;
+  border: 0;
+  border-top: 1px solid var(--v3-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.market-insight-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-insight-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--v3-title);
+  font: 760 1.04rem/1.1 var(--font-b);
+  letter-spacing: -0.02em;
+}
+
+.market-insight-time {
+  flex: none;
+  color: var(--v3-faint);
+  font: 500 0.72rem/1.2 var(--font-b);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.market-insight-summary {
+  margin: 12px 0 0;
+  color: var(--v3-body);
+  font: 400 0.95rem/1.55 var(--font-b);
+  letter-spacing: -0.01em;
+}
+
+.market-insight-row {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--v3-divider);
+}
+
+.market-insight-label {
+  margin: 0 0 8px;
+  color: var(--v3-muted);
+  font: 700 0.66rem/1 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.market-insight-row > p {
+  margin: 0;
+  color: var(--v3-body);
+  font: 400 0.89rem/1.45 var(--font-b);
+  letter-spacing: -0.01em;
+}
+
+.market-insight-row .market-recap-movers {
+  margin-top: 0;
+}
+
+.market-insight-meta {
+  display: block;
+  margin-top: 8px;
+  text-align: center;
+  color: var(--v3-faint);
+  font: 500 0.72rem/1.2 var(--font-b);
+  font-variant-numeric: tabular-nums;
 }
 
 .market-v3-actions {
