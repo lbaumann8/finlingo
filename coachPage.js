@@ -2810,7 +2810,10 @@
       if (el.children[index] !== node) el.insertBefore(node, el.children[index] || null);
     });
     let expectedCount = thread.length;
-    if (busy && activeCoachRequest && activeCoachRequest.chatId === activeChatId) {
+    // Build-unit generation has its own boxed "Preparing unit" progress card
+    // (the unit_job thread entry), so suppress the generic busy steps block to
+    // avoid showing two loading UIs at once.
+    if (busy && busyMode !== 'build_unit' && activeCoachRequest && activeCoachRequest.chatId === activeChatId) {
       const busyKey = 'coach_busy_message';
       let node = existing.get(busyKey);
       if (!node) {
