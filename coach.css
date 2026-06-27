@@ -2893,7 +2893,9 @@ body:not(.entry-gate-visible) #mainNav {
 
 .market-v3-shell {
   min-height: 100%;
-  padding: var(--v3-pad-top) var(--v3-pad-x) var(--v3-pad-bottom);
+  /* Tighter top gap so the market-summary module sits close to the header
+     divider instead of floating in empty space. */
+  padding: 14px var(--v3-pad-x) var(--v3-pad-bottom);
   background: var(--v3-bg);
   animation: v3-fade-up 360ms ease both;
   /* Premium app feel: the Market page is not a selectable document. */
@@ -3113,25 +3115,26 @@ body:not(.entry-gate-visible) #mainNav {
 .market-ask-row-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
 .market-v3-index-value {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: var(--v3-title);
   font: 760 2.4rem/0.98 var(--font-num);
   letter-spacing: -0.06em;
 }
 
 .market-v3-change {
-  margin-top: 5px;
+  margin-top: 4px;
   color: var(--mkt-up);
   font: 600 0.95rem/1.2 var(--font-b);
   letter-spacing: -0.01em;
 }
 
-/* "Market open · Updated 1:41 PM ET" — quiet status line under the headline. */
+/* "Market open · Updated 1:41 PM ET" — quiet status line tucked directly
+   beneath the instrument name, above the price. */
 .market-v3-status {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-top: 7px;
+  margin-top: 2px;
   color: var(--v3-muted);
   font: 500 0.76rem/1.2 var(--font-b);
   letter-spacing: -0.005em;
@@ -3189,7 +3192,7 @@ body:not(.entry-gate-visible) #mainNav {
 .mkt-chart-canvas {
   position: relative;
   height: 154px;
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   overflow: hidden;
   border-radius: 0;
 }
@@ -3361,10 +3364,10 @@ body.market-chart-scrubbing {
 .mkt-range-toggle {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 3px;
-  min-height: 34px;
-  margin: 10px 0 0;
-  padding: 3px;
+  gap: 2px;
+  min-height: 30px;
+  margin: 8px 0 0;
+  padding: 2px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-pill);
   background: rgba(20, 23, 26, 0.72);
@@ -3380,7 +3383,7 @@ body.market-chart-scrubbing {
   border-radius: var(--v3-radius-pill);
   background: transparent;
   color: var(--v3-body);
-  font: 660 0.82rem/1 var(--font-b);
+  font: 640 0.79rem/1 var(--font-b);
   cursor: pointer;
   transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
@@ -3408,8 +3411,8 @@ body.market-chart-scrubbing {
 /* Quick Take reads as a continuation of the chart, not a second floating card:
    no full border or surface fill — just a soft divider above it. */
 .market-v3-quick-take {
-  margin-top: 14px;
-  padding: 14px 2px 2px;
+  margin-top: 12px;
+  padding: 12px 2px 2px;
   border: 0;
   border-top: 1px solid var(--v3-divider);
   border-radius: 0;

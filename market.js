@@ -1536,9 +1536,9 @@ function _renderMarketTodayHeroInner() {
         <button type="button" class="market-v3-index-label" id="marketAssetLabel" aria-haspopup="listbox" aria-expanded="${_marketAssetMenuOpen ? 'true' : 'false'}" aria-label="Selected market: ${_escapeMarketHtml(a.name)}. Change market." onclick="toggleMarketAssetMenu(event)">${_escapeMarketHtml(a.name)} <span class="${_marketAssetMenuOpen ? 'is-open' : ''}">⌄</span></button>
         ${_renderMarketAssetMenu()}
       </div>
+      ${_marketHeroStatusLine()}
       <h1 class="market-v3-index-value" id="marketHeroValue">${_escapeMarketHtml(priceText)}</h1>
       <div class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</div>
-      ${_marketHeroStatusLine()}
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}`;
