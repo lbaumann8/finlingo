@@ -863,7 +863,7 @@ function renderMarket() {
 }
 
 // ── Market hero chart (selectable index / asset) ────────────────────
-const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', '1Y', '5Y'];
+const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', 'YTD', '1Y', '5Y'];
 
 // Shared Market selector config. Symbols are passed straight to the Yahoo proxy.
 const MARKET_ASSETS = [
@@ -949,9 +949,10 @@ function _marketReferenceForNormalized(points) {
   const labels = {
     '1W': 'Start of week',
     '1M': 'Start of month',
-    '3M': '3-month start',
-    '1Y': '1-year start',
-    '5Y': '5-year start'
+    '3M': 'Start of period',
+    'YTD': 'Start of year',
+    '1Y': 'One year ago',
+    '5Y': 'Five years ago'
   };
   return { value: first, label: labels[range] || 'Period start', source: 'firstPoint' };
 }
@@ -1109,7 +1110,8 @@ function _marketScrubPeriodText() {
     case '1W': return 'since the start of the week';
     case '1M': return 'since the start of the month';
     case '3M': return 'over 3 months';
-    case '1Y': return 'this year';
+    case 'YTD': return 'since the start of the year';
+    case '1Y': return 'over the past year';
     case '5Y': return 'over 5 years';
     default: return 'since the start of the selected period';
   }
@@ -1456,13 +1458,14 @@ function _marketQuickTakeCopy(range = _marketChart.range, tone = _marketToneFrom
   const up = stats ? stats.pct >= 0 : tone !== 'down';
   const dir = up ? 'up' : 'down';
   const movePct = stats ? `${Math.abs(stats.pct).toFixed(2)}%` : '';
-  const period = { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': 'over the last three months', '1Y': 'over the past year', '5Y': 'over the past five years' }[range] || 'today';
+  const period = { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': 'over the last three months', 'YTD': 'so far this year', '1Y': 'over the past year', '5Y': 'over the past five years' }[range] || 'today';
   if (a.key === 'qqq') {
     const qqqTail = {
       '1D': up ? 'That usually points to stronger trading in many large growth and technology-heavy companies.' : 'That usually means many large growth and technology-heavy companies are trading lower.',
       '1W': up ? 'A stronger week can reflect improving expectations for large Nasdaq-100 companies.' : 'A weaker week can happen when investors cool on growth stocks or rate-sensitive companies.',
       '1M': up ? 'Monthly strength can show better sentiment toward large Nasdaq-100 companies.' : 'Monthly weakness can show investors becoming more cautious about growth and technology-heavy companies.',
       '3M': up ? 'A three-month gain can reflect sustained strength among many large Nasdaq-100 companies.' : 'A three-month decline can reflect pressure on large growth companies over the quarter.',
+      'YTD': up ? 'A gain since January reflects how large Nasdaq-100 companies have traded across this calendar year so far.' : 'A decline since January shows large growth companies have been under pressure this calendar year so far.',
       '1Y': up ? 'A yearly gain often builds through many moves across the large companies QQQ tracks.' : 'A yearly decline shows that even major growth-focused ETFs can have long drawdowns.',
       '5Y': up ? 'A five-year gain reflects how long-term growth in large Nasdaq-100 companies can compound through many cycles.' : 'Even over five years, a growth-focused ETF can sit below an earlier peak after a major drawdown.'
     }[range] || 'QQQ tracks the Nasdaq-100, not every Nasdaq-listed company.';
@@ -1473,6 +1476,7 @@ function _marketQuickTakeCopy(range = _marketChart.range, tone = _marketToneFrom
     '1W': up ? 'A week of gains can reflect improving expectations around rates or earnings.' : 'Short-term dips are a normal part of how markets work.',
     '1M': up ? 'Monthly trends show how expectations can lift prices before the real economy changes.' : 'When optimism cools, prices can drift lower even on slow news.',
     '3M': up ? 'A few months of gains often come from steady earnings and resilience.' : 'Choppy quarters are a reminder that time horizon matters more than timing.',
+    'YTD': up ? 'Year-to-date gains add up from many sessions since January, not one single day.' : 'A down year-to-date stretch is a normal part of how markets work over a calendar year.',
     '1Y': up ? 'A year of gains builds through many small moves, not one big jump.' : 'Longer periods can still include real drawdowns — diversification helps.',
     '5Y': up ? 'Five-year gains show how staying invested through ups and downs can compound over time.' : 'Even five-year stretches can end lower, a reminder that long horizons still carry risk.'
   }[range] || '';
@@ -1552,14 +1556,31 @@ function _renderMarketTodayHeroInner() {
       ${a.badge ? `<div class="market-v3-index-sub">${_escapeMarketHtml(a.badge)}</div>` : ''}
       ${_marketHeroStatusLine()}
       <h1 class="market-v3-index-value" id="marketHeroValue">${_escapeMarketHtml(priceText)}</h1>
-      <div class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</div>
+      <div class="market-v3-change-line">
+        <span class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</span>
+        <span class="market-v3-change-context" id="marketHeroChangeContext">${_escapeMarketHtml(_marketChangeContextLabel())}</span>
+      </div>
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}`;
 }
 
 function _marketChangePeriodWord() {
-  return { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': '3 months', '1Y': 'this year', '5Y': '5 years' }[_marketChart.range] || 'today';
+  return { '1D': 'today', '1W': 'this week', '1M': 'this month', '3M': '3 months', 'YTD': 'year to date', '1Y': 'over the past year', '5Y': '5 years' }[_marketChart.range] || 'today';
+}
+
+// Small contextual label clarifying that the large headline change reflects the
+// SELECTED range, not just today, on every range except 1D ("Today").
+function _marketChangeContextLabel() {
+  return {
+    '1D': 'Today',
+    '1W': '1-week change',
+    '1M': '1-month change',
+    '3M': '3-month change',
+    'YTD': 'YTD change',
+    '1Y': '1-year change',
+    '5Y': '5-year change'
+  }[String(_marketChart.range || '1D').toUpperCase()] || 'Today';
 }
 
 // Compact "Market open · Updated 1:41 PM ET" line shown beneath the headline.
@@ -1956,23 +1977,11 @@ function _paintMarketAsk() {
   _startMarketAskTypewriter();
 }
 
-// ── Ask control typewriter ──────────────────────────────────────────
-// Animates rotating example questions inside the "Ask FinLingo" control so it
-// reads as an AI prompt, not a static dropdown. Single shared timer with strict
-// teardown so navigating away (or a 60s snapshot re-render) never leaves an
-// orphaned loop running or speeds up after revisits.
-//
-// Sequence: type a full question → hold FULL_TEXT_PAUSE (1s) → erase →
-// wait NEXT_PROMPT_PAUSE → type the next one. The hold is applied once, after
-// the sentence is complete — never per character.
-const MARKET_TW_TYPE_SPEED = 115;       // per-character typing speed
-const MARKET_TW_FULL_TEXT_PAUSE = 1000; // hold after a sentence is fully typed
-const MARKET_TW_DELETE_SPEED = 60;      // per-character deletion speed
-const MARKET_TW_NEXT_PROMPT_PAUSE = 720;// pause before the next sentence
-const _marketAskTw = { timer: null, i: 0, c: 0, deleting: false, active: false };
-// The Ask control's idle placeholder. Always shown complete — never a clipped,
-// mid-typed fragment like "What sh". The blinking caret (CSS) keeps the
-// live-prompt feel without the per-character animation that caused clipping.
+// ── Ask control static prompt ───────────────────────────────────────
+// The collapsed Ask control always shows the complete prompt phrase. There is
+// no per-character typewriter: rotating/typing animation could leave clipped
+// fragments like "Why d" on screen, so the text is rendered whole and steady
+// (the blinking caret in CSS keeps the live-prompt feel).
 const MARKET_ASK_PLACEHOLDER = 'Ask about today’s market…';
 
 function _marketReducedMotion() {
@@ -1980,57 +1989,16 @@ function _marketReducedMotion() {
   catch { return false; }
 }
 
-function _marketAskExamples() {
-  const subj = _currentAsset().name;
-  return [
-    `Why did ${subj} move today?`,
-    'What should I learn from this?',
-    'Explain today’s market simply',
-    `Quiz me on ${subj}`
-  ];
-}
-
 function _startMarketAskTypewriter() {
-  _stopMarketAskTypewriter();
   const el = document.getElementById('marketAskExampleText');
   if (!el) return;
-  // Idle Ask control always renders the complete prompt phrase — no rotating,
-  // per-character typing that could leave clipped fragments on screen.
+  // Always render the complete prompt phrase — never a mid-typed fragment.
   el.textContent = MARKET_ASK_PLACEHOLDER;
 }
 
-function _marketAskTwTick() {
-  const el = document.getElementById('marketAskExampleText');
-  if (!el || !_marketAskTw.active) return;
-  const examples = _marketAskExamples();
-  const word = examples[_marketAskTw.i % examples.length];
-  if (!_marketAskTw.deleting) {
-    _marketAskTw.c++;
-    el.textContent = word.slice(0, _marketAskTw.c);
-    if (_marketAskTw.c >= word.length) {
-      // Sentence complete: hold once before erasing (not after each character).
-      _marketAskTw.deleting = true;
-      _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_FULL_TEXT_PAUSE);
-      return;
-    }
-    _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_TYPE_SPEED + (_marketAskTw.c % 3 === 0 ? 24 : 0));
-  } else {
-    _marketAskTw.c--;
-    el.textContent = word.slice(0, Math.max(0, _marketAskTw.c));
-    if (_marketAskTw.c <= 0) {
-      _marketAskTw.deleting = false;
-      _marketAskTw.i++;
-      _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_NEXT_PROMPT_PAUSE);
-      return;
-    }
-    _marketAskTw.timer = setTimeout(_marketAskTwTick, MARKET_TW_DELETE_SPEED);
-  }
-}
-
-function _stopMarketAskTypewriter() {
-  _marketAskTw.active = false;
-  if (_marketAskTw.timer) { clearTimeout(_marketAskTw.timer); _marketAskTw.timer = null; }
-}
+// Retained as a no-op so existing teardown call sites stay valid; there is no
+// animation timer left to clear.
+function _stopMarketAskTypewriter() {}
 
 // Tear the loop down whenever the user leaves the Market screen.
 try {
@@ -3592,7 +3560,7 @@ const MARKET_SEARCH_MOVER_LIMIT = 8;
 const MARKET_TOP_MOVER_MIN_MARKET_CAP = 5000000000;
 const MARKET_TOP_MOVER_MIN_PRICE = 10;
 const PORTFOLIO_CHART_TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y', 'MAX'];
-const STOCK_CHART_TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y', '5Y', 'MAX'];
+const STOCK_CHART_TIMEFRAMES = ['1D', '1W', '1M', '3M', 'YTD', '1Y', '5Y', 'MAX'];
 const MARKET_DAILY_CHART_RANGE = '1M';
 const MARKET_CHART_GUESS_SYMBOLS = ['AAPL', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'VOO'];
 const MARKET_CHART_GUESS_REWARD = { xp: 18, cash: 12 };
@@ -4454,6 +4422,8 @@ function _getStockChartRangeLabel(range) {
       return 'Past month';
     case '3M':
       return 'Past 3 months';
+    case 'YTD':
+      return 'Year to date';
     case '1Y':
       return 'Past year';
     case '5Y':
@@ -4550,7 +4520,7 @@ function _formatPracticeChartScrubTimestamp(timeValue, range, assetType) {
     options = assetType === 'crypto'
       ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }
       : { month: 'short', day: 'numeric' };
-  } else if (rangeKey === '3M') {
+  } else if (rangeKey === '3M' || rangeKey === 'YTD') {
     options = { month: 'short', day: 'numeric' };
   } else if (rangeKey === '1Y') {
     options = { month: 'short', day: 'numeric', year: 'numeric' };

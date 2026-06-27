@@ -222,12 +222,16 @@ _RANGE_MAP = {
     "1W": ("5d", "30m"),
     "1M": ("1mo", "60m"),
     "3M": ("3mo", "1d"),
+    "YTD": ("ytd", "1d"),
     "1Y": ("1y", "1d"),
     "5Y": ("5y", "1wk"),
     "MAX": ("max", "1mo"),
 }
 _RANGE_FALLBACKS = {
     "1M": [("1mo", "1d")],
+    # Very early in January YTD has only a handful of daily points; fall back to a
+    # short fixed window so the chart still renders two or more points.
+    "YTD": [("5d", "30m"), ("1mo", "1d")],
 }
 
 

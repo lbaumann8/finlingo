@@ -3083,15 +3083,15 @@ body:not(.entry-gate-visible) #mainNav {
 }
 .market-ask-accordion.open { grid-template-rows: 1fr; }
 .market-ask-accordion-inner { overflow: hidden; }
-.market-ask-accordion.open .market-ask-accordion-inner { margin-top: 8px; }
+.market-ask-accordion.open .market-ask-accordion-inner { margin-top: 6px; }
 .market-ask-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   width: 100%;
-  min-height: 44px;
-  margin-top: 8px;
-  padding: 12px 14px;
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 9px 13px;
   border: 1px solid rgba(255,255,255,0.08);
   background:
     linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
@@ -3120,7 +3120,7 @@ body:not(.entry-gate-visible) #mainNav {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 .market-ask-input {
   flex: 1;
@@ -3177,11 +3177,28 @@ body:not(.entry-gate-visible) #mainNav {
   letter-spacing: 0.01em;
 }
 
-.market-v3-change {
+/* Headline change + the subtle range-context label sit on one baseline-aligned
+   row so it's always clear the big number reflects the SELECTED range. */
+.market-v3-change-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 4px;
+}
+
+.market-v3-change {
   color: var(--mkt-up);
   font: 600 0.95rem/1.2 var(--font-b);
   letter-spacing: -0.01em;
+}
+
+/* Quiet qualifier ("1-month change", "YTD change", "Today") — intentionally low
+   contrast so it clarifies without competing with the headline value. */
+.market-v3-change-context {
+  color: var(--v3-muted);
+  font: 500 0.74rem/1.2 var(--font-b);
+  letter-spacing: -0.005em;
 }
 
 /* "Market open · Updated 1:41 PM ET" — quiet status line tucked directly
@@ -3438,39 +3455,42 @@ body.market-chart-scrubbing {
 .mkt-hero-retry:hover { background: var(--v3-surface-hover); border-color: var(--v3-border-hover); }
 .mkt-hero-retry:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
 
-/* Light, compact range control: no heavy container — just six evenly spaced
-   labels, with the selected one wearing a subtle translucent pill. */
+/* Light, compact range control: no heavy container — just seven evenly spaced
+   labels (1D · 1W · 1M · 3M · YTD · 1Y · 5Y), with the selected one wearing a
+   subtle translucent pill. */
 .mkt-range-toggle {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
   min-height: 26px;
   margin: 14px 0 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  /* Six controls share the row evenly; never scroll sideways on mobile. */
+  /* Seven controls share the row evenly; never scroll sideways on mobile. */
   overflow: hidden;
 }
 
 .mkt-range-btn {
   min-width: 0;
   min-height: 26px;
-  padding: 0;
+  padding: 0 2px;
   border: 0;
   border-radius: var(--v3-radius-pill);
   background: transparent;
   color: var(--v3-muted);
-  font: 640 0.78rem/1 var(--font-b);
+  font: 640 0.74rem/1 var(--font-b);
+  letter-spacing: -0.01em;
   cursor: pointer;
+  white-space: nowrap;
   transition: color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease), box-shadow var(--v3-dur) var(--v3-ease), transform var(--v3-dur) var(--v3-ease);
 }
 
-/* Narrow phones: keep all six labels legible inside the equal grid tracks. */
+/* Narrow phones: keep all seven labels legible inside the equal grid tracks. */
 @media (max-width: 380px) {
   .mkt-range-btn {
-    font-size: 0.76rem;
+    font-size: 0.71rem;
   }
 }
 
