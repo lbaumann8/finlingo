@@ -1889,7 +1889,7 @@ function _renderMarketV3Actions() {
     ['book', 'What does this mean for investors?'],
     ['bulb', 'Explain today’s move simply']
   ];
-  const firstExample = _marketAskExamples()[0] || 'Ask about today’s market';
+  const firstExample = MARKET_ASK_PLACEHOLDER;
   return `
     <section class="market-v3-actions">
       <button type="button" class="market-v3-ask-control${_marketAskExpanded ? ' is-open' : ''}" onclick="toggleMarketAsk()" aria-expanded="${_marketAskExpanded ? 'true' : 'false'}" aria-controls="marketAskAccordion" aria-label="Ask FinLingo about today's market">
@@ -1970,6 +1970,10 @@ const MARKET_TW_FULL_TEXT_PAUSE = 1000; // hold after a sentence is fully typed
 const MARKET_TW_DELETE_SPEED = 60;      // per-character deletion speed
 const MARKET_TW_NEXT_PROMPT_PAUSE = 720;// pause before the next sentence
 const _marketAskTw = { timer: null, i: 0, c: 0, deleting: false, active: false };
+// The Ask control's idle placeholder. Always shown complete — never a clipped,
+// mid-typed fragment like "What sh". The blinking caret (CSS) keeps the
+// live-prompt feel without the per-character animation that caused clipping.
+const MARKET_ASK_PLACEHOLDER = 'Ask about today’s market…';
 
 function _marketReducedMotion() {
   try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
@@ -1990,13 +1994,9 @@ function _startMarketAskTypewriter() {
   _stopMarketAskTypewriter();
   const el = document.getElementById('marketAskExampleText');
   if (!el) return;
-  const examples = _marketAskExamples();
-  if (_marketReducedMotion()) { el.textContent = examples[0]; return; }
-  _marketAskTw.active = true;
-  _marketAskTw.i = 0;
-  _marketAskTw.c = 0;
-  _marketAskTw.deleting = false;
-  _marketAskTwTick();
+  // Idle Ask control always renders the complete prompt phrase — no rotating,
+  // per-character typing that could leave clipped fragments on screen.
+  el.textContent = MARKET_ASK_PLACEHOLDER;
 }
 
 function _marketAskTwTick() {
@@ -2101,7 +2101,7 @@ function _getMarketV3Topics() {
     if (downs === avail.length) push('Risk-off markets', MARKET_RECAP_CONCEPT_SUB['Risk-off markets']);
     else if (ups === avail.length) push('Investor sentiment', MARKET_RECAP_CONCEPT_SUB['Investor sentiment']);
     if (spy?.available && btc?.available && spy.tone !== 'flat' && btc.tone !== 'flat' && spy.tone !== btc.tone) {
-      push('Market correlation', MARKET_RECAP_CONCEPT_SUB['Market correlation']);
+      push('Correlation', MARKET_RECAP_CONCEPT_SUB['Market correlation']);
     }
     if (qqq?.available && spy?.available && (mag(qqq) - mag(spy)) >= 0.4) {
       push('Tech concentration', MARKET_RECAP_CONCEPT_SUB['Technology-stock concentration']);
@@ -2224,20 +2224,18 @@ function _marketRecapMainStory(movers = _marketRecapMovers()) {
   const btc = avail.find(m => m.symbol === 'BTC');
   const ups = avail.filter(m => m.tone === 'up').length;
   const downs = avail.filter(m => m.tone === 'down').length;
-  const caveat = 'The price action alone does not confirm one specific cause.';
-  let lead;
+  // One concise sentence only — the fuller, forward-looking explanation lives
+  // under "What to watch" so the summary stays scannable.
   if (downs === avail.length) {
-    lead = 'Stocks and Bitcoin moved lower together, signaling a broadly cautious session.';
+    return 'Stocks and Bitcoin moved lower together, signaling a broadly cautious session.';
   } else if (ups === avail.length) {
-    lead = 'Stocks and Bitcoin moved higher together in a broadly upbeat session.';
+    return 'Stocks and Bitcoin moved higher together in a broadly upbeat session.';
   } else if (stocks.length && btc && stocks.every(s => s.tone === 'up') && btc.tone === 'down') {
-    lead = 'Stocks rose while Bitcoin slipped, so the two moved apart today.';
+    return 'Stocks rose while Bitcoin slipped, so the two moved apart today.';
   } else if (stocks.length && btc && stocks.every(s => s.tone === 'down') && btc.tone === 'up') {
-    lead = 'Bitcoin firmed while stocks fell, so the two moved apart today.';
-  } else {
-    lead = 'Stocks and Bitcoin finished mixed, with no single direction across them.';
+    return 'Bitcoin firmed while stocks fell, so the two moved apart today.';
   }
-  return `${lead} ${caveat}`;
+  return 'Stocks and Bitcoin finished mixed, with no single direction across them.';
 }
 
 // A concise, forward-looking observation built only from the displayed
@@ -2311,19 +2309,19 @@ function _marketRecapTimestamp() {
 // It reuses the same live snapshot the headline reads, so nothing can disagree,
 // and it never repeats the headline percentage in prose.
 
-// A topic-specific learning label derived from the recommended concept, e.g.
-// "Learn why these assets moved apart" instead of a generic "Build a lesson".
-function _marketRecapActionLabel(learn) {
+// A topic-specific lesson title derived from the recommended concept, e.g.
+// "Why stocks and Bitcoin moved apart" instead of a generic "Build a lesson".
+function _marketRecapLearnTitle(learn) {
   const name = String(learn?.name || '').trim();
   const map = {
-    'Risk-off markets': 'Learn why these assets fell together',
-    'Market correlation': 'Learn why these assets moved apart',
-    'Technology-stock concentration': 'Learn why tech is moving the index',
-    'Volatility': 'Learn why prices swung this sharply',
-    'Investor sentiment': 'Learn why these assets rose together',
-    'Diversification': 'Learn how diversification steadies returns'
+    'Risk-off markets': 'Why stocks and Bitcoin fell together',
+    'Market correlation': 'Why stocks and Bitcoin moved apart',
+    'Technology-stock concentration': 'Why tech is moving the index',
+    'Volatility': 'Why prices swung this sharply',
+    'Investor sentiment': 'Why stocks and Bitcoin rose together',
+    'Diversification': 'How diversification steadies returns'
   };
-  return map[name] || `Learn about ${name.toLowerCase() || 'today’s move'}`;
+  return map[name] || `Why today’s market moved`;
 }
 
 // Small metadata line beneath the learning action.
@@ -2357,12 +2355,6 @@ function _renderMarketInsightInner() {
       </div>`;
   }
 
-  const ts = _marketRecapTimestamp();
-  const stale = snap.status === 'error';
-  const timeLine = ts
-    ? `<span class="market-insight-time">${stale ? 'Last good data ' : 'Updated '}${_escapeMarketHtml(ts)} ET</span>`
-    : '';
-
   const moversRow = movers.map(m => {
     const val = m.available
       ? `${m.pct >= 0 ? '+' : '−'}${Math.abs(m.pct).toFixed(2)}%`
@@ -2376,10 +2368,10 @@ function _renderMarketInsightInner() {
 
   const learn = _marketRecapLearn(movers);
   const learnArg = String(learn.name).replace(/'/g, "\\'");
-  const actionLabel = _marketRecapActionLabel(learn);
+  const learnTitle = _marketRecapLearnTitle(learn);
 
   return `
-    ${head(timeLine)}
+    ${head()}
     <p class="market-insight-summary">${_escapeMarketHtml(_marketRecapMainStory(movers))}</p>
     <div class="market-insight-row">
       <h4 class="market-insight-label">What moved</h4>
@@ -2389,15 +2381,15 @@ function _renderMarketInsightInner() {
       <h4 class="market-insight-label">What to watch</h4>
       <p>${_escapeMarketHtml(_marketRecapWatch(movers))}</p>
     </div>
-    <div class="market-insight-row market-insight-learn">
-      <h4 class="market-insight-label">Learn next</h4>
-      <p><strong class="market-recap-concept">${_escapeMarketHtml(learn.name)}</strong> — ${_escapeMarketHtml(learn.why)}</p>
-      <button type="button" class="market-recap-build" onclick="buildMarketRecapLesson('${learnArg}')">
-        <span class="market-recap-build-icon" aria-hidden="true">${_marketThinIcon('cap')}</span>
-        <span>${_escapeMarketHtml(actionLabel)}</span>
-      </button>
-      <span class="market-insight-meta">${_escapeMarketHtml(_marketLessonMeta())}</span>
-    </div>
+    <button type="button" class="market-insight-row market-insight-learn" onclick="buildMarketRecapLesson('${learnArg}')" aria-label="Start lesson: ${_escapeMarketHtml(learnTitle)}">
+      <span class="market-insight-learn-cue" aria-hidden="true">${_marketThinIcon('cap')}</span>
+      <span class="market-insight-learn-copy">
+        <span class="market-insight-label">Learn next</span>
+        <span class="market-insight-learn-title">${_escapeMarketHtml(learnTitle)}</span>
+        <span class="market-insight-learn-meta">${_escapeMarketHtml(_marketLessonMeta())}</span>
+      </span>
+      <span class="market-insight-learn-arrow" aria-hidden="true">${_marketThinIcon('send')}</span>
+    </button>
     <p class="market-recap-foot">Educational summary, not investment advice.</p>`;
 }
 

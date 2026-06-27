@@ -3260,7 +3260,9 @@ body:not(.entry-gate-visible) #mainNav {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 5px 2px 0;
+  /* Sits snug under the chart so it reads as the chart's reference-line caption,
+     not part of the range controls below (which get extra breathing room). */
+  margin: 1px 2px 0;
   color: var(--v3-faint);
   font: 600 0.66rem/1 var(--font-b);
   letter-spacing: 0.01em;
@@ -3443,7 +3445,7 @@ body.market-chart-scrubbing {
   grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   min-height: 26px;
-  margin: 6px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -3612,6 +3614,101 @@ body.market-chart-scrubbing {
   color: var(--v3-faint);
   font: 500 0.72rem/1.2 var(--font-b);
   font-variant-numeric: tabular-nums;
+}
+
+/* Learn next: one clickable card (the whole row triggers the lesson). Replaces
+   the old eyebrow + concept sentence + separate build button so the action is
+   single and obvious. */
+.market-insight-learn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-card);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.008)),
+    var(--v3-surface);
+  color: var(--v3-title);
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease), background var(--v3-dur) var(--v3-ease);
+}
+.market-insight-learn:hover {
+  transform: translateY(-1px);
+  border-color: var(--v3-border-hover);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.014)),
+    var(--v3-surface-hover);
+}
+.market-insight-learn:active { transform: translateY(0); }
+.market-insight-learn:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+
+.market-insight-learn .market-insight-label { margin: 0; }
+
+.market-insight-learn-cue {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #F5F5F5;
+}
+.market-insight-learn-cue svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.market-insight-learn-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.market-insight-learn-title {
+  color: var(--v3-title);
+  font: 720 0.95rem/1.2 var(--font-b);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.market-insight-learn-meta {
+  color: var(--v3-faint);
+  font: 500 0.74rem/1.2 var(--font-b);
+}
+
+.market-insight-learn-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--v3-muted);
+  transition: transform var(--v3-dur) var(--v3-ease), color var(--v3-dur) var(--v3-ease);
+}
+.market-insight-learn:hover .market-insight-learn-arrow {
+  transform: translateX(2px);
+  color: var(--v3-title);
+}
+.market-insight-learn-arrow svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .market-v3-actions {
@@ -3805,6 +3902,12 @@ body.market-chart-scrubbing {
   margin-top: var(--v3-section-gap);
 }
 
+/* A little extra breathing room between the Ask control and Today's Key Topics
+   so the two sections read as distinct. */
+#marketActionsSlot + .market-v3-topics {
+  margin-top: calc(var(--v3-section-gap) + 10px);
+}
+
 .market-v3-section-row {
   display: flex;
   align-items: center;
@@ -3844,7 +3947,7 @@ body.market-chart-scrubbing {
 
 .market-v3-topic-card {
   min-height: 96px;
-  padding: 15px;
+  padding: 14px 13px;
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius-card);
   background:
@@ -3870,8 +3973,13 @@ body.market-chart-scrubbing {
   display: block;
   margin-top: 0;
   color: var(--v3-title);
-  font: 720 0.84rem/1.15 var(--font-b);
-  letter-spacing: -0.02em;
+  font: 720 0.82rem/1.15 var(--font-b);
+  letter-spacing: -0.025em;
+  /* Balance multi-word titles across lines and never break a word mid-letters,
+     so titles like "Earnings Season" wrap cleanly at the 440px canvas width. */
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: none;
 }
 
 .market-v3-topic-card small {
