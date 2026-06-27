@@ -1497,10 +1497,12 @@ function _renderMarketChartGraphic() {
     chartBody = _buildHeroChartSvg(_marketChart.points);
     // HTML legend naming the dashed reference line ("Previous close" on 1D, the
     // period start on longer ranges). Kept out of the stretched SVG so the text
-    // is never distorted.
+    // is never distorted, and rendered INSIDE the plot area (lower-left) as a
+    // small muted caption. pointer-events are disabled so it can never intercept
+    // scrubbing or pointer interaction on the chart beneath it.
     const ref = _marketReferenceForNormalized(_normalizeMarketChartPoints(_marketChart.points));
     if (ref && ref.label) {
-      legend = `<div class="mkt-chart-legend"><span class="mkt-chart-legend-dash" aria-hidden="true"></span>${_escapeMarketHtml(ref.label)}</div>`;
+      legend = `<div class="mkt-chart-legend" aria-hidden="true"><span class="mkt-chart-legend-dash"></span>${_escapeMarketHtml(ref.label)}</div>`;
     }
   } else if (_marketChart.status === 'error') {
     _marketChartView = null;
@@ -1509,7 +1511,7 @@ function _renderMarketChartGraphic() {
     _marketChartView = null;
     chartBody = `<div class="mkt-hero-loading"><span class="mc-spinner"></span></div>`;
   }
-  return `<div class="mkt-chart-canvas">${chartBody}</div>${legend}`;
+  return `<div class="mkt-chart-canvas">${chartBody}${legend}</div>`;
 }
 
 function _renderMarketAssetMenu() {
@@ -1683,6 +1685,7 @@ function _marketThinIcon(kind) {
     question: '<svg viewBox="0 0 24 24"><path d="M9.5 9a2.8 2.8 0 1 1 4.5 2.2c-1.2.8-2 1.5-2 2.8"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="9"/></svg>',
     cap: '<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7 12v5c3 2 7 2 10 0v-5"/><path d="M21 9v6"/></svg>',
     send: '<svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12 6l6 6-6 6"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22c4 0 7-2.7 7-6.8 0-2.8-1.5-5.1-4.5-7.2.1 2.4-.9 3.7-2.3 4.5.2-3.1-1-5.4-3.4-7.5.2 4.5-3.8 6.2-3.8 10.2C5 19.3 8 22 12 22z"/></svg>',
     check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>'
   };
@@ -1901,36 +1904,33 @@ function _paintMarketAskSheet() {
 // Inline accordion (no bottom sheet / overlay). Expanding pushes the content
 // below it down; options are asset-aware and pass context into Ask.
 function _renderMarketV3Actions() {
-  // Suggested questions are the calm, beginner-friendly defaults. They submit
-  // the literal question (so what is shown is exactly what is asked); the free
-  // text input below lets the learner ask anything. Expanding the control never
-  // navigates away — only selecting a suggestion or submitting text does.
+  // A calm, intentional Ask section: a small heading + supporting line, a single
+  // always-visible input (static placeholder, real caret only on focus), and
+  // three tappable suggestion chips. Suggestions submit their literal text, so
+  // what is shown is exactly what is asked. Every path hands off through the
+  // existing Ask flow (_marketAskSubmitText) — the ONLY point we navigate away.
   const suggestions = [
-    ['chart', 'Why did the market move today?'],
-    ['book', 'What does this mean for investors?'],
-    ['bulb', 'Explain today’s move simply']
+    'Why did Bitcoin move?',
+    'Explain today simply',
+    'What should I watch next?'
   ];
-  const firstExample = MARKET_ASK_PLACEHOLDER;
   return `
     <section class="market-v3-actions">
-      <button type="button" class="market-v3-ask-control${_marketAskExpanded ? ' is-open' : ''}" onclick="toggleMarketAsk()" aria-expanded="${_marketAskExpanded ? 'true' : 'false'}" aria-controls="marketAskAccordion" aria-label="Ask FinLingo about today's market">
-        <span class="market-v3-ask-icon">${_marketThinIcon('spark')}</span>
-        <span class="market-v3-ask-text" id="marketAskExampleText">${_escapeMarketHtml(firstExample)}</span>
-        <span class="market-v3-ask-send" aria-hidden="true">${_marketThinIcon('send')}</span>
-      </button>
-      <div class="market-ask-accordion${_marketAskExpanded ? ' open' : ''}" id="marketAskAccordion" role="region" aria-label="Ask about today's market">
-        <div class="market-ask-accordion-inner">
-          ${suggestions.map(([icon, label]) => `
-            <button type="button" class="market-ask-row" onclick="_marketAskSubmitText('${_marketAskAttr(label)}')">
-              <span class="market-ask-row-icon">${_marketThinIcon(icon)}</span>
-              <span class="market-ask-row-label">${_escapeMarketHtml(label)}</span>
-            </button>
-          `).join('')}
-          <form class="market-ask-form" onsubmit="return submitMarketAskInput(event)">
-            <input id="marketAskInput" class="market-ask-input" type="text" inputmode="text" autocomplete="off" placeholder="Ask your own question…" aria-label="Ask your own question about today's market" />
-            <button type="submit" class="market-ask-input-send" aria-label="Send question">${_marketThinIcon('send')}</button>
-          </form>
+      <div class="market-ask-head">
+        <span class="market-ask-head-icon" aria-hidden="true">${_marketThinIcon('spark')}</span>
+        <div class="market-ask-head-copy">
+          <h2>Ask FinLingo</h2>
+          <p class="market-ask-sub">Understand what moved and why.</p>
         </div>
+      </div>
+      <form class="market-ask-form" onsubmit="return submitMarketAskInput(event)">
+        <input id="marketAskInput" class="market-ask-input" type="text" inputmode="text" autocomplete="off" placeholder="${_escapeMarketHtml(MARKET_ASK_PLACEHOLDER)}" aria-label="Ask about today's market" />
+        <button type="submit" class="market-ask-input-send" aria-label="Send question">${_marketThinIcon('send')}</button>
+      </form>
+      <div class="market-ask-chips" role="group" aria-label="Suggested questions">
+        ${suggestions.map(label => `
+          <button type="button" class="market-ask-chip" onclick="_marketAskSubmitText('${_marketAskAttr(label)}')">${_escapeMarketHtml(label)}</button>
+        `).join('')}
       </div>
     </section>`;
 }
@@ -2008,9 +2008,9 @@ try {
 } catch (_) {}
 
 const MARKET_V3_TOPICS = [
-  { title: 'Interest Rates', sub: 'What moves them' },
+  { title: 'Interest rates', sub: 'What moves them' },
   { title: 'Inflation', sub: 'Data and impact' },
-  { title: 'Earnings Season', sub: 'What to watch' }
+  { title: 'Earnings season', sub: 'What to watch' }
 ];
 
 function _topicSupportLine(title) {
@@ -2036,8 +2036,26 @@ const MARKET_RECAP_CONCEPT_SUB = {
 };
 // Compact card titles where the canonical concept name is too long for a chip.
 const MARKET_RECAP_CONCEPT_TITLE = {
-  'Technology-stock concentration': 'Tech concentration'
+  'Technology-stock concentration': 'Tech concentration',
+  'Market correlation': 'Correlation'
 };
+
+// Collapse semantically overlapping topic titles to one canonical key so the
+// grid never renders near-duplicates like "Market correlation" + "Correlation"
+// or "Technology-stock concentration" + "Tech concentration" side by side.
+function _marketTopicCanonKey(title) {
+  const t = String(title || '').toLowerCase();
+  if (t.includes('correlation')) return 'correlation';
+  if (t.includes('tech')) return 'tech-concentration';
+  if (t.includes('rate')) return 'rates';
+  if (t.includes('inflation')) return 'inflation';
+  if (t.includes('volatil')) return 'volatility';
+  if (t.includes('diversif')) return 'diversification';
+  if (t.includes('risk-off')) return 'risk-off';
+  if (t.includes('sentiment')) return 'sentiment';
+  if (t.includes('earning')) return 'earnings';
+  return t.trim();
+}
 
 // Topics now track today's tape: they lead with the concept the recap is
 // teaching and add themes implied by how the gauges actually moved, then fall
@@ -2047,9 +2065,14 @@ function _getMarketV3Topics() {
   const movers = _marketRecapMovers();
   const avail = movers.filter(m => m.available);
   const topics = [];
+  const seenKeys = new Set();
   const push = (title, sub) => {
     const t = String(title || '').trim();
-    if (t && !topics.some(x => x.title === t)) topics.push({ title: t, sub: String(sub || '').trim() });
+    if (!t) return;
+    const key = _marketTopicCanonKey(t);
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    topics.push({ title: t, sub: String(sub || '').trim() });
   };
 
   if (avail.length >= 2) {
@@ -2294,7 +2317,7 @@ function _marketRecapLearnTitle(learn) {
 
 // Small metadata line beneath the learning action.
 function _marketLessonMeta() {
-  return '4-minute lesson · Beginner';
+  return '4 min · Beginner';
 }
 
 function _renderMarketInsightInner() {
@@ -2323,17 +2346,6 @@ function _renderMarketInsightInner() {
       </div>`;
   }
 
-  const moversRow = movers.map(m => {
-    const val = m.available
-      ? `${m.pct >= 0 ? '+' : '−'}${Math.abs(m.pct).toFixed(2)}%`
-      : 'n/a';
-    return `
-      <div class="market-recap-mover">
-        <span class="market-recap-mover-name">${_escapeMarketHtml(m.name)}</span>
-        <span class="market-recap-mover-val ${m.available ? m.tone : 'na'}">${val}</span>
-      </div>`;
-  }).join('');
-
   const learn = _marketRecapLearn(movers);
   const learnArg = String(learn.name).replace(/'/g, "\\'");
   const learnTitle = _marketRecapLearnTitle(learn);
@@ -2342,21 +2354,16 @@ function _renderMarketInsightInner() {
     ${head()}
     <p class="market-insight-summary">${_escapeMarketHtml(_marketRecapMainStory(movers))}</p>
     <div class="market-insight-row">
-      <h4 class="market-insight-label">What moved</h4>
-      <div class="market-recap-movers">${moversRow}</div>
-    </div>
-    <div class="market-insight-row">
       <h4 class="market-insight-label">What to watch</h4>
       <p>${_escapeMarketHtml(_marketRecapWatch(movers))}</p>
     </div>
-    <button type="button" class="market-insight-row market-insight-learn" onclick="buildMarketRecapLesson('${learnArg}')" aria-label="Start lesson: ${_escapeMarketHtml(learnTitle)}">
-      <span class="market-insight-learn-cue" aria-hidden="true">${_marketThinIcon('cap')}</span>
+    <button type="button" class="market-insight-learn" onclick="buildMarketRecapLesson('${learnArg}')" aria-label="Start lesson: ${_escapeMarketHtml(learnTitle)}">
       <span class="market-insight-learn-copy">
         <span class="market-insight-label">Learn next</span>
         <span class="market-insight-learn-title">${_escapeMarketHtml(learnTitle)}</span>
         <span class="market-insight-learn-meta">${_escapeMarketHtml(_marketLessonMeta())}</span>
       </span>
-      <span class="market-insight-learn-arrow" aria-hidden="true">${_marketThinIcon('send')}</span>
+      <span class="market-insight-learn-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
     </button>
     <p class="market-recap-foot">Educational summary, not investment advice.</p>`;
 }
