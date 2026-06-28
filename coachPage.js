@@ -2201,6 +2201,27 @@
     return paras.map(p => `<p class="coach-answer-text">${esc(p)}</p>`).join('');
   }
 
+  // Subtle bookmark control for a finished Ask answer. Stores the answer text
+  // (so it is recoverable in Saved) plus {chatId, messageId} so Open returns
+  // the user to the exact message in its conversation.
+  function _answerBookmarkButton(entry, index) {
+    if (!global.SavedUI || typeof global.SavedUI.button !== 'function' || !entry || !entry.id) return '';
+    const question = (typeof _prevUserText === 'function' ? _prevUserText(index) : '') || entry.topic || '';
+    const plain = String(entry.text || '').replace(/\s+/g, ' ').trim();
+    if (!plain) return '';
+    const trunc = global.SavedUI.truncate || ((s, n) => String(s).slice(0, n));
+    const title = (question && question.trim()) ? trunc(question.trim(), 80) : trunc(plain, 80);
+    return `<div class="coach-answer-tools">${global.SavedUI.button({
+      type: 'answer',
+      sourceId: entry.id,
+      title: title,
+      preview: trunc(plain, 160),
+      content: plain,
+      meta: { chatId: activeChatId, messageId: entry.id },
+      extraClass: 'coach-answer-bm'
+    })}</div>`;
+  }
+
   function _renderTextEntry(entry, index) {
     if (entry.kind === 'error') return _renderErrorEntry(entry, index);
     // While a streamed reveal is in progress show only the revealed prefix and
@@ -2208,8 +2229,9 @@
     const revealing = entry._needsReveal && !entry._revealDone;
     const shownText = revealing ? (entry._revealedText || '') : entry.text;
     const body = `<div class="coach-answer${revealing ? ' is-streaming' : ''}">${_plainAnswer(shownText)}</div>`;
+    const tools = (entry.isError || revealing) ? '' : _answerBookmarkButton(entry, index);
     const actions = (entry.isError || revealing) ? '' : _smartNextSteps(entry, index);
-    return `${body}${actions}${_renderSimpleAnswer(entry)}`;
+    return `${body}${tools}${actions}${_renderSimpleAnswer(entry)}`;
   }
 
   // ── Fast streamed-answer reveal ─────────────────────────────────────
@@ -2611,14 +2633,17 @@
       <div class="coach-unit">
         <div class="coach-unit-top">
           <span class="coach-unit-badge">Generated unit</span>
-          <button type="button"
-                  class="coach-unit-save-icon${entry.saved ? ' is-saved' : ''}"
-                  onclick="CoachPage.saveUnit(${index})"
-                  aria-label="${entry.saved ? 'Saved to Learn' : 'Save unit to Learn'}"
-                  title="${entry.saved ? 'Saved to Learn' : 'Save unit to Learn'}"
-                  ${entry.saved ? 'disabled' : ''}>
-            ${entry.saved ? _unitSaveIcon('check') : _unitSaveIcon('download')}
-          </button>
+          <span class="coach-unit-top-actions">
+            ${_unitBookmarkButton(entry, index)}
+            <button type="button"
+                    class="coach-unit-save-icon${entry.saved ? ' is-saved' : ''}"
+                    onclick="CoachPage.saveUnit(${index})"
+                    aria-label="${entry.saved ? 'Saved to Learn' : 'Save unit to Learn'}"
+                    title="${entry.saved ? 'Saved to Learn' : 'Save unit to Learn'}"
+                    ${entry.saved ? 'disabled' : ''}>
+              ${entry.saved ? _unitSaveIcon('check') : _unitSaveIcon('download')}
+            </button>
+          </span>
         </div>
         <h3 class="coach-unit-title">${esc(title)}</h3>
         <p class="coach-unit-desc">${esc(description)}</p>
@@ -2719,6 +2744,40 @@
       return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
     }
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
+  }
+
+  // Bookmark control for a generated unit. Unlike the light data-attribute
+  // buttons, units build their record in JS so the FULL replayable unit
+  // object can be persisted (recoverable even if never saved into Learn).
+  function _unitBookmarkButton(entry, index) {
+    if (!global.FinBookmarks || !global.SavedUI || typeof global.SavedUI.bookmarkIcon !== 'function') return '';
+    entry.unitId = entry.unitId || _unitStableId(entry.data, entry.topic);
+    const saved = global.FinBookmarks.has('unit', entry.unitId);
+    const label = saved ? 'Remove unit from Saved' : 'Save unit';
+    return `<button type="button" class="bm-btn coach-unit-bm${saved ? ' is-saved' : ''}" ` +
+      `aria-pressed="${saved ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}" ` +
+      `onclick="CoachPage.toggleUnitBookmark(${index})">${global.SavedUI.bookmarkIcon(saved)}</button>`;
+  }
+
+  function toggleUnitBookmark(index) {
+    const entry = thread[index];
+    if (!entry || entry.kind !== 'unit' || !global.FinBookmarks) return;
+    // Build the same canonical, replayable unit object used when saving to
+    // Learn, so an Open from Saved can recover and play it.
+    const unit = (typeof _unitObjectFromEntry === 'function') ? _unitObjectFromEntry(entry) : (entry.data || {});
+    entry.unitId = unit.id || entry.unitId || _unitStableId(entry.data, entry.topic);
+    const title = _cleanListItem(_unitTitle(entry.data, entry.topic));
+    const lessons = (entry.data && entry.data.lessons) || [];
+    const desc = _cleanListItem(_unitDescription(entry.data));
+    global.FinBookmarks.toggle({
+      type: 'unit',
+      sourceId: entry.unitId,
+      title: title,
+      preview: desc || (lessons.length ? `${lessons.length} lesson${lessons.length === 1 ? '' : 's'}` : 'Generated unit'),
+      content: Object.assign({}, unit, { id: entry.unitId, title: title }),
+      meta: { chatId: activeChatId }
+    });
+    _renderThread({ preserveScroll: true });
   }
 
   function _renderQuizEntry(entry, index) {
@@ -3134,6 +3193,6 @@
     retryUnit: retryUnit, chooseAnotherDepth: chooseAnotherDepth, cancelUnitJob: cancelUnitJob,
     simplifyAnswer: simplifyAnswer, submit: submit, ask: coachAsk, newChat: newChat, openChat: openChat,
     selectDepth: selectDepth, confirmDepthSelection: confirmDepthSelection, closeDepthSelector: _closeDepthSelector,
-    buildCourseUnit: buildCourseUnit, isBusy: function () { return busy; }
+    buildCourseUnit: buildCourseUnit, toggleUnitBookmark: toggleUnitBookmark, isBusy: function () { return busy; }
   };
 })(typeof window !== 'undefined' ? window : this);
