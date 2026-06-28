@@ -853,6 +853,7 @@ function renderMarket() {
           ${_renderMarketV3Topics()}
         </div>
       </div>
+      <p class="market-page-foot">Educational summary, not investment advice.</p>
     </div>`;
 
   // Kick off (or refresh) live data. The tutor is called only on click.
@@ -1913,7 +1914,7 @@ function _renderMarketV3Actions() {
   const suggestions = [
     'Why did Bitcoin move?',
     'Explain today simply',
-    'What should I watch next?'
+    'What should I watch?'
   ];
   return `
     <section class="market-v3-actions">
@@ -2058,6 +2059,24 @@ function _marketTopicCanonKey(title) {
   return t.trim();
 }
 
+// A short, quiet metadata label for a topic card — the third line in the
+// title → description → metadata hierarchy. Keyed off the same canonical key the
+// grid dedupes on, so it stays correct as the dynamic topics change.
+function _marketTopicMeta(title) {
+  const map = {
+    correlation: 'Stocks vs. BTC',
+    'tech-concentration': 'Index risk',
+    rates: 'Fed · inflation',
+    inflation: 'Prices · CPI',
+    earnings: 'Company profits',
+    volatility: 'Risk gauge',
+    diversification: 'Spread risk',
+    'risk-off': 'Caution mode',
+    sentiment: 'Market mood'
+  };
+  return map[_marketTopicCanonKey(title)] || 'Market concept';
+}
+
 // Topics now track today's tape: they lead with the concept the recap is
 // teaching and add themes implied by how the gauges actually moved, then fall
 // back to evergreen basics. We never invent a cause — only name concepts the
@@ -2169,8 +2188,12 @@ function _renderMarketV3Topics() {
       <div class="market-v3-topic-grid">
         ${_getMarketV3Topics().map((topic, index) => `
           <button type="button" class="market-v3-topic-card" onclick="askMarketTopic(${index})">
-            <strong class="market-v3-topic-title">${_escapeMarketHtml(topic.title)}</strong>
+            <span class="market-v3-topic-head">
+              <strong class="market-v3-topic-title">${_escapeMarketHtml(topic.title)}</strong>
+              <span class="market-v3-topic-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
+            </span>
             <small>${_escapeMarketHtml(topic.sub)}</small>
+            <span class="market-v3-topic-meta">${_escapeMarketHtml(_marketTopicMeta(topic.title))}</span>
           </button>
         `).join('')}
       </div>
@@ -2365,8 +2388,7 @@ function _renderMarketInsightInner() {
         <span class="market-insight-learn-meta">${_escapeMarketHtml(_marketLessonMeta())}</span>
       </span>
       <span class="market-insight-learn-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
-    </button>
-    <p class="market-recap-foot">Educational summary, not investment advice.</p>`;
+    </button>`;
 }
 
 function _paintMarketInsight() {

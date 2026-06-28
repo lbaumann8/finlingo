@@ -3120,7 +3120,7 @@ body:not(.entry-gate-visible) #mainNav {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 /* Suggestion chips beneath the input. They wrap cleanly so three chips never
@@ -3129,8 +3129,8 @@ body:not(.entry-gate-visible) #mainNav {
 .market-ask-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px 8px;
+  margin-top: 8px;
 }
 .market-ask-chip {
   flex: 0 0 auto;
@@ -3156,7 +3156,8 @@ body:not(.entry-gate-visible) #mainNav {
 .market-ask-input {
   flex: 1;
   min-width: 0;
-  min-height: 44px;
+  height: 46px;
+  min-height: 46px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--v3-radius-control);
@@ -3178,8 +3179,8 @@ body:not(.entry-gate-visible) #mainNav {
   flex: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.10);
@@ -3295,7 +3296,7 @@ body:not(.entry-gate-visible) #mainNav {
 
 .mkt-chart-canvas {
   position: relative;
-  height: 154px;
+  height: 178px;
   margin: 20px 0 0;
   overflow: hidden;
   border-radius: 0;
@@ -3603,8 +3604,8 @@ body.market-chart-scrubbing {
    divider above, then summary → what moved → what to watch → learn next, each
    separated by quiet dividers instead of nested boxes. */
 .market-v3-insight {
-  margin-top: 12px;
-  padding: 14px 2px 2px;
+  margin-top: 4px;
+  padding: 10px 2px 2px;
   border: 0;
   border-top: 1px solid var(--v3-divider);
   border-radius: 0;
@@ -3638,8 +3639,8 @@ body.market-chart-scrubbing {
 .market-insight-summary {
   margin: 12px 0 0;
   color: var(--v3-body);
-  font: 400 0.95rem/1.55 var(--font-b);
-  letter-spacing: -0.01em;
+  font: 460 1.02rem/1.45 var(--font-b);
+  letter-spacing: -0.012em;
 }
 
 .market-insight-row {
@@ -3684,11 +3685,11 @@ body.market-chart-scrubbing {
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-top: 16px;
-  padding: 11px 13px;
-  border: 1px solid var(--v3-border);
+  margin-top: 14px;
+  padding: 9px 15px 9px 13px;
+  border: 1px solid var(--v3-divider);
   border-radius: var(--v3-radius-card);
-  background: var(--v3-surface);
+  background: var(--v3-surface-passive);
   color: var(--v3-title);
   text-align: left;
   cursor: pointer;
@@ -3722,7 +3723,8 @@ body.market-chart-scrubbing {
 .market-insight-learn-meta {
   margin-top: 2px;
   color: var(--v3-faint);
-  font: 500 0.74rem/1.2 var(--font-b);
+  font: 500 0.7rem/1.2 var(--font-b);
+  opacity: 0.85;
 }
 
 .market-insight-learn-arrow {
@@ -3731,7 +3733,7 @@ body.market-chart-scrubbing {
   place-items: center;
   width: 20px;
   height: 20px;
-  color: var(--v3-muted);
+  color: var(--v3-faint);
   transition: transform var(--v3-dur) var(--v3-ease), color var(--v3-dur) var(--v3-ease);
 }
 .market-insight-learn:hover .market-insight-learn-arrow {
@@ -3749,7 +3751,7 @@ body.market-chart-scrubbing {
 }
 
 .market-v3-actions {
-  margin-top: var(--v3-section-gap);
+  margin-top: 18px;
 }
 
 .market-v3-actions h2,
@@ -4017,8 +4019,10 @@ body.market-chart-scrubbing {
 }
 
 .market-v3-topic-card {
-  min-height: 74px;
-  padding: 12px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 92px;
+  padding: 12px 12px 11px;
   border: 1px solid var(--v3-divider);
   border-radius: var(--v3-radius-card);
   background: var(--v3-surface-passive);
@@ -4036,6 +4040,15 @@ body.market-chart-scrubbing {
 .market-v3-topic-card:active { transform: translateY(0); }
 .market-v3-topic-card:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: 3px; }
 
+/* Title row: title on the left, a quiet chevron on the right that nudges right
+   on hover so the card reads as tappable. */
+.market-v3-topic-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .market-v3-topic-card strong {
   display: block;
   margin-top: 0;
@@ -4049,11 +4062,49 @@ body.market-chart-scrubbing {
   hyphens: none;
 }
 
+.market-v3-topic-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  color: var(--v3-faint);
+  opacity: 0.7;
+  transition: transform var(--v3-dur) var(--v3-ease), color var(--v3-dur) var(--v3-ease), opacity var(--v3-dur) var(--v3-ease);
+}
+.market-v3-topic-arrow svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.market-v3-topic-card:hover .market-v3-topic-arrow {
+  transform: translateX(2px);
+  color: var(--v3-title);
+  opacity: 1;
+}
+
 .market-v3-topic-card small {
   display: block;
-  margin-top: 6px;
+  margin-top: 5px;
   color: var(--v3-muted);
   font: 400 0.73rem/1.25 var(--font-b);
+}
+
+/* Small metadata label, pinned to the bottom — the quietest line in the card's
+   title → description → metadata hierarchy. */
+.market-v3-topic-meta {
+  display: block;
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--v3-faint);
+  font: 600 0.62rem/1.1 var(--font-b);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Mobile: a horizontal scroll row where the next card peeks in, hinting there's
@@ -4260,6 +4311,19 @@ body.market-chart-scrubbing {
   color: var(--v3-faint);
   font: 400 0.68rem/1.4 var(--font-b);
   opacity: 0.72;
+}
+
+/* Page-level disclaimer: quiet footer text closing out the whole Market page,
+   below Today's Key Topics. The shell already reserves generous bottom padding,
+   so this never sits flush against the rounded app shell. */
+.market-page-foot {
+  margin: 28px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--v3-divider);
+  color: var(--v3-faint);
+  font: 400 0.68rem/1.4 var(--font-b);
+  opacity: 0.66;
+  text-align: left;
 }
 
 .market-recap-loading {
