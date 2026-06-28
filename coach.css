@@ -7833,10 +7833,16 @@ body.auth-modal-visible .ask-tutor-backdrop {
   #microLessonScreen.active .ml-recap-intro,
   #microLessonScreen.active .ml-done {
     width: 100%;
-    max-width: min(92vw, 820px);
+    max-width: min(90vw, 740px);
     margin-inline: auto;
     padding-inline: 24px;
     box-sizing: border-box;
+  }
+  /* Cap the question's reading measure so it wraps to two/three lines rather
+     than stretching the full container width; long questions get a little
+     extra room. The font size set in the tablet/desktop blocks is preserved. */
+  #microLessonScreen.active .ml-question {
+    max-width: 40ch;
   }
   /* Controls sit a fixed, comfortable distance below the content rather than
      pinned to the extreme viewport bottom, so they read as part of the question
@@ -7859,7 +7865,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   #microLessonScreen.active .ml-check-content,
   #microLessonScreen.active .ml-recap-intro,
   #microLessonScreen.active .ml-done {
-    max-width: min(92vw, 880px);
+    max-width: min(90vw, 740px);
     padding-inline: 32px;
   }
   #microLessonScreen.active .ml-lesson-content,
@@ -7869,16 +7875,10 @@ body.auth-modal-visible .ask-tutor-backdrop {
   #microLessonScreen.active .ml-choice { padding: 17px 18px; font-size: 1.04rem; }
 }
 
-/* Desktop — wider lesson container, larger answer cards, stronger horizontal
-   balance, more breathing room between the progress header and the content. */
+/* Desktop — larger answer cards and type, stronger horizontal balance, more
+   breathing room between the progress header and the content. The container
+   width stays at the focused tablet measure through this band (768–1199px). */
 @media (min-width: 1024px) {
-  #microLessonScreen.active .ml-top,
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content,
-  #microLessonScreen.active .ml-recap-intro,
-  #microLessonScreen.active .ml-done {
-    max-width: min(92vw, 920px);
-  }
   #microLessonScreen.active .ml-lesson-title { font-size: 1.9rem; }
   #microLessonScreen.active .ml-question { font-size: 1.62rem; margin-bottom: 26px; }
   #microLessonScreen.active .ml-choices { gap: 13px; }
@@ -7886,4 +7886,16 @@ body.auth-modal-visible .ask-tutor-backdrop {
   #microLessonScreen.active .ml-choice-letter { width: 28px; height: 28px; }
   #microLessonScreen.active .ml-nav,
   #microLessonScreen.active .ml-quiz-nav { margin-top: 40px; }
+}
+
+/* Large desktop (1200px+) — the lesson is allowed its full focused measure of
+   ~780px and stays centered, never stretching across the wide viewport. */
+@media (min-width: 1200px) {
+  #microLessonScreen.active .ml-top,
+  #microLessonScreen.active .ml-lesson-content,
+  #microLessonScreen.active .ml-check-content,
+  #microLessonScreen.active .ml-recap-intro,
+  #microLessonScreen.active .ml-done {
+    max-width: min(88vw, 780px);
+  }
 }
