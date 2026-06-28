@@ -291,6 +291,8 @@
     _diag(unit);
     _activate();
     _render();
+    // Let other surfaces (e.g. the Market Learn-next card) link to this unit.
+    try { global.dispatchEvent(new CustomEvent('finlingo:micro-unit-opened', { detail: { unitId: unit.id } })); } catch (_) {}
   }
 
   function currentUnitId() { return _unit ? _unit.id : null; }
@@ -918,9 +920,16 @@
       if (answered && i === correct) cls = ' is-correct';
       else if (answered && i === answeredIdx) cls = ' is-wrong';
       else if (!answered && i === selectedIdx) cls = ' is-selected';
+      // Non-colour cue so correctness never depends on colour alone.
+      let mark = '';
+      if (answered && i === correct) mark = `<span class="ml-choice-mark" aria-hidden="true">✓</span>`;
+      else if (answered && i === answeredIdx) mark = `<span class="ml-choice-mark is-wrong" aria-hidden="true">✕</span>`;
+      const sr = answered && i === correct ? '<span class="sr-only"> (correct answer)</span>'
+        : (answered && i === answeredIdx ? '<span class="sr-only"> (your answer, incorrect)</span>' : '');
       return `<button type="button" class="ml-choice${cls}" ${answered ? 'disabled' : ''} aria-pressed="${!answered && i === selectedIdx ? 'true' : 'false'}" onclick="${onPick}(${i})">
         <span class="ml-choice-letter">${String.fromCharCode(65 + i)}</span>
-        <span class="ml-choice-text">${esc(c)}</span>
+        <span class="ml-choice-text">${esc(c)}${sr}</span>
+        ${mark}
       </button>`;
     }).join('');
     const feedback = answered ? `

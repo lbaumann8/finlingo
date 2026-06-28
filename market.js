@@ -849,7 +849,7 @@ function renderMarket() {
         </div>
 
         <div class="market-v3-col market-v3-col-secondary">
-          <div id="marketActionsSlot">${_renderMarketV3Actions()}</div>
+          <div id="marketActionsSlot">${_renderMarketCalculator()}</div>
           ${_renderMarketV3Topics()}
         </div>
       </div>
@@ -859,8 +859,9 @@ function renderMarket() {
   // Kick off (or refresh) live data. The tutor is called only on click.
   ensureMarketSnapshot();
   ensureMarketChart();
+  ensureMarketBenchmark();
   _observeMarketChartResize();
-  _startMarketAskTypewriter();
+  _marketCalcCompute();
 }
 
 // ── Market hero chart (selectable index / asset) ────────────────────
@@ -1009,9 +1010,30 @@ function _formatAssetValue(value) {
 function _formatAssetChange(change) {
   const n = Number(change);
   if (!Number.isFinite(n)) return '—';
-  const sign = n >= 0 ? '+' : '-';
-  const num = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Decide the sign AFTER rounding to the displayed precision so a value that
+  // rounds to zero (e.g. -0.004) never keeps a stray minus ("-$0.00").
+  const rounded = _roundDisplay(n, 2);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
+  const num = Math.abs(rounded).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return _marketAssetUsesUsd() ? `${sign}$${num}` : `${sign}${num}`;
+}
+
+// Round to `digits` and normalize -0 to 0. Shared by every signed market
+// formatter so a rounded-zero value can never render with a negative sign.
+function _roundDisplay(value, digits = 2) {
+  const factor = 10 ** digits;
+  const r = Math.round((Number(value) || 0) * factor) / factor;
+  return r === 0 ? 0 : r;
+}
+
+// Canonical signed percentage. Sign is derived from the ROUNDED value, so
+// "-0.00%" can never appear — a percentage that rounds to zero shows "0.00%".
+function _formatSignedPctClean(value, digits = 2) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  const rounded = _roundDisplay(n, digits);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
+  return `${sign}${Math.abs(rounded).toFixed(digits)}%`;
 }
 
 function _marketDisplayStats() {
@@ -1546,8 +1568,8 @@ function _renderMarketTodayHeroInner() {
     : _marketToneFromStats(stats);
   const priceText = useSnap ? _formatAssetValue(snap.currentPrice) : (stats ? _formatAssetValue(stats.last) : '—');
   const pctText = useSnap
-    ? `${snap.percentChange >= 0 ? '+' : '-'}${Math.abs(snap.percentChange).toFixed(2)}%`
-    : (stats ? `${stats.pct >= 0 ? '+' : '-'}${Math.abs(stats.pct).toFixed(2)}%` : '—');
+    ? _formatSignedPctClean(snap.percentChange)
+    : (stats ? _formatSignedPctClean(stats.pct) : '—');
   const changeText = useSnap
     ? (Number.isFinite(snap.absoluteChange) ? _formatAssetChange(snap.absoluteChange) : '—')
     : (stats ? _formatAssetChange(stats.change) : '—');
@@ -1564,9 +1586,11 @@ function _renderMarketTodayHeroInner() {
         <span class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</span>
         <span class="market-v3-change-context" id="marketHeroChangeContext">${_escapeMarketHtml(_marketChangeContextLabel())}</span>
       </div>
+      <div class="market-v3-compare" id="marketHeroCompare">${_marketComparisonInner()}</div>
     </div>
     ${_renderMarketChartGraphic()}
-    ${_renderMarketRangeToggle()}`;
+    ${_renderMarketRangeToggle()}
+    ${_renderMarketWhyMove()}`;
 }
 
 function _marketChangePeriodWord() {
@@ -1665,10 +1689,12 @@ function selectMarketAsset(key) {
     _marketChart.interval = '';
     _marketChart.pointCount = 0;
     _marketChartView = null;
+    _marketWhyMoveReset();
     _marketChart.status = 'loading';
     _paintMarketChart();
-    // Keep the Ask examples ("Why did <asset> move?") in sync with the new asset.
-    _paintMarketAsk();
+    _paintMarketInsight();
+    // Keep the Return calculator (which defaults to the selected asset) in sync.
+    _paintMarketCalculator();
     ensureMarketChart(true);
   }
   const label = document.getElementById('marketAssetLabel');
@@ -1711,7 +1737,7 @@ function _marketSelectedContext() {
   lines.push(`Chart point count: ${Number(_marketChart.pointCount || (_marketChart.points || []).length) || 0}`);
   if (stats) {
     lines.push(`${a.name} selected-period value: ${_formatAssetValue(stats.last)}`);
-    lines.push(`${a.name} selected-period change: ${_formatAssetChange(stats.change)} (${stats.pct >= 0 ? '+' : '-'}${Math.abs(stats.pct).toFixed(2)}%)`);
+    lines.push(`${a.name} selected-period change: ${_formatAssetChange(stats.change)} (${_formatSignedPctClean(stats.pct)})`);
   }
   lines.push(`Current Quick Take: ${_marketQuickTakeCopy(range, tone)}`);
   return lines.filter(Boolean).join('\n');
@@ -1903,8 +1929,198 @@ function _paintMarketAskSheet() {
   if (layer) layer.innerHTML = _renderMarketAskSheet();
 }
 
+// ── Return calculator ───────────────────────────────────────────────
+// Replaces the Market-page Ask section. Shows how a hypothetical investment in
+// the selected asset would have changed over a chosen historical period, using
+// REAL price history (the same /api/stock-history series the chart reads). It
+// never fabricates values: insufficient data is surfaced honestly. Clearly
+// labelled as historical performance, with the standard caveat.
+const MARKET_CALC_PERIODS = ['1W', '1M', '3M', 'YTD', '1Y', '5Y'];
+const MARKET_CALC_MAX = 10000000;   // reasonable upper bound on input
+const _marketCalc = { amount: 1000, period: '1Y', status: 'idle', pct: null, error: '', key: '' };
+const _marketCalcCache = {};        // 'BTC-USD|1Y' -> pct (number) | null
+let _marketCalcToken = 0;
+let _marketCalcDebounce = null;
+
+function _marketCalcPeriodPhrase(period = _marketCalc.period) {
+  return {
+    '1W': 'a week ago',
+    '1M': 'a month ago',
+    '3M': 'three months ago',
+    'YTD': 'at the start of this year',
+    '1Y': 'a year ago',
+    '5Y': 'five years ago'
+  }[String(period || '1Y').toUpperCase()] || 'earlier';
+}
+function _marketCalcSanitizeAmount(raw) {
+  // Keep digits and a single decimal point; drop signs so values can't go
+  // negative; clamp to the maximum.
+  const cleaned = String(raw == null ? '' : raw).replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  const normalized = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : cleaned;
+  let n = parseFloat(normalized);
+  if (!Number.isFinite(n) || n < 0) n = 0;
+  if (n > MARKET_CALC_MAX) n = MARKET_CALC_MAX;
+  return n;
+}
+function _marketCalcKey() { return `${_currentAsset().symbol}|${_marketCalc.period}`; }
+
+function _renderMarketCalculator() {
+  const a = _currentAsset();
+  const periods = MARKET_CALC_PERIODS.map(p => `
+    <button type="button" role="tab" class="market-calc-period${_marketCalc.period === p ? ' is-active' : ''}" aria-selected="${_marketCalc.period === p ? 'true' : 'false'}" onclick="setMarketCalcPeriod('${p}')">${p}</button>
+  `).join('');
+  const amountVal = _marketCalc.amount ? String(_marketCalc.amount) : '';
+  return `
+    <section class="market-calc">
+      <div class="market-calc-head">
+        <span class="market-calc-head-icon" aria-hidden="true">${_marketThinIcon('chart')}</span>
+        <div class="market-calc-head-copy">
+          <h2>Return calculator</h2>
+          <p class="market-calc-sub">See how an investment in ${_escapeMarketHtml(a.name)} would have changed over time.</p>
+        </div>
+      </div>
+      <div class="market-calc-controls">
+        <label class="market-calc-field market-calc-amount-field">
+          <span class="market-calc-label">Investment amount</span>
+          <span class="market-calc-input-wrap">
+            <span class="market-calc-currency" aria-hidden="true">$</span>
+            <input id="marketCalcAmount" class="market-calc-input" type="text" inputmode="decimal" autocomplete="off"
+              value="${_escapeMarketHtml(amountVal)}" placeholder="1,000" aria-label="Investment amount in dollars"
+              oninput="onMarketCalcAmountInput()" />
+          </span>
+        </label>
+        <div class="market-calc-field">
+          <span class="market-calc-label" id="marketCalcPeriodLabel">Start point</span>
+          <div class="market-calc-periods" id="marketCalcPeriods" role="tablist" aria-labelledby="marketCalcPeriodLabel">${periods}</div>
+        </div>
+      </div>
+      <div class="market-calc-result" id="marketCalcResult" aria-live="polite">${_renderMarketCalcResultInner()}</div>
+      <p class="market-calc-note">Historical performance does not guarantee future results.</p>
+      <button type="button" class="market-calc-learn" onclick="learnReturnsCompound()">
+        <span>Learn how returns compound</span>
+        <span class="market-calc-learn-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
+      </button>
+    </section>`;
+}
+
+function _renderMarketCalcPeriods() {
+  return MARKET_CALC_PERIODS.map(p => `
+    <button type="button" role="tab" class="market-calc-period${_marketCalc.period === p ? ' is-active' : ''}" aria-selected="${_marketCalc.period === p ? 'true' : 'false'}" onclick="setMarketCalcPeriod('${p}')">${p}</button>
+  `).join('');
+}
+
+function _renderMarketCalcResultInner() {
+  const a = _currentAsset();
+  const amount = Number(_marketCalc.amount) || 0;
+  if (amount <= 0) {
+    return `<p class="market-calc-empty">Enter an amount to see how it would have changed.</p>`;
+  }
+  if (_marketCalc.status === 'loading' || _marketCalc.status === 'idle') {
+    return `<div class="market-calc-loading"><span class="market-recap-spinner" aria-hidden="true"></span><span>Calculating…</span></div>`;
+  }
+  if (_marketCalc.status === 'error') {
+    return `<div class="market-calc-error"><p>Not enough historical data to calculate this period right now.</p>
+      <button type="button" class="market-recap-retry" onclick="_marketCalcCompute(true)">Try again</button></div>`;
+  }
+  if (_marketCalc.status !== 'success' || _marketCalc.pct == null || !Number.isFinite(_marketCalc.pct)) {
+    return `<p class="market-calc-empty">Pick a start point to calculate a return.</p>`;
+  }
+  const pct = _marketCalc.pct;
+  const ending = amount * (1 + pct / 100);
+  const gain = ending - amount;
+  const tone = _marketChangeClass(gain);
+  const phrase = _marketCalcPeriodPhrase();
+  return `
+    <span class="market-calc-result-eyebrow">Historical performance</span>
+    <p class="market-calc-result-line">${_escapeMarketHtml(_formatUsd(amount, 0))} invested in ${_escapeMarketHtml(a.name)} ${_escapeMarketHtml(phrase)} would be worth approximately <strong>${_escapeMarketHtml(_formatUsd(ending, 0))}</strong> today.</p>
+    <div class="market-calc-result-stats ${tone}">
+      <span class="market-calc-result-gain">${_escapeMarketHtml(_formatSignedUsd(gain, 0))}</span>
+      <span class="market-calc-result-dot" aria-hidden="true">·</span>
+      <span class="market-calc-result-pct">${_escapeMarketHtml(_formatSignedPctClean(pct))}</span>
+    </div>`;
+}
+
+function _paintMarketCalculator() {
+  const slot = document.getElementById('marketActionsSlot');
+  if (slot) slot.innerHTML = _renderMarketCalculator();
+  _marketCalcCompute();
+}
+function _paintMarketCalcResult() {
+  const el = document.getElementById('marketCalcResult');
+  if (el) el.innerHTML = _renderMarketCalcResultInner();
+}
+function _paintMarketCalcPeriods() {
+  const el = document.getElementById('marketCalcPeriods');
+  if (el) el.innerHTML = _renderMarketCalcPeriods();
+}
+
+function setMarketCalcPeriod(period) {
+  if (!MARKET_CALC_PERIODS.includes(period) || period === _marketCalc.period) return;
+  _marketCalc.period = period;
+  _paintMarketCalcPeriods();
+  _marketCalcCompute();
+}
+function onMarketCalcAmountInput() {
+  const input = document.getElementById('marketCalcAmount');
+  if (!input) return;
+  // Strip anything that isn't a digit or single decimal point (also blocks the
+  // minus sign) while preserving the caret for normal typing.
+  const cleaned = String(input.value).replace(/[^0-9.]/g, '');
+  if (cleaned !== input.value) {
+    const pos = input.selectionStart;
+    input.value = cleaned;
+    try { input.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch {}
+  }
+  _marketCalc.amount = _marketCalcSanitizeAmount(input.value);
+  if (_marketCalcDebounce) clearTimeout(_marketCalcDebounce);
+  _marketCalcDebounce = setTimeout(() => _marketCalcCompute(), 220);
+  _paintMarketCalcResult();
+}
+
+async function _marketCalcCompute(force = false) {
+  const amount = Number(_marketCalc.amount) || 0;
+  if (amount <= 0) { _marketCalc.status = 'idle'; _paintMarketCalcResult(); return; }
+  const symbol = _currentAsset().symbol;
+  const period = _marketCalc.period;
+  const cacheKey = `${symbol}|${period}`;
+  if (!force && Object.prototype.hasOwnProperty.call(_marketCalcCache, cacheKey)) {
+    const cached = _marketCalcCache[cacheKey];
+    _marketCalc.pct = cached;
+    _marketCalc.status = (cached == null) ? 'error' : 'success';
+    _paintMarketCalcResult();
+    return;
+  }
+  const token = ++_marketCalcToken;
+  _marketCalc.status = 'loading';
+  _marketCalc.key = cacheKey;
+  _paintMarketCalcResult();
+  try {
+    const payload = await _requestPracticeStockHistory(symbol, period);
+    if (token !== _marketCalcToken) return;
+    const pct = _pctFromHistoryPoints(payload && payload.points);
+    _marketCalcCache[cacheKey] = pct;
+    _marketCalc.pct = pct;
+    _marketCalc.status = (pct == null) ? 'error' : 'success';
+  } catch {
+    if (token !== _marketCalcToken) return;
+    _marketCalcCache[cacheKey] = null;
+    _marketCalc.pct = null;
+    _marketCalc.status = 'error';
+  }
+  if (token === _marketCalcToken) _paintMarketCalcResult();
+}
+
+// Secondary action: open/generate an existing-style lesson about returns and
+// compounding, reusing the standard build flow (no second competing CTA).
+function learnReturnsCompound() {
+  buildMarketRecapLesson('how returns and compounding work');
+}
+
 // Inline accordion (no bottom sheet / overlay). Expanding pushes the content
 // below it down; options are asset-aware and pass context into Ask.
+// (Retained for the dormant bottom-sheet path; the visible Market Ask section
+// has been replaced by the Return calculator above.)
 function _renderMarketV3Actions() {
   // A calm, intentional Ask section: a small heading + supporting line, a single
   // always-visible input (static placeholder, real caret only on focus), and
@@ -1973,10 +2189,12 @@ function toggleMarketAsk() {
   _marketAskExpanded = !_marketAskExpanded;
   _paintMarketAsk();
 }
+// The Market-page Ask section has been replaced by the Return calculator, which
+// now owns #marketActionsSlot. This delegates so any dormant Ask-flow caller can
+// never overwrite the calculator with the old Ask UI. (Shared Ask logic used by
+// other pages — coachPage, navDrawer, chats — is untouched.)
 function _paintMarketAsk() {
-  const slot = document.getElementById('marketActionsSlot');
-  if (slot) slot.innerHTML = _renderMarketV3Actions();
-  _startMarketAskTypewriter();
+  _paintMarketCalculator();
 }
 
 // ── Ask control static prompt ───────────────────────────────────────
@@ -2334,9 +2552,12 @@ function _marketRecapLearnTitle(learn) {
     'Technology-stock concentration': 'Why tech is moving the index',
     'Volatility': 'Why prices swung this sharply',
     'Investor sentiment': 'Why stocks and Bitcoin rose together',
-    'Diversification': 'How diversification steadies returns'
+    'Diversification': 'How diversification steadies returns',
+    'Drawdowns and recovery': 'How markets recover from drawdowns',
+    'Long-term returns': 'How returns build over time',
+    'Time horizon': 'Why time horizon matters for returns'
   };
-  return map[name] || `Why today’s market moved`;
+  return map[name] || `What moved ${_marketRangePhrase()}`;
 }
 
 // Small metadata line beneath the learning action.
@@ -2344,10 +2565,83 @@ function _marketLessonMeta() {
   return '4 min · Beginner';
 }
 
+// ── Range-aware phrasing ────────────────────────────────────────────
+// Every piece of insight copy keys off the SELECTED range. Only 1D uses
+// "today"; longer ranges describe their own period so we never imply a single
+// session covers a multi-month move.
+function _marketRangePhrase(range = _marketChart.range) {
+  return {
+    '1D': 'today',
+    '1W': 'over the past week',
+    '1M': 'over the past month',
+    '3M': 'over the past three months',
+    'YTD': 'year to date',
+    '1Y': 'over the past year',
+    '5Y': 'over the past five years'
+  }[String(range || '1D').toUpperCase()] || 'over this period';
+}
+function _marketRangeHorizon(range = _marketChart.range) {
+  return {
+    '1D': 'over the next few sessions',
+    '1W': 'in the days ahead',
+    '1M': 'in the weeks ahead',
+    '3M': 'in the months ahead',
+    'YTD': 'through the rest of the year',
+    '1Y': 'in the year ahead',
+    '5Y': 'over the long term'
+  }[String(range || '1D').toUpperCase()] || 'in the period ahead';
+}
+
+// Selected-asset, selected-range summary built ONLY from the chart's own
+// first→last return (real data for the active range). Used for every range
+// except 1D, where the live daily snapshot lets us honestly compare all three
+// assets. We never infer one asset's direction from another's here.
+function _marketRangeAssetStory() {
+  const a = _currentAsset();
+  const stats = _marketChartStats();
+  const phrase = _marketRangePhrase();
+  if (!stats || !Number.isFinite(stats.pct)) {
+    return `There isn’t enough confirmed ${a.name} data to describe its move ${phrase} yet.`;
+  }
+  const mag = Math.abs(stats.pct);
+  if (mag < 0.05) {
+    return `${a.name} is roughly flat ${phrase}, with little net change across the period.`;
+  }
+  const dir = stats.pct > 0 ? 'higher' : 'lower';
+  const size = mag >= 8 ? 'sharply ' : mag >= 3 ? 'notably ' : '';
+  return `${a.name} is ${size}${dir} ${phrase}, a move that reflects how its price changed across the whole period rather than any single day.`;
+}
+function _marketRangeAssetWatch() {
+  const a = _currentAsset();
+  const stats = _marketChartStats();
+  const horizon = _marketRangeHorizon();
+  if (!stats || Math.abs(stats.pct) < 0.05) {
+    return `Watch whether ${_marketAssetPhrase(a)} starts to trend in either direction ${horizon}.`;
+  }
+  const verb = stats.pct > 0 ? 'extends this gain or gives some back' : 'extends this decline or recovers';
+  return `Watch whether ${_marketAssetPhrase(a)} ${verb} ${horizon}.`;
+}
+// Range-appropriate learning concept for non-1D views, chosen only from the
+// selected asset's own move so the recommendation is always grounded.
+function _marketRangeLearn() {
+  const stats = _marketChartStats();
+  const mag = stats ? Math.abs(stats.pct) : 0;
+  if (mag >= 8) return { name: 'Volatility' };
+  if (stats && stats.pct < -0.05) return { name: 'Drawdowns and recovery' };
+  if (stats && stats.pct > 0.05) return { name: 'Long-term returns' };
+  return { name: 'Time horizon' };
+}
+
 function _renderMarketInsightInner() {
   const snap = _marketSnapshot;
+  const range = String(_marketChart.range || '1D').toUpperCase();
+  const isDaily = range === '1D';
   const movers = _marketRecapMovers();
-  const hasData = movers.some(m => m.available);
+  // On 1D the cross-asset story reads the live daily snapshot (real data for all
+  // three assets). On longer ranges we only have the SELECTED asset's range
+  // series, so the insight is asset-specific and never claims a cross-asset move.
+  const rangeStats = isDaily ? null : _marketChartStats();
+  const hasData = isDaily ? movers.some(m => m.available) : !!rangeStats;
   const head = (timeLine = '') => `
     <div class="market-insight-head">
       <span class="market-v3-spark" aria-hidden="true">${_marketThinIcon('spark')}</span>
@@ -2355,7 +2649,10 @@ function _renderMarketInsightInner() {
       ${timeLine}
     </div>`;
 
-  if (!hasData && (snap.status === 'loading' || snap.status === 'idle')) {
+  const loading = isDaily
+    ? (snap.status === 'loading' || snap.status === 'idle')
+    : (_marketChart.status === 'loading' || _marketChart.status === 'idle');
+  if (!hasData && loading) {
     return `${head()}
       <div class="market-recap-loading">
         <span class="market-recap-spinner" aria-hidden="true"></span>
@@ -2363,31 +2660,62 @@ function _renderMarketInsightInner() {
       </div>`;
   }
   if (!hasData) {
+    const retry = isDaily ? 'ensureMarketSnapshot(true)' : 'ensureMarketChart(true)';
     return `${head()}
       <div class="market-recap-unavailable">
         <p>Live market data is unavailable right now, so there’s no insight to show — we won’t guess.</p>
-        <button type="button" class="market-recap-retry" onclick="ensureMarketSnapshot(true)">Try again</button>
+        <button type="button" class="market-recap-retry" onclick="${retry}">Try again</button>
       </div>`;
   }
 
-  const learn = _marketRecapLearn(movers);
+  const learn = isDaily ? _marketRecapLearn(movers) : _marketRangeLearn();
   const learnArg = String(learn.name).replace(/'/g, "\\'");
   const learnTitle = _marketRecapLearnTitle(learn);
+  const summary = isDaily ? _marketRecapMainStory(movers) : _marketRangeAssetStory();
+  const watch = isDaily ? _marketRecapWatch(movers) : _marketRangeAssetWatch();
 
   return `
     ${head()}
-    <p class="market-insight-summary">${_escapeMarketHtml(_marketRecapMainStory(movers))}</p>
+    <p class="market-insight-summary">${_escapeMarketHtml(summary)}</p>
     <div class="market-insight-row">
       <h4 class="market-insight-label">What to watch</h4>
-      <p>${_escapeMarketHtml(_marketRecapWatch(movers))}</p>
+      <p>${_escapeMarketHtml(watch)}</p>
     </div>
-    <button type="button" class="market-insight-learn" onclick="buildMarketRecapLesson('${learnArg}')" aria-label="Start lesson: ${_escapeMarketHtml(learnTitle)}">
+    ${_renderMarketInsightLearn(learn, learnTitle, learnArg)}`;
+}
+
+// Learn-next control. Reflects the user's progress for the lesson this card has
+// previously opened (LEARN NEXT → CONTINUE LEARNING → COMPLETED) using the
+// shared MicroProgress store, and resumes that same unit instead of building a
+// duplicate. Falls back to building a fresh lesson when none has been opened.
+function _renderMarketInsightLearn(learn, learnTitle, learnArg) {
+  const link = _marketLearnLinkFor(learn.name);
+  const summary = link ? _marketLearnSummary(link.unitId) : null;
+  let eyebrow = 'Learn next';
+  let metaLine = _marketLessonMeta();
+  let onclick = `buildMarketRecapLesson('${learnArg}')`;
+  let stateClass = '';
+  if (summary && summary.status === 'completed') {
+    eyebrow = 'Completed';
+    metaLine = 'Review lesson';
+    stateClass = ' is-complete';
+    onclick = `resumeMarketLearn('${learnArg}')`;
+  } else if (summary && summary.started) {
+    eyebrow = 'Continue learning';
+    const idx = Math.min((Number(summary.currentLessonIndex) || 0) + 1, summary.total || 0);
+    metaLine = summary.total ? `Lesson ${idx} of ${summary.total}` : 'Resume';
+    stateClass = ' is-progress';
+    onclick = `resumeMarketLearn('${learnArg}')`;
+  }
+  const done = stateClass === ' is-complete';
+  return `
+    <button type="button" class="market-insight-learn${stateClass}" onclick="${onclick}" aria-label="${done ? 'Review lesson' : 'Start lesson'}: ${_escapeMarketHtml(learnTitle)}">
       <span class="market-insight-learn-copy">
-        <span class="market-insight-label">Learn next</span>
+        <span class="market-insight-label">${_escapeMarketHtml(eyebrow)}</span>
         <span class="market-insight-learn-title">${_escapeMarketHtml(learnTitle)}</span>
-        <span class="market-insight-learn-meta">${_escapeMarketHtml(_marketLessonMeta())}</span>
+        <span class="market-insight-learn-meta">${_escapeMarketHtml(metaLine)}</span>
       </span>
-      <span class="market-insight-learn-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
+      <span class="market-insight-learn-arrow" aria-hidden="true">${done ? _marketThinIcon('check') : _marketThinIcon('chevron')}</span>
     </button>`;
 }
 
@@ -2396,9 +2724,63 @@ function _paintMarketInsight() {
   if (el) el.innerHTML = _renderMarketInsightInner();
 }
 
+// ── Learn-next ⇄ lesson-state link ──────────────────────────────────
+// Remembers which generated unit a given Learn-next concept opened, so the card
+// can reflect real progress (and resume rather than duplicate). Keyed by the
+// normalized concept string. Stored in localStorage so it survives refreshes.
+const MARKET_LEARN_KEY = 'finlingo_market_learn_v1';
+let _pendingMarketLearn = null;   // { key, title, at } while a build is in flight
+function _marketLearnKey(concept) { return String(concept || '').trim().toLowerCase(); }
+function _marketLearnStore() {
+  try { return JSON.parse(localStorage.getItem(MARKET_LEARN_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function _marketLearnSave(store) {
+  try { localStorage.setItem(MARKET_LEARN_KEY, JSON.stringify(store)); } catch {}
+}
+function _marketLearnLinkFor(concept) {
+  const link = _marketLearnStore()[_marketLearnKey(concept)];
+  return link && link.unitId ? link : null;
+}
+// Returns a MicroProgress summary for a linked unit, or null if the unit is
+// gone (also prunes the stale mapping) or progress isn't available yet.
+function _marketLearnSummary(unitId) {
+  try {
+    const unit = window.MicroData && typeof window.MicroData.getMicroUnit === 'function'
+      ? window.MicroData.getMicroUnit(unitId) : null;
+    if (!unit) { _marketLearnPrune(unitId); return null; }
+    if (window.MicroProgress && typeof window.MicroProgress.summary === 'function') {
+      return window.MicroProgress.summary(unitId, unit);
+    }
+  } catch {}
+  return null;
+}
+function _marketLearnPrune(unitId) {
+  const store = _marketLearnStore();
+  let changed = false;
+  Object.keys(store).forEach(k => { if (store[k] && store[k].unitId === unitId) { delete store[k]; changed = true; } });
+  if (changed) _marketLearnSave(store);
+}
+
+// Resume the lesson linked to a concept; fall back to building a fresh one.
+function resumeMarketLearn(concept) {
+  const link = _marketLearnLinkFor(concept);
+  if (link && link.unitId && typeof window.openMicroUnit === 'function') {
+    const unit = window.MicroData && window.MicroData.getMicroUnit ? window.MicroData.getMicroUnit(link.unitId) : null;
+    if (unit) {
+      window.openMicroUnit(link.unitId);
+      return;
+    }
+  }
+  buildMarketRecapLesson(concept);
+}
+
 // Build a lesson on the recommended concept using the existing market build flow.
 function buildMarketRecapLesson(concept) {
   const c = String(concept || '').trim() || 'Market volatility';
+  // Remember the concept so the unit that gets opened next can be linked back to
+  // this Learn-next card (for progress display + no-duplicate resume).
+  _pendingMarketLearn = { key: _marketLearnKey(c), title: c, at: Date.now() };
   _startMarketChatFlow({
     asset: _currentAsset(),
     action: 'build',
@@ -2408,6 +2790,25 @@ function buildMarketRecapLesson(concept) {
     title: `Lesson: ${c}`
   });
 }
+
+// When any micro-unit is opened shortly after a Learn-next build, link it to the
+// pending concept so the card reflects that unit's progress afterwards.
+try {
+  window.addEventListener('finlingo:micro-unit-opened', function (event) {
+    const unitId = event && event.detail && event.detail.unitId;
+    if (!unitId || !_pendingMarketLearn) return;
+    // Only accept within a realistic build window (build → open can take a while).
+    if (Date.now() - _pendingMarketLearn.at > 5 * 60 * 1000) { _pendingMarketLearn = null; return; }
+    const store = _marketLearnStore();
+    store[_pendingMarketLearn.key] = { unitId, title: _pendingMarketLearn.title, at: Date.now() };
+    _marketLearnSave(store);
+    _pendingMarketLearn = null;
+  });
+  // Keep the Learn-next card fresh when returning to Market after lesson work.
+  window.addEventListener('finlingo:micro-progress-updated', function () {
+    if (document.getElementById('marketScreen')?.classList.contains('active')) _paintMarketInsight();
+  });
+} catch {}
 
 function _paintMarketChart() {
   const hero = document.getElementById('marketTodayHero');
@@ -2449,7 +2850,9 @@ function setMarketChartRange(range) {
   _marketChart.interval = '';
   _marketChart.pointCount = 0;
   _marketChartView = null;
+  _marketWhyMoveReset();
   _paintMarketChart();
+  _paintMarketInsight();   // immediately reflect the new range (loading + range copy)
   ensureMarketChart(true);
 }
 
@@ -2496,8 +2899,156 @@ async function ensureMarketChart(force = false) {
     if (token === _marketChart.token) {
       _marketChart.inFlight = false;
       _paintMarketChart();
+      _paintMarketInsight();        // non-1D insight reads the range series
+      ensureMarketBenchmark();      // load the comparison benchmark for this range
     }
   }
+}
+
+// ── Market comparison metric (vs. a broad-market benchmark) ─────────
+// One quiet, real-data comparison shown beneath the headline change. For 1D we
+// compare against the live daily snapshot; for longer ranges we fetch the
+// benchmark's OWN series for the same range and compare period returns. The
+// benchmark is the S&P 500 for QQQ/Bitcoin and the Nasdaq-100 for the S&P 500,
+// so there is always a meaningful peer. Missing data → the metric is omitted.
+const _marketBenchCache = {};   // 'SPY|1Y' -> pct (number) | null
+let _marketBenchToken = 0;
+
+function _marketBenchmarkAsset() {
+  const a = _currentAsset();
+  return a.key === 'sp500'
+    ? { symbol: 'QQQ', label: 'Nasdaq-100' }
+    : { symbol: 'SPY', label: 'S&P 500' };
+}
+function _pctFromHistoryPoints(points) {
+  const norm = _normalizeMarketChartPoints(points);
+  if (norm.length < 2) return null;
+  const first = Number(norm[0].value);
+  const last = Number(norm[norm.length - 1].value);
+  if (!Number.isFinite(first) || first === 0 || !Number.isFinite(last)) return null;
+  return ((last - first) / first) * 100;
+}
+async function ensureMarketBenchmark(force = false) {
+  const bench = _marketBenchmarkAsset();
+  const range = _marketChart.range;
+  const key = `${bench.symbol}|${range}`;
+  if (!force && Object.prototype.hasOwnProperty.call(_marketBenchCache, key)) {
+    _paintMarketCompare();
+    return;
+  }
+  const token = ++_marketBenchToken;
+  try {
+    const payload = await _requestPracticeStockHistory(bench.symbol, range);
+    if (token !== _marketBenchToken) return;
+    _marketBenchCache[key] = _pctFromHistoryPoints(payload && payload.points);
+  } catch {
+    if (token === _marketBenchToken) _marketBenchCache[key] = null;
+  }
+  if (token === _marketBenchToken) _paintMarketCompare();
+}
+function _marketComparisonInner() {
+  const stats = _marketChartStats();
+  if (!stats || !Number.isFinite(stats.pct)) return '';
+  const bench = _marketBenchmarkAsset();
+  const benchPct = _marketBenchCache[`${bench.symbol}|${_marketChart.range}`];
+  if (benchPct == null || !Number.isFinite(benchPct)) return '';
+  const rel = stats.pct - benchPct;
+  const tone = _marketChangeClass(rel);
+  return `<span class="market-v3-compare-label">vs. ${_escapeMarketHtml(bench.label)}</span>` +
+    `<span class="market-v3-compare-value ${tone}">${_escapeMarketHtml(_formatSignedPctClean(rel))}</span>`;
+}
+function _paintMarketCompare() {
+  const el = document.getElementById('marketHeroCompare');
+  if (el) el.innerHTML = _marketComparisonInner();
+}
+
+// ── "Why did this move?" (chart-linked, inline, never navigates away) ─
+// Reuses the existing /api/ask-finlingo endpoint. State is keyed by asset+range
+// so switching either resets it. Idle → loading → success → error/retry.
+const _marketWhyMove = { open: false, status: 'idle', text: '', error: '', key: '' };
+function _marketWhyMoveKey() { return `${_marketChart.asset}|${_marketChart.range}`; }
+function _marketWhyMoveReset() {
+  _marketWhyMove.open = false;
+  _marketWhyMove.status = 'idle';
+  _marketWhyMove.text = '';
+  _marketWhyMove.error = '';
+  _marketWhyMove.key = _marketWhyMoveKey();
+}
+function _renderMarketWhyMove() {
+  if (_marketWhyMove.key !== _marketWhyMoveKey()) _marketWhyMoveReset();
+  const open = _marketWhyMove.open;
+  let panel = '';
+  if (open) {
+    if (_marketWhyMove.status === 'loading') {
+      panel = `<div class="market-why-panel" id="marketWhyPanel" role="status">
+        <span class="market-recap-spinner" aria-hidden="true"></span>
+        <span>Looking at the move…</span></div>`;
+    } else if (_marketWhyMove.status === 'error') {
+      panel = `<div class="market-why-panel is-error" id="marketWhyPanel" role="alert">
+        <p>${_escapeMarketHtml(_marketWhyMove.error || 'Couldn’t load an explanation right now.')}</p>
+        <button type="button" class="market-recap-retry" onclick="askMarketWhyMove(true)">Try again</button></div>`;
+    } else if (_marketWhyMove.status === 'success') {
+      panel = `<div class="market-why-panel" id="marketWhyPanel">
+        <p>${_escapeMarketHtml(_marketWhyMove.text)}</p>
+        <span class="market-why-note">Educational context, not investment advice.</span></div>`;
+    }
+  }
+  return `
+    <div class="market-why" id="marketWhySlot">
+      <button type="button" class="market-why-toggle${open ? ' is-open' : ''}" id="marketWhyToggle"
+        aria-expanded="${open ? 'true' : 'false'}" aria-controls="marketWhyPanel" onclick="toggleMarketWhyMove()">
+        <span>Why did this move?</span>
+        <span class="market-why-chevron" aria-hidden="true">${_marketThinIcon('chevron')}</span>
+      </button>
+      ${panel}
+    </div>`;
+}
+function _paintMarketWhyMove() {
+  const el = document.getElementById('marketWhySlot');
+  if (el) el.outerHTML = _renderMarketWhyMove();
+}
+function toggleMarketWhyMove() {
+  if (_marketWhyMove.key !== _marketWhyMoveKey()) _marketWhyMoveReset();
+  _marketWhyMove.open = !_marketWhyMove.open;
+  _paintMarketWhyMove();
+  if (_marketWhyMove.open && _marketWhyMove.status === 'idle') askMarketWhyMove();
+}
+async function askMarketWhyMove(force = false) {
+  if (_marketWhyMove.status === 'loading') return;
+  if (!force && _marketWhyMove.status === 'success') return;
+  const a = _currentAsset();
+  const stats = _marketChartStats();
+  const phrase = _marketRangePhrase();
+  const moveText = stats && Number.isFinite(stats.pct) ? _formatSignedPctClean(stats.pct) : 'its recent move';
+  _marketWhyMove.open = true;
+  _marketWhyMove.status = 'loading';
+  _marketWhyMove.error = '';
+  _marketWhyMove.key = _marketWhyMoveKey();
+  _paintMarketWhyMove();
+  const requestKey = _marketWhyMoveKey();
+  const prompt = `In 2-3 sentences for a beginner, explain why ${a.name} moved ${moveText} ${phrase}. ` +
+    `Use the supplied hidden market context without exposing it. Clearly separate confirmed facts from plausible drivers, ` +
+    `avoid stating any cause with certainty, and keep it educational — not financial advice.`;
+  try {
+    const res = await fetch('/api/ask-finlingo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ mode: 'chat', context: _marketSelectedContext(), messages: [{ role: 'user', content: prompt }] })
+    });
+    if (requestKey !== _marketWhyMoveKey()) return;   // asset/range changed mid-flight
+    if (!res.ok) throw new Error('Request failed');
+    const payload = await res.json();
+    const answer = String(payload && (payload.answer || payload.result || '')).trim();
+    if (!answer) throw new Error('Empty response');
+    _marketWhyMove.text = answer;
+    _marketWhyMove.status = 'success';
+  } catch (err) {
+    if (requestKey !== _marketWhyMoveKey()) return;
+    _marketWhyMove.status = 'error';
+    _marketWhyMove.error = 'Couldn’t load an explanation right now.';
+  }
+  if (requestKey === _marketWhyMoveKey()) _paintMarketWhyMove();
 }
 
 // ── Market Ask ──────────────────────────────────────────────────────
@@ -3703,13 +4254,15 @@ function _formatUsd(value, digits = 0) {
 }
 
 function _formatSignedUsd(value, digits = 0) {
-  const amount = Number(value) || 0;
-  return `${amount >= 0 ? '+' : '-'}${_formatUsd(Math.abs(amount), digits)}`;
+  const amount = _roundDisplay(value, digits);
+  const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+  return `${sign}${_formatUsd(Math.abs(amount), digits)}`;
 }
 
 function _formatSignedPct(value) {
-  const pct = _roundPortfolioNumber(value, 2);
-  return `${pct >= 0 ? '+' : '-'}${Math.abs(pct).toFixed(2)}%`;
+  const pct = _roundDisplay(value, 2);
+  const sign = pct > 0 ? '+' : pct < 0 ? '-' : '';
+  return `${sign}${Math.abs(pct).toFixed(2)}%`;
 }
 
 function _getDirectionalTone(value, epsilon = 0.0005) {
