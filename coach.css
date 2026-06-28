@@ -3756,19 +3756,6 @@ body.market-chart-scrubbing {
 .market-insight-learn.is-complete .market-insight-learn-arrow { color: var(--mkt-up); }
 .market-insight-learn.is-complete .market-insight-learn-arrow svg { stroke-width: 2.2; }
 
-/* ── Quiet range summary (beneath the range controls) ────────────────── */
-/* One muted sentence stating the selected range's start → end move. Secondary
-   to Market insight: no card, border, icon or heading. Collapses fully when it
-   has no text (loading or data unavailable) so no gap is reserved. */
-.market-range-summary {
-  margin: 12px 0 0;
-  color: var(--v3-muted);
-  font: 400 0.82rem/1.45 var(--font-b);
-  letter-spacing: -0.005em;
-  font-variant-numeric: tabular-nums;
-}
-.market-range-summary:empty { display: none; margin: 0; }
-
 @media (prefers-reduced-motion: reduce) {
   .market-insight-learn-arrow { transition: none; }
 }

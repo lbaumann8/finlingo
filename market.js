@@ -1585,46 +1585,7 @@ function _renderMarketTodayHeroInner() {
       </div>
     </div>
     ${_renderMarketChartGraphic()}
-    ${_renderMarketRangeToggle()}
-    ${_renderMarketRangeSummary()}`;
-}
-
-// Optional quiet one-line range summary shown beneath the range controls. Built
-// ONLY from the chart's own first→last values for the selected asset/range, so
-// it states the real start, end and net move. Visually secondary to Market
-// insight: a single muted sentence, no card/border/icon/heading. Omitted
-// entirely when the range data isn't available — we never invent values — and
-// it never repeats the headline price/change line verbatim (it adds the start
-// value and a plain-English move phrase the headline doesn't show).
-function _marketRangeSummaryText() {
-  const stats = _marketChartStats();
-  if (!stats || !Number.isFinite(stats.first) || !Number.isFinite(stats.last) || !Number.isFinite(stats.pct)) return '';
-  const startTxt = _formatAssetValue(stats.first);
-  const endTxt = _formatAssetValue(stats.last);
-  if (startTxt === '—' || endTxt === '—') return '';
-  const a = _currentAsset();
-  const phrase = _marketRangePhrase();
-  const lead = phrase.charAt(0).toUpperCase() + phrase.slice(1);
-  const subject = _marketAssetPhrase(a);
-  // Sign derived AFTER rounding so a near-zero move never shows "-0.00%".
-  const mag = Math.abs(_roundDisplay(stats.pct, 2));
-  const move = mag < 0.005
-    ? 'little net change'
-    : `${stats.pct > 0 ? 'a gain of' : 'a decline of'} ${mag.toFixed(2)}%`;
-  return `${lead}, ${subject} moved from ${startTxt} to ${endTxt}, ${move}.`;
-}
-function _renderMarketRangeSummary() {
-  // Stable wrapper: stays in the DOM so it can be repainted when the chart data
-  // arrives. Empty text collapses via the `:empty` rule, so no gap is reserved
-  // while loading or when the range data is unavailable.
-  const text = _marketRangeSummaryText();
-  return `<p class="market-range-summary" id="marketRangeSummary">${text ? _escapeMarketHtml(text) : ''}</p>`;
-}
-function _paintMarketRangeSummary() {
-  const el = document.getElementById('marketRangeSummary');
-  if (!el) return;
-  const text = _marketRangeSummaryText();
-  el.textContent = text || '';
+    ${_renderMarketRangeToggle()}`;
 }
 
 function _marketChangePeriodWord() {
@@ -1726,7 +1687,6 @@ function selectMarketAsset(key) {
     _marketChart.status = 'loading';
     _paintMarketChart();
     _paintMarketInsight();
-    _paintMarketRangeSummary();   // clear stale summary until the new asset loads
     ensureMarketChart(true);
   }
   const label = document.getElementById('marketAssetLabel');
@@ -2287,46 +2247,6 @@ function _marketRecapMovers() {
   });
 }
 
-// One supported theme drawn only from how the gauges moved relative to each
-// other. We never claim a cause: every story ends with the honest caveat.
-function _marketRecapMainStory(movers = _marketRecapMovers()) {
-  const avail = movers.filter(m => m.available);
-  if (avail.length < 2) {
-    return 'There isn’t enough confirmed data to name today’s main theme yet.';
-  }
-  const stocks = avail.filter(m => m.symbol === 'SPY' || m.symbol === 'QQQ');
-  const btc = avail.find(m => m.symbol === 'BTC');
-  const ups = avail.filter(m => m.tone === 'up').length;
-  const downs = avail.filter(m => m.tone === 'down').length;
-  // One concise sentence only — the fuller, forward-looking explanation lives
-  // under "What to watch" so the summary stays scannable.
-  if (downs === avail.length) {
-    return 'Stocks and Bitcoin moved lower together, signaling a broadly cautious session.';
-  } else if (ups === avail.length) {
-    return 'Stocks and Bitcoin moved higher together in a broadly upbeat session.';
-  } else if (stocks.length && btc && stocks.every(s => s.tone === 'up') && btc.tone === 'down') {
-    return 'Stocks rose while Bitcoin slipped, so the two moved apart today.';
-  } else if (stocks.length && btc && stocks.every(s => s.tone === 'down') && btc.tone === 'up') {
-    return 'Bitcoin firmed while stocks fell, so the two moved apart today.';
-  }
-  return 'Stocks and Bitcoin finished mixed, with no single direction across them.';
-}
-
-// A concise, forward-looking observation built only from the displayed
-// movements — never an invented event and never a prediction stated as fact.
-function _marketRecapWatch(movers = _marketRecapMovers()) {
-  const avail = movers.filter(m => m.available);
-  const stocks = avail.filter(m => m.symbol === 'SPY' || m.symbol === 'QQQ');
-  const btc = avail.find(m => m.symbol === 'BTC');
-  if (stocks.length && btc && btc.tone !== 'flat' && stocks.every(s => s.tone !== 'flat')) {
-    if (stocks.every(s => s.tone === btc.tone)) {
-      return 'Watch whether stocks and Bitcoin continue moving together or begin to diverge over the next few sessions.';
-    }
-    return 'Stocks and Bitcoin moved in different directions today — worth watching whether that split holds or they realign.';
-  }
-  return 'Watch how stocks and Bitcoin move relative to each other over the next few sessions.';
-}
-
 // Recommend one concept from the allowed list, chosen to match the displayed
 // movements. We never recommend yields/rates here because no Treasury data is
 // shown in this recap.
@@ -2377,29 +2297,11 @@ function _marketRecapTimestamp() {
   }
 }
 
-// ── Market insight (merged Quick Take + Recap) ──────────────────────
+// ── Market insight ──────────────────────────────────────────────────
 // One connected module sitting directly beneath the chart: a single plain-
-// English summary, the day's moves, what to watch, and one learning next-step.
-// It reuses the same live snapshot the headline reads, so nothing can disagree,
-// and it never repeats the headline percentage in prose.
-
-// A topic-specific lesson title derived from the recommended concept, e.g.
-// "Why stocks and Bitcoin moved apart" instead of a generic "Build a lesson".
-function _marketRecapLearnTitle(learn) {
-  const name = String(learn?.name || '').trim();
-  const map = {
-    'Risk-off markets': 'Why stocks and Bitcoin fell together',
-    'Market correlation': 'Why stocks and Bitcoin moved apart',
-    'Technology-stock concentration': 'Why tech is moving the index',
-    'Volatility': 'Why prices swung this sharply',
-    'Investor sentiment': 'Why stocks and Bitcoin rose together',
-    'Diversification': 'How diversification steadies returns',
-    'Drawdowns and recovery': 'How markets recover from drawdowns',
-    'Long-term returns': 'How returns build over time',
-    'Time horizon': 'Why time horizon matters for returns'
-  };
-  return map[name] || `What moved ${_marketRangePhrase()}`;
-}
+// English summary of the SELECTED asset, what to watch, and one learning
+// next-step. It reuses the same live snapshot the headline reads, so nothing
+// can disagree, and it never repeats the headline percentage in prose.
 
 // Small metadata line beneath the learning action.
 function _marketLessonMeta() {
@@ -2433,56 +2335,185 @@ function _marketRangeHorizon(range = _marketChart.range) {
   }[String(range || '1D').toUpperCase()] || 'in the period ahead';
 }
 
-// Selected-asset, selected-range summary built ONLY from the chart's own
-// first→last return (real data for the active range). Used for every range
-// except 1D, where the live daily snapshot lets us honestly compare all three
-// assets. We never infer one asset's direction from another's here.
-function _marketRangeAssetStory() {
+// ── Asset-specific Market insight ───────────────────────────────────
+// The Market insight ALWAYS describes the SELECTED asset only. On 1D it reads
+// the live daily snapshot for that asset; on longer ranges it reads the chart's
+// own first→last return. It never names another asset and never infers one
+// asset's move from another — the only place the page compares assets is the
+// grounded Today's Key Topics, never this prose. Copy wording is keyed to the
+// instrument "flavor" (broad index ETF, tech index ETF, crypto, or yield) so a
+// rate move is described with rate language and a crypto move with crypto
+// language. Direction and magnitude come only from real data; when that data
+// isn't available we say so rather than guess.
+
+// Classify the selected asset into a copy "flavor".
+function _marketAssetFlavor(asset = _currentAsset()) {
+  if (asset.kind === 'crypto') return 'crypto';
+  if (asset.kind === 'yield') return 'yield';
+  if (asset.key === 'qqq') return 'tech';
+  return 'broad';
+}
+
+// Sentence-subject for the selected asset, capitalized (sentence-leading) and
+// lowercased (mid-sentence), with the right article. SPY/QQQ/BTC each read as
+// the instrument the page actually shows; a yield reads as the rate.
+function _marketAssetSubject(asset = _currentAsset()) {
+  if (asset.kind === 'yield') return 'The 10-year Treasury yield';
+  if (asset.key === 'sp500') return 'The S&P 500';
+  return asset.name; // 'QQQ', 'Bitcoin'
+}
+function _marketAssetSubjectLower(asset = _currentAsset()) {
+  if (asset.kind === 'yield') return 'the 10-year Treasury yield';
+  if (asset.key === 'sp500') return 'the S&P 500';
+  return asset.name; // 'QQQ', 'Bitcoin'
+}
+
+// Real directional move for the SELECTED asset on the active range. 1D reads the
+// live daily snapshot; longer ranges read the chart's own first→last return.
+// Returns { available, pct, dir } and never invents a value. The flat band is
+// derived from the rounded percentage so a near-zero move never reads as a
+// direction (and never as "-0.00%").
+function _marketAssetMove(range = _marketChart.range) {
   const a = _currentAsset();
-  const stats = _marketChartStats();
+  const isDaily = String(range || '1D').toUpperCase() === '1D';
+  let pct = null;
+  if (isDaily) {
+    const snap = _normalizedMarketSnapshot(a.key);
+    if (snap && snap.available && Number.isFinite(snap.percentChange)) pct = snap.percentChange;
+  } else {
+    const stats = _marketChartStats();
+    if (stats && Number.isFinite(stats.pct)) pct = stats.pct;
+  }
+  if (pct === null) return { available: false, pct: null, dir: 'flat' };
+  const mag = Math.abs(_roundDisplay(pct, 2));
+  return { available: true, pct, dir: mag < 0.05 ? 'flat' : (pct > 0 ? 'up' : 'down') };
+}
+
+// Plain-English summary of the selected asset's move on the active range.
+function _marketAssetInsightSummary() {
+  const a = _currentAsset();
+  const move = _marketAssetMove();
   const phrase = _marketRangePhrase();
-  if (!stats || !Number.isFinite(stats.pct)) {
+  const subject = _marketAssetSubject(a);
+  if (!move.available) {
     return `There isn’t enough confirmed ${a.name} data to describe its move ${phrase} yet.`;
   }
-  const mag = Math.abs(stats.pct);
-  if (mag < 0.05) {
-    return `${a.name} is roughly flat ${phrase}, with little net change across the period.`;
+  const flavor = _marketAssetFlavor(a);
+  const isDaily = String(_marketChart.range || '1D').toUpperCase() === '1D';
+  const span = isDaily ? 'session' : 'stretch';
+  const during = isDaily ? 'during the session' : 'across the period';
+  if (move.dir === 'flat') {
+    return {
+      broad: `${subject} was little changed ${phrase}, holding close to where it started across the broad market.`,
+      tech: `${subject} was little changed ${phrase}, with the Nasdaq-100’s large technology names holding steady.`,
+      crypto: `${subject} was little changed ${phrase}, trading within a narrow range.`,
+      yield: `${subject} was little changed ${phrase}, signaling steady rate expectations.`
+    }[flavor];
   }
-  const dir = stats.pct > 0 ? 'higher' : 'lower';
-  const size = mag >= 8 ? 'sharply ' : mag >= 3 ? 'notably ' : '';
-  return `${a.name} is ${size}${dir} ${phrase}, a move that reflects how its price changed across the whole period rather than any single day.`;
+  const up = move.dir === 'up';
+  const dirWord = up ? 'higher' : 'lower';
+  const tail = {
+    broad: `reflecting a ${up ? 'steadier' : 'cautious'} ${span} across large U.S. companies.`,
+    tech: `as the Nasdaq-100’s large technology companies ${up ? 'gained ground' : 'came under pressure'}.`,
+    crypto: up ? `as risk appetite improved ${during}.` : `as traders reduced risk ${during}.`,
+    yield: `indicating ${up ? 'a shift toward higher' : 'softer'} rate expectations.`
+  }[flavor];
+  return `${subject} moved ${dirWord} ${phrase}, ${tail}`;
 }
-function _marketRangeAssetWatch() {
+
+// Forward-looking "What to watch" for the selected asset only.
+function _marketAssetInsightWatch() {
   const a = _currentAsset();
-  const stats = _marketChartStats();
+  const move = _marketAssetMove();
   const horizon = _marketRangeHorizon();
-  if (!stats || Math.abs(stats.pct) < 0.05) {
-    return `Watch whether ${_marketAssetPhrase(a)} starts to trend in either direction ${horizon}.`;
+  const flavor = _marketAssetFlavor(a);
+  const subjLower = _marketAssetSubjectLower(a);
+  if (flavor === 'yield') {
+    // Yields are driven by rate expectations, so the watch points at the signals
+    // that move them rather than at price-style buyers/sellers.
+    return 'Watch upcoming inflation, labor-market, and Federal Reserve signals for further direction.';
   }
-  const verb = stats.pct > 0 ? 'extends this gain or gives some back' : 'extends this decline or recovers';
-  return `Watch whether ${_marketAssetPhrase(a)} ${verb} ${horizon}.`;
+  if (!move.available || move.dir === 'flat') {
+    if (flavor === 'crypto') return `Watch whether ${a.name} breaks out of its recent range ${horizon}.`;
+    return `Watch whether ${subjLower} begins to trend in either direction ${horizon}.`;
+  }
+  const up = move.dir === 'up';
+  return {
+    broad: up
+      ? `Watch whether buying continues or sellers step in ${horizon}.`
+      : `Watch whether selling pressure continues or buyers return ${horizon}.`,
+    tech: up
+      ? `Watch whether large technology names keep leading or the move broadens ${horizon}.`
+      : `Watch whether large technology names keep weighing on the index or stabilize ${horizon}.`,
+    crypto: up
+      ? `Watch whether ${a.name} holds this move or gives some back ${horizon}.`
+      : `Watch whether ${a.name} stabilizes near its recent range or continues lower ${horizon}.`
+  }[flavor];
 }
-// Range-appropriate learning concept for non-1D views, chosen only from the
-// selected asset's own move so the recommendation is always grounded.
-function _marketRangeLearn() {
-  const stats = _marketChartStats();
-  const mag = stats ? Math.abs(stats.pct) : 0;
-  if (mag >= 8) return { name: 'Volatility' };
-  if (stats && stats.pct < -0.05) return { name: 'Drawdowns and recovery' };
-  if (stats && stats.pct > 0.05) return { name: 'Long-term returns' };
-  return { name: 'Time horizon' };
+
+// Learning concept for the Learn-next card, grounded only in the selected
+// asset's flavor and its real move. Kept relatively coarse so switching ranges
+// reuses the same lesson instead of spawning near-duplicates; the displayed
+// TITLE (below) carries the range-specific framing.
+function _marketAssetInsightLearn() {
+  const a = _currentAsset();
+  const move = _marketAssetMove();
+  const flavor = _marketAssetFlavor(a);
+  const isDaily = String(_marketChart.range || '1D').toUpperCase() === '1D';
+  const mag = move.available ? Math.abs(move.pct) : 0;
+  if (flavor === 'crypto') {
+    if (mag >= 5) return { name: 'Bitcoin volatility' };
+    if (move.dir === 'down') return { name: 'Bitcoin’s trading range' };
+    if (!isDaily) return { name: 'Bitcoin over longer periods' };
+    return { name: 'What drives Bitcoin’s price' };
+  }
+  if (flavor === 'yield') {
+    if (move.dir === 'up') return { name: 'Why bond yields rise' };
+    if (move.dir === 'down') return { name: 'Why bond yields fall' };
+    return { name: 'How interest-rate expectations affect yields' };
+  }
+  // broad / tech index ETF
+  if (mag >= 8) return { name: 'Market volatility' };
+  if (!isDaily && move.dir === 'up') return { name: 'Long-term market returns' };
+  if (move.dir === 'down') return { name: flavor === 'tech' ? 'Technology-stock declines' : 'Broad-market declines' };
+  if (move.dir === 'up') return { name: 'What lifts the broad market' };
+  return { name: 'Time horizon and market returns' };
+}
+
+// Display title for the Learn-next card: asset-specific AND range-specific, with
+// "today" used only on 1D. Built directly from the real move so it can never
+// claim a cross-asset story.
+function _marketAssetInsightLearnTitle() {
+  const a = _currentAsset();
+  const move = _marketAssetMove();
+  const range = String(_marketChart.range || '1D').toUpperCase();
+  const subj = _marketAssetSubjectLower(a);
+  const isYield = a.kind === 'yield';
+  const up = move.dir === 'up';
+  const directional = move.available && move.dir !== 'flat';
+  const moveNoun = !directional ? 'move' : isYield ? (up ? 'rise' : 'decline') : up ? 'rally' : 'pullback';
+  switch (range) {
+    case '1D':
+      return directional ? `Why ${subj} moved ${up ? 'higher' : 'lower'} today` : `What moves ${subj} day to day`;
+    case '1W': return `Understanding ${subj}’s one-week ${moveNoun}`;
+    case '1M': return `Understanding ${subj}’s one-month ${moveNoun}`;
+    case '3M': return `Understanding ${subj}’s three-month ${moveNoun}`;
+    case 'YTD': return `What ${subj}’s year-to-date performance reveals`;
+    case '1Y': return `How to interpret ${subj} over the past year`;
+    case '5Y': return `How to interpret ${subj} over the long term`;
+    default: return `What moves ${subj}`;
+  }
 }
 
 function _renderMarketInsightInner() {
   const snap = _marketSnapshot;
   const range = String(_marketChart.range || '1D').toUpperCase();
   const isDaily = range === '1D';
-  const movers = _marketRecapMovers();
-  // On 1D the cross-asset story reads the live daily snapshot (real data for all
-  // three assets). On longer ranges we only have the SELECTED asset's range
-  // series, so the insight is asset-specific and never claims a cross-asset move.
-  const rangeStats = isDaily ? null : _marketChartStats();
-  const hasData = isDaily ? movers.some(m => m.available) : !!rangeStats;
+  // The insight describes the SELECTED asset only, on every range. 1D reads that
+  // asset's live daily snapshot; longer ranges read its chart series. We never
+  // mix in another asset here.
+  const move = _marketAssetMove();
+  const hasData = move.available;
   const head = (timeLine = '') => `
     <div class="market-insight-head">
       <span class="market-v3-spark" aria-hidden="true">${_marketThinIcon('spark')}</span>
@@ -2509,11 +2540,11 @@ function _renderMarketInsightInner() {
       </div>`;
   }
 
-  const learn = isDaily ? _marketRecapLearn(movers) : _marketRangeLearn();
+  const learn = _marketAssetInsightLearn();
   const learnArg = String(learn.name).replace(/'/g, "\\'");
-  const learnTitle = _marketRecapLearnTitle(learn);
-  const summary = isDaily ? _marketRecapMainStory(movers) : _marketRangeAssetStory();
-  const watch = isDaily ? _marketRecapWatch(movers) : _marketRangeAssetWatch();
+  const learnTitle = _marketAssetInsightLearnTitle();
+  const summary = _marketAssetInsightSummary();
+  const watch = _marketAssetInsightWatch();
 
   return `
     ${head()}
@@ -2693,7 +2724,6 @@ function setMarketChartRange(range) {
   _marketChartView = null;
   _paintMarketChart();
   _paintMarketInsight();   // immediately reflect the new range (loading + range copy)
-  _paintMarketRangeSummary();   // clear stale summary until the new range loads
   ensureMarketChart(true);
 }
 
@@ -2740,8 +2770,7 @@ async function ensureMarketChart(force = false) {
     if (token === _marketChart.token) {
       _marketChart.inFlight = false;
       _paintMarketChart();
-      _paintMarketInsight();        // non-1D insight reads the range series
-      _paintMarketRangeSummary();   // quiet range summary reads the range series
+      _paintMarketInsight();        // insight reads the range series
     }
   }
 }
