@@ -849,7 +849,6 @@ function renderMarket() {
         </div>
 
         <div class="market-v3-col market-v3-col-secondary">
-          <div id="marketActionsSlot">${_renderMarketCalculator()}</div>
           ${_renderMarketV3Topics()}
         </div>
       </div>
@@ -859,9 +858,7 @@ function renderMarket() {
   // Kick off (or refresh) live data. The tutor is called only on click.
   ensureMarketSnapshot();
   ensureMarketChart();
-  ensureMarketBenchmark();
   _observeMarketChartResize();
-  _marketCalcCompute();
 }
 
 // ── Market hero chart (selectable index / asset) ────────────────────
@@ -1586,11 +1583,48 @@ function _renderMarketTodayHeroInner() {
         <span class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</span>
         <span class="market-v3-change-context" id="marketHeroChangeContext">${_escapeMarketHtml(_marketChangeContextLabel())}</span>
       </div>
-      <div class="market-v3-compare" id="marketHeroCompare">${_marketComparisonInner()}</div>
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}
-    ${_renderMarketWhyMove()}`;
+    ${_renderMarketRangeSummary()}`;
+}
+
+// Optional quiet one-line range summary shown beneath the range controls. Built
+// ONLY from the chart's own first→last values for the selected asset/range, so
+// it states the real start, end and net move. Visually secondary to Market
+// insight: a single muted sentence, no card/border/icon/heading. Omitted
+// entirely when the range data isn't available — we never invent values — and
+// it never repeats the headline price/change line verbatim (it adds the start
+// value and a plain-English move phrase the headline doesn't show).
+function _marketRangeSummaryText() {
+  const stats = _marketChartStats();
+  if (!stats || !Number.isFinite(stats.first) || !Number.isFinite(stats.last) || !Number.isFinite(stats.pct)) return '';
+  const startTxt = _formatAssetValue(stats.first);
+  const endTxt = _formatAssetValue(stats.last);
+  if (startTxt === '—' || endTxt === '—') return '';
+  const a = _currentAsset();
+  const phrase = _marketRangePhrase();
+  const lead = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+  const subject = _marketAssetPhrase(a);
+  // Sign derived AFTER rounding so a near-zero move never shows "-0.00%".
+  const mag = Math.abs(_roundDisplay(stats.pct, 2));
+  const move = mag < 0.005
+    ? 'little net change'
+    : `${stats.pct > 0 ? 'a gain of' : 'a decline of'} ${mag.toFixed(2)}%`;
+  return `${lead}, ${subject} moved from ${startTxt} to ${endTxt}, ${move}.`;
+}
+function _renderMarketRangeSummary() {
+  // Stable wrapper: stays in the DOM so it can be repainted when the chart data
+  // arrives. Empty text collapses via the `:empty` rule, so no gap is reserved
+  // while loading or when the range data is unavailable.
+  const text = _marketRangeSummaryText();
+  return `<p class="market-range-summary" id="marketRangeSummary">${text ? _escapeMarketHtml(text) : ''}</p>`;
+}
+function _paintMarketRangeSummary() {
+  const el = document.getElementById('marketRangeSummary');
+  if (!el) return;
+  const text = _marketRangeSummaryText();
+  el.textContent = text || '';
 }
 
 function _marketChangePeriodWord() {
@@ -1689,12 +1723,10 @@ function selectMarketAsset(key) {
     _marketChart.interval = '';
     _marketChart.pointCount = 0;
     _marketChartView = null;
-    _marketWhyMoveReset();
     _marketChart.status = 'loading';
     _paintMarketChart();
     _paintMarketInsight();
-    // Keep the Return calculator (which defaults to the selected asset) in sync.
-    _paintMarketCalculator();
+    _paintMarketRangeSummary();   // clear stale summary until the new asset loads
     ensureMarketChart(true);
   }
   const label = document.getElementById('marketAssetLabel');
@@ -1929,198 +1961,9 @@ function _paintMarketAskSheet() {
   if (layer) layer.innerHTML = _renderMarketAskSheet();
 }
 
-// ── Return calculator ───────────────────────────────────────────────
-// Replaces the Market-page Ask section. Shows how a hypothetical investment in
-// the selected asset would have changed over a chosen historical period, using
-// REAL price history (the same /api/stock-history series the chart reads). It
-// never fabricates values: insufficient data is surfaced honestly. Clearly
-// labelled as historical performance, with the standard caveat.
-const MARKET_CALC_PERIODS = ['1W', '1M', '3M', 'YTD', '1Y', '5Y'];
-const MARKET_CALC_MAX = 10000000;   // reasonable upper bound on input
-const _marketCalc = { amount: 1000, period: '1Y', status: 'idle', pct: null, error: '', key: '' };
-const _marketCalcCache = {};        // 'BTC-USD|1Y' -> pct (number) | null
-let _marketCalcToken = 0;
-let _marketCalcDebounce = null;
-
-function _marketCalcPeriodPhrase(period = _marketCalc.period) {
-  return {
-    '1W': 'a week ago',
-    '1M': 'a month ago',
-    '3M': 'three months ago',
-    'YTD': 'at the start of this year',
-    '1Y': 'a year ago',
-    '5Y': 'five years ago'
-  }[String(period || '1Y').toUpperCase()] || 'earlier';
-}
-function _marketCalcSanitizeAmount(raw) {
-  // Keep digits and a single decimal point; drop signs so values can't go
-  // negative; clamp to the maximum.
-  const cleaned = String(raw == null ? '' : raw).replace(/[^0-9.]/g, '');
-  const parts = cleaned.split('.');
-  const normalized = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : cleaned;
-  let n = parseFloat(normalized);
-  if (!Number.isFinite(n) || n < 0) n = 0;
-  if (n > MARKET_CALC_MAX) n = MARKET_CALC_MAX;
-  return n;
-}
-function _marketCalcKey() { return `${_currentAsset().symbol}|${_marketCalc.period}`; }
-
-function _renderMarketCalculator() {
-  const a = _currentAsset();
-  const periods = MARKET_CALC_PERIODS.map(p => `
-    <button type="button" role="tab" class="market-calc-period${_marketCalc.period === p ? ' is-active' : ''}" aria-selected="${_marketCalc.period === p ? 'true' : 'false'}" onclick="setMarketCalcPeriod('${p}')">${p}</button>
-  `).join('');
-  const amountVal = _marketCalc.amount ? String(_marketCalc.amount) : '';
-  return `
-    <section class="market-calc">
-      <div class="market-calc-head">
-        <span class="market-calc-head-icon" aria-hidden="true">${_marketThinIcon('chart')}</span>
-        <div class="market-calc-head-copy">
-          <h2>Return calculator</h2>
-          <p class="market-calc-sub">See how an investment in ${_escapeMarketHtml(a.name)} would have changed over time.</p>
-        </div>
-      </div>
-      <div class="market-calc-controls">
-        <label class="market-calc-field market-calc-amount-field">
-          <span class="market-calc-label">Investment amount</span>
-          <span class="market-calc-input-wrap">
-            <span class="market-calc-currency" aria-hidden="true">$</span>
-            <input id="marketCalcAmount" class="market-calc-input" type="text" inputmode="decimal" autocomplete="off"
-              value="${_escapeMarketHtml(amountVal)}" placeholder="1,000" aria-label="Investment amount in dollars"
-              oninput="onMarketCalcAmountInput()" />
-          </span>
-        </label>
-        <div class="market-calc-field">
-          <span class="market-calc-label" id="marketCalcPeriodLabel">Start point</span>
-          <div class="market-calc-periods" id="marketCalcPeriods" role="tablist" aria-labelledby="marketCalcPeriodLabel">${periods}</div>
-        </div>
-      </div>
-      <div class="market-calc-result" id="marketCalcResult" aria-live="polite">${_renderMarketCalcResultInner()}</div>
-      <p class="market-calc-note">Historical performance does not guarantee future results.</p>
-      <button type="button" class="market-calc-learn" onclick="learnReturnsCompound()">
-        <span>Learn how returns compound</span>
-        <span class="market-calc-learn-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
-      </button>
-    </section>`;
-}
-
-function _renderMarketCalcPeriods() {
-  return MARKET_CALC_PERIODS.map(p => `
-    <button type="button" role="tab" class="market-calc-period${_marketCalc.period === p ? ' is-active' : ''}" aria-selected="${_marketCalc.period === p ? 'true' : 'false'}" onclick="setMarketCalcPeriod('${p}')">${p}</button>
-  `).join('');
-}
-
-function _renderMarketCalcResultInner() {
-  const a = _currentAsset();
-  const amount = Number(_marketCalc.amount) || 0;
-  if (amount <= 0) {
-    return `<p class="market-calc-empty">Enter an amount to see how it would have changed.</p>`;
-  }
-  if (_marketCalc.status === 'loading' || _marketCalc.status === 'idle') {
-    return `<div class="market-calc-loading"><span class="market-recap-spinner" aria-hidden="true"></span><span>Calculating…</span></div>`;
-  }
-  if (_marketCalc.status === 'error') {
-    return `<div class="market-calc-error"><p>Not enough historical data to calculate this period right now.</p>
-      <button type="button" class="market-recap-retry" onclick="_marketCalcCompute(true)">Try again</button></div>`;
-  }
-  if (_marketCalc.status !== 'success' || _marketCalc.pct == null || !Number.isFinite(_marketCalc.pct)) {
-    return `<p class="market-calc-empty">Pick a start point to calculate a return.</p>`;
-  }
-  const pct = _marketCalc.pct;
-  const ending = amount * (1 + pct / 100);
-  const gain = ending - amount;
-  const tone = _marketChangeClass(gain);
-  const phrase = _marketCalcPeriodPhrase();
-  return `
-    <span class="market-calc-result-eyebrow">Historical performance</span>
-    <p class="market-calc-result-line">${_escapeMarketHtml(_formatUsd(amount, 0))} invested in ${_escapeMarketHtml(a.name)} ${_escapeMarketHtml(phrase)} would be worth approximately <strong>${_escapeMarketHtml(_formatUsd(ending, 0))}</strong> today.</p>
-    <div class="market-calc-result-stats ${tone}">
-      <span class="market-calc-result-gain">${_escapeMarketHtml(_formatSignedUsd(gain, 0))}</span>
-      <span class="market-calc-result-dot" aria-hidden="true">·</span>
-      <span class="market-calc-result-pct">${_escapeMarketHtml(_formatSignedPctClean(pct))}</span>
-    </div>`;
-}
-
-function _paintMarketCalculator() {
-  const slot = document.getElementById('marketActionsSlot');
-  if (slot) slot.innerHTML = _renderMarketCalculator();
-  _marketCalcCompute();
-}
-function _paintMarketCalcResult() {
-  const el = document.getElementById('marketCalcResult');
-  if (el) el.innerHTML = _renderMarketCalcResultInner();
-}
-function _paintMarketCalcPeriods() {
-  const el = document.getElementById('marketCalcPeriods');
-  if (el) el.innerHTML = _renderMarketCalcPeriods();
-}
-
-function setMarketCalcPeriod(period) {
-  if (!MARKET_CALC_PERIODS.includes(period) || period === _marketCalc.period) return;
-  _marketCalc.period = period;
-  _paintMarketCalcPeriods();
-  _marketCalcCompute();
-}
-function onMarketCalcAmountInput() {
-  const input = document.getElementById('marketCalcAmount');
-  if (!input) return;
-  // Strip anything that isn't a digit or single decimal point (also blocks the
-  // minus sign) while preserving the caret for normal typing.
-  const cleaned = String(input.value).replace(/[^0-9.]/g, '');
-  if (cleaned !== input.value) {
-    const pos = input.selectionStart;
-    input.value = cleaned;
-    try { input.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch {}
-  }
-  _marketCalc.amount = _marketCalcSanitizeAmount(input.value);
-  if (_marketCalcDebounce) clearTimeout(_marketCalcDebounce);
-  _marketCalcDebounce = setTimeout(() => _marketCalcCompute(), 220);
-  _paintMarketCalcResult();
-}
-
-async function _marketCalcCompute(force = false) {
-  const amount = Number(_marketCalc.amount) || 0;
-  if (amount <= 0) { _marketCalc.status = 'idle'; _paintMarketCalcResult(); return; }
-  const symbol = _currentAsset().symbol;
-  const period = _marketCalc.period;
-  const cacheKey = `${symbol}|${period}`;
-  if (!force && Object.prototype.hasOwnProperty.call(_marketCalcCache, cacheKey)) {
-    const cached = _marketCalcCache[cacheKey];
-    _marketCalc.pct = cached;
-    _marketCalc.status = (cached == null) ? 'error' : 'success';
-    _paintMarketCalcResult();
-    return;
-  }
-  const token = ++_marketCalcToken;
-  _marketCalc.status = 'loading';
-  _marketCalc.key = cacheKey;
-  _paintMarketCalcResult();
-  try {
-    const payload = await _requestPracticeStockHistory(symbol, period);
-    if (token !== _marketCalcToken) return;
-    const pct = _pctFromHistoryPoints(payload && payload.points);
-    _marketCalcCache[cacheKey] = pct;
-    _marketCalc.pct = pct;
-    _marketCalc.status = (pct == null) ? 'error' : 'success';
-  } catch {
-    if (token !== _marketCalcToken) return;
-    _marketCalcCache[cacheKey] = null;
-    _marketCalc.pct = null;
-    _marketCalc.status = 'error';
-  }
-  if (token === _marketCalcToken) _paintMarketCalcResult();
-}
-
-// Secondary action: open/generate an existing-style lesson about returns and
-// compounding, reusing the standard build flow (no second competing CTA).
-function learnReturnsCompound() {
-  buildMarketRecapLesson('how returns and compounding work');
-}
-
 // Inline accordion (no bottom sheet / overlay). Expanding pushes the content
 // below it down; options are asset-aware and pass context into Ask.
-// (Retained for the dormant bottom-sheet path; the visible Market Ask section
-// has been replaced by the Return calculator above.)
+// (Dormant: retained for the bottom-sheet path; not rendered on the Market page.)
 function _renderMarketV3Actions() {
   // A calm, intentional Ask section: a small heading + supporting line, a single
   // always-visible input (static placeholder, real caret only on focus), and
@@ -2189,13 +2032,11 @@ function toggleMarketAsk() {
   _marketAskExpanded = !_marketAskExpanded;
   _paintMarketAsk();
 }
-// The Market-page Ask section has been replaced by the Return calculator, which
-// now owns #marketActionsSlot. This delegates so any dormant Ask-flow caller can
-// never overwrite the calculator with the old Ask UI. (Shared Ask logic used by
-// other pages — coachPage, navDrawer, chats — is untouched.)
-function _paintMarketAsk() {
-  _paintMarketCalculator();
-}
+// The Market-page Ask section is dormant (no #marketActionsSlot is rendered on
+// the Market page), so this is a no-op. Kept so any dormant Ask-flow caller can
+// still call it safely. (Shared Ask logic used by other pages — coachPage,
+// navDrawer, chats — is untouched.)
+function _paintMarketAsk() {}
 
 // ── Ask control static prompt ───────────────────────────────────────
 // The collapsed Ask control always shows the complete prompt phrase. There is
@@ -2850,9 +2691,9 @@ function setMarketChartRange(range) {
   _marketChart.interval = '';
   _marketChart.pointCount = 0;
   _marketChartView = null;
-  _marketWhyMoveReset();
   _paintMarketChart();
   _paintMarketInsight();   // immediately reflect the new range (loading + range copy)
+  _paintMarketRangeSummary();   // clear stale summary until the new range loads
   ensureMarketChart(true);
 }
 
@@ -2900,155 +2741,9 @@ async function ensureMarketChart(force = false) {
       _marketChart.inFlight = false;
       _paintMarketChart();
       _paintMarketInsight();        // non-1D insight reads the range series
-      ensureMarketBenchmark();      // load the comparison benchmark for this range
+      _paintMarketRangeSummary();   // quiet range summary reads the range series
     }
   }
-}
-
-// ── Market comparison metric (vs. a broad-market benchmark) ─────────
-// One quiet, real-data comparison shown beneath the headline change. For 1D we
-// compare against the live daily snapshot; for longer ranges we fetch the
-// benchmark's OWN series for the same range and compare period returns. The
-// benchmark is the S&P 500 for QQQ/Bitcoin and the Nasdaq-100 for the S&P 500,
-// so there is always a meaningful peer. Missing data → the metric is omitted.
-const _marketBenchCache = {};   // 'SPY|1Y' -> pct (number) | null
-let _marketBenchToken = 0;
-
-function _marketBenchmarkAsset() {
-  const a = _currentAsset();
-  return a.key === 'sp500'
-    ? { symbol: 'QQQ', label: 'Nasdaq-100' }
-    : { symbol: 'SPY', label: 'S&P 500' };
-}
-function _pctFromHistoryPoints(points) {
-  const norm = _normalizeMarketChartPoints(points);
-  if (norm.length < 2) return null;
-  const first = Number(norm[0].value);
-  const last = Number(norm[norm.length - 1].value);
-  if (!Number.isFinite(first) || first === 0 || !Number.isFinite(last)) return null;
-  return ((last - first) / first) * 100;
-}
-async function ensureMarketBenchmark(force = false) {
-  const bench = _marketBenchmarkAsset();
-  const range = _marketChart.range;
-  const key = `${bench.symbol}|${range}`;
-  if (!force && Object.prototype.hasOwnProperty.call(_marketBenchCache, key)) {
-    _paintMarketCompare();
-    return;
-  }
-  const token = ++_marketBenchToken;
-  try {
-    const payload = await _requestPracticeStockHistory(bench.symbol, range);
-    if (token !== _marketBenchToken) return;
-    _marketBenchCache[key] = _pctFromHistoryPoints(payload && payload.points);
-  } catch {
-    if (token === _marketBenchToken) _marketBenchCache[key] = null;
-  }
-  if (token === _marketBenchToken) _paintMarketCompare();
-}
-function _marketComparisonInner() {
-  const stats = _marketChartStats();
-  if (!stats || !Number.isFinite(stats.pct)) return '';
-  const bench = _marketBenchmarkAsset();
-  const benchPct = _marketBenchCache[`${bench.symbol}|${_marketChart.range}`];
-  if (benchPct == null || !Number.isFinite(benchPct)) return '';
-  const rel = stats.pct - benchPct;
-  const tone = _marketChangeClass(rel);
-  return `<span class="market-v3-compare-label">vs. ${_escapeMarketHtml(bench.label)}</span>` +
-    `<span class="market-v3-compare-value ${tone}">${_escapeMarketHtml(_formatSignedPctClean(rel))}</span>`;
-}
-function _paintMarketCompare() {
-  const el = document.getElementById('marketHeroCompare');
-  if (el) el.innerHTML = _marketComparisonInner();
-}
-
-// ── "Why did this move?" (chart-linked, inline, never navigates away) ─
-// Reuses the existing /api/ask-finlingo endpoint. State is keyed by asset+range
-// so switching either resets it. Idle → loading → success → error/retry.
-const _marketWhyMove = { open: false, status: 'idle', text: '', error: '', key: '' };
-function _marketWhyMoveKey() { return `${_marketChart.asset}|${_marketChart.range}`; }
-function _marketWhyMoveReset() {
-  _marketWhyMove.open = false;
-  _marketWhyMove.status = 'idle';
-  _marketWhyMove.text = '';
-  _marketWhyMove.error = '';
-  _marketWhyMove.key = _marketWhyMoveKey();
-}
-function _renderMarketWhyMove() {
-  if (_marketWhyMove.key !== _marketWhyMoveKey()) _marketWhyMoveReset();
-  const open = _marketWhyMove.open;
-  let panel = '';
-  if (open) {
-    if (_marketWhyMove.status === 'loading') {
-      panel = `<div class="market-why-panel" id="marketWhyPanel" role="status">
-        <span class="market-recap-spinner" aria-hidden="true"></span>
-        <span>Looking at the move…</span></div>`;
-    } else if (_marketWhyMove.status === 'error') {
-      panel = `<div class="market-why-panel is-error" id="marketWhyPanel" role="alert">
-        <p>${_escapeMarketHtml(_marketWhyMove.error || 'Couldn’t load an explanation right now.')}</p>
-        <button type="button" class="market-recap-retry" onclick="askMarketWhyMove(true)">Try again</button></div>`;
-    } else if (_marketWhyMove.status === 'success') {
-      panel = `<div class="market-why-panel" id="marketWhyPanel">
-        <p>${_escapeMarketHtml(_marketWhyMove.text)}</p>
-        <span class="market-why-note">Educational context, not investment advice.</span></div>`;
-    }
-  }
-  return `
-    <div class="market-why" id="marketWhySlot">
-      <button type="button" class="market-why-toggle${open ? ' is-open' : ''}" id="marketWhyToggle"
-        aria-expanded="${open ? 'true' : 'false'}" aria-controls="marketWhyPanel" onclick="toggleMarketWhyMove()">
-        <span>Why did this move?</span>
-        <span class="market-why-chevron" aria-hidden="true">${_marketThinIcon('chevron')}</span>
-      </button>
-      ${panel}
-    </div>`;
-}
-function _paintMarketWhyMove() {
-  const el = document.getElementById('marketWhySlot');
-  if (el) el.outerHTML = _renderMarketWhyMove();
-}
-function toggleMarketWhyMove() {
-  if (_marketWhyMove.key !== _marketWhyMoveKey()) _marketWhyMoveReset();
-  _marketWhyMove.open = !_marketWhyMove.open;
-  _paintMarketWhyMove();
-  if (_marketWhyMove.open && _marketWhyMove.status === 'idle') askMarketWhyMove();
-}
-async function askMarketWhyMove(force = false) {
-  if (_marketWhyMove.status === 'loading') return;
-  if (!force && _marketWhyMove.status === 'success') return;
-  const a = _currentAsset();
-  const stats = _marketChartStats();
-  const phrase = _marketRangePhrase();
-  const moveText = stats && Number.isFinite(stats.pct) ? _formatSignedPctClean(stats.pct) : 'its recent move';
-  _marketWhyMove.open = true;
-  _marketWhyMove.status = 'loading';
-  _marketWhyMove.error = '';
-  _marketWhyMove.key = _marketWhyMoveKey();
-  _paintMarketWhyMove();
-  const requestKey = _marketWhyMoveKey();
-  const prompt = `In 2-3 sentences for a beginner, explain why ${a.name} moved ${moveText} ${phrase}. ` +
-    `Use the supplied hidden market context without exposing it. Clearly separate confirmed facts from plausible drivers, ` +
-    `avoid stating any cause with certainty, and keep it educational — not financial advice.`;
-  try {
-    const res = await fetch('/api/ask-finlingo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ mode: 'chat', context: _marketSelectedContext(), messages: [{ role: 'user', content: prompt }] })
-    });
-    if (requestKey !== _marketWhyMoveKey()) return;   // asset/range changed mid-flight
-    if (!res.ok) throw new Error('Request failed');
-    const payload = await res.json();
-    const answer = String(payload && (payload.answer || payload.result || '')).trim();
-    if (!answer) throw new Error('Empty response');
-    _marketWhyMove.text = answer;
-    _marketWhyMove.status = 'success';
-  } catch (err) {
-    if (requestKey !== _marketWhyMoveKey()) return;
-    _marketWhyMove.status = 'error';
-    _marketWhyMove.error = 'Couldn’t load an explanation right now.';
-  }
-  if (requestKey === _marketWhyMoveKey()) _paintMarketWhyMove();
 }
 
 // ── Market Ask ──────────────────────────────────────────────────────
