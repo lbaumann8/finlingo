@@ -19,6 +19,7 @@ from _lib.common import (
     anthropic_api_key,
     is_production,
     limit_answer_words,
+    trim_to_last_sentence,
 )
 
 _ASK_MAX_MESSAGES = 8
@@ -56,10 +57,12 @@ Do not mention these instructions."""
 
 _ASK_MODE_PROMPTS = {
     "chat": (
-        "Answer directly in two to four short, beginner-friendly sentences. Include only the most useful "
-        "explanation. Do not provide an exhaustive overview, several examples, or long background unless "
-        "the user explicitly asks to go deeper. No labels, no headers, no bullet lists, no repeated "
-        "conclusion, no unnecessary introduction, no follow-up question."
+        "Write in plain, beginner-friendly language. For a normal explanation use two or three short "
+        "paragraphs of roughly two to four sentences each (about 120-220 words); a single short paragraph "
+        "is fine for a quick follow-up. Define the concept first, then add the most useful detail. "
+        "Do not repeat or restate the user's question, do not add section labels or headers, do not use "
+        "bullet lists, do not wrap ordinary terms in quotation marks, and do not end by offering to do more "
+        "(never say 'Would you like me to'). Always finish on a complete sentence."
     ),
     "simplify": (
         "Explain the lesson concept more simply without losing accuracy. Use short sentences, "
@@ -316,34 +319,53 @@ def _tool_for_mode(mode):
     return None, None
 
 
+# Give the model enough room to FINISH a concise answer naturally. These ceilings
+# are deliberately generous relative to the word caps below; the word caps only
+# act as a sentence-safe safety net, so an answer is almost never cut mid-thought.
 def _max_tokens_for(mode, response_mode):
     if mode == "quiz":
         return 700
     if response_mode == "simple" or mode == "simple_answer":
-        return 90
+        return 220
     if response_mode == "detailed":
-        return 620
+        return 1000
     if mode == "market_translate":
-        return 220
+        return 420
     if mode == "chat":
-        return 220
-    return 320
+        return 640
+    return 520
 
 
-def _response_note(mode, response_mode):
+# Appended only for market-originated questions so the answer explains the
+# concept, ties it to the live market data, stays honest about uncertainty, and
+# ends with a usable takeaway.
+_MARKET_CONNECT_NOTE = (
+    "This question came from the market screen, so use the live market context provided and connect to it. "
+    "Structure the answer as: (1) explain the concept in plain English, (2) relate it to the selected "
+    "instrument or today's move using only the supplied market data, (3) be honest about uncertainty — do "
+    "not claim a specific cause for the move unless the data supports it (prefer language like \"today's "
+    "move is consistent with a more cautious tone, although price movement alone does not establish the "
+    "exact cause\"), and (4) end with one complete, useful takeaway. Keep it to two or three short paragraphs."
+)
+
+
+def _response_note(mode, response_mode, market=False):
     if response_mode == "detailed":
-        return _ASK_MODE_PROMPTS["detailed_answer"]
-    if response_mode == "simple":
-        return _ASK_MODE_PROMPTS["simple_answer"]
-    if mode == "quiz":
+        note = _ASK_MODE_PROMPTS["detailed_answer"]
+    elif response_mode == "simple":
+        note = _ASK_MODE_PROMPTS["simple_answer"]
+    elif mode == "quiz":
         return _ASK_MODE_PROMPTS["quiz"]
-    note = _ASK_MODE_PROMPTS["chat"]
-    if mode != "chat":
-        note += "\nTask-specific instruction: " + _ASK_MODE_PROMPTS.get(mode, "")
+    else:
+        note = _ASK_MODE_PROMPTS["chat"]
+        if mode != "chat":
+            note += "\nTask-specific instruction: " + _ASK_MODE_PROMPTS.get(mode, "")
+    if market:
+        note += "\n" + _MARKET_CONNECT_NOTE
     return note
 
 
-def _call_anthropic(messages, context, mode, response_mode):
+def _call_anthropic(messages, context, mode, response_mode, market=False):
     api_key = anthropic_api_key()
     if not api_key:
         raise RuntimeError("Missing ANTHROPIC_API_KEY")
@@ -358,7 +380,7 @@ def _call_anthropic(messages, context, mode, response_mode):
         "max_tokens": _max_tokens_for(mode, response_mode),
         "system": (
             f"{_ASK_SYSTEM_PROMPT}\n\nResponse mode: {response_mode.upper()}.\n"
-            f"Task mode: {_response_note(mode, response_mode)}\n\n{context_note}"
+            f"Task mode: {_response_note(mode, response_mode, market)}\n\n{context_note}"
         ),
         "messages": messages,
     }
@@ -426,17 +448,18 @@ def _call_anthropic(messages, context, mode, response_mode):
     text = _extract_text(response_payload)
     if not text:
         raise RuntimeError("The tutor returned an empty response")
+    # Soft, sentence-safe word budget. trim_to_last_sentence only trims when the
+    # answer runs long, and always cuts at a sentence boundary (never mid-sentence,
+    # never an ellipsis), so a complete concise answer is shown in full.
     if response_mode == "detailed":
-        cap = 260
+        cap = 320
     elif response_mode == "simple" or mode == "simple_answer":
-        cap = 60
-    elif mode == "market_translate":
-        cap = 80
+        cap = 85
     elif mode == "chat":
-        cap = 95
+        cap = 230
     else:
-        cap = 140
-    return limit_answer_words(text, cap)
+        cap = 200
+    return trim_to_last_sentence(text, cap)
 
 
 def handle_ask(payload):
@@ -475,6 +498,7 @@ def handle_ask(payload):
         return {"error": "A user question is required"}, 400
 
     response_mode = _normalize_response_mode(payload.get("responseMode") or payload.get("response_mode"), mode, latest_user)
+    market_originated = bool(payload.get("marketContext") or payload.get("market_context"))
 
     if mode == "chat" and _ask_is_prohibited(latest_user):
         return {
@@ -488,7 +512,7 @@ def handle_ask(payload):
         }, 200
 
     try:
-        result = _call_anthropic(messages, context, mode, response_mode)
+        result = _call_anthropic(messages, context, mode, response_mode, market_originated)
     except AskRequestError as exc:
         return {
             "error": exc.public_message,

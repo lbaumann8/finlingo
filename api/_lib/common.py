@@ -97,6 +97,57 @@ def limit_answer_words(text, limit=160):
     return " ".join(words[:limit]).rstrip(" ,;:") + "…"
 
 
+# Matches the end of a sentence: ., ! or ? optionally followed by a closing
+# quote/bracket, and immediately followed by whitespace or end-of-text.
+_SENTENCE_END_RE = re.compile(r"[.!?][\"'”’)\]]?(?=\s|$)")
+
+
+def trim_to_last_sentence(text, max_words=220):
+    """Trim a free-text answer to a soft word budget WITHOUT cutting a sentence
+    in half, and without appending an ellipsis.
+
+    Behaviour:
+      * Returns the text unchanged when it is within budget AND already ends on
+        a complete sentence (the common case once max_tokens is generous).
+      * When over budget, trims back to the end of the last complete sentence
+        that fits. If no sentence boundary fits, it extends to the first
+        sentence end past the budget rather than presenting a fragment.
+      * If the text ends mid-sentence (e.g. the model still hit a token limit),
+        the trailing fragment is dropped back to the last complete sentence.
+    Paragraph breaks are preserved because we slice the original string.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+
+    result = raw
+    words = raw.split()
+    if len(words) > max_words:
+        # Character offset just after the max_words-th word.
+        count = 0
+        cut = len(raw)
+        for match in re.finditer(r"\S+", raw):
+            count += 1
+            if count == max_words:
+                cut = match.end()
+                break
+        ends = list(_SENTENCE_END_RE.finditer(raw[:cut]))
+        if ends:
+            result = raw[: ends[-1].end()]
+        else:
+            after = _SENTENCE_END_RE.search(raw, cut)
+            result = raw[: after.end()] if after else raw
+
+    # Never end on an incomplete sentence (handles model output that stopped
+    # mid-thought because it reached max_tokens).
+    if not re.search(r"[.!?][\"'”’)\]]?\s*$", result):
+        ends = list(_SENTENCE_END_RE.finditer(result))
+        if ends:
+            result = result[: ends[-1].end()]
+
+    return result.strip()
+
+
 def now_iso():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 

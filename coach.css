@@ -7779,123 +7779,54 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .ml-feedback-slot:empty { min-height: 0; }
 
 /* ============================================================
-   MICRO-LESSON: FULL-SCREEN LESSON VIEW  (desktop break-out)
-   On mobile the whole app is already full-screen, so a lesson fills the
-   viewport. On desktop/tablet the app is a centered ~456px phone frame, which
-   made lessons open inside a constrained panel. When the lesson screen is
-   active we break it out of that frame with position:fixed so the lesson shell
-   fills the entire viewport, then keep the readable content in a comfortable
-   centered column so paragraph text never stretches across the full width.
-   Quick checks, feedback and the prev/next controls all live inside this view
-   unchanged; lesson progress/answers are still persisted by microLessons.js.
+   MICRO-LESSON: LESSON VIEW STAYS IN THE APP SHELL
+   The lesson must match the Market and Ask screens — the same centered, narrow,
+   rounded app frame at every viewport size. It is a normal screen inside `.app`
+   (which owns the one shared shell width, base.css `.app { max-width: 440px }`),
+   so it must NOT break out of that frame on desktop/tablet. On mobile `.app` is
+   already full-screen, so this is a no-op there. Question and answer text simply
+   wrap within the shell; nothing is widened with 100vw, large fixed widths,
+   negative margins, or position:fixed full-screen positioning. Entering or
+   leaving a lesson therefore causes no width jump.
    ============================================================ */
-@media (min-width: 501px) {
-  #microLessonScreen.active {
-    position: fixed;
-    inset: 0;
-    z-index: 1400;
-    width: 100vw;
-    height: 100dvh;
-    max-height: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #0b0c0f;
-  }
-  #microLessonScreen.active > #microUnitRoot {
-    flex: 1 1 auto;
-    min-height: 0;
-    height: auto;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-  }
-  /* Shell fills the viewport (full-bleed dark background) … */
-  #microLessonScreen.active .ml-shell {
-    width: 100% !important;
-    max-width: none !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding-inline: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  /* … while the header, content AND bottom controls all share ONE centered
-     lesson container, so the back button, question, answer cards and prev/
-     submit/next row line up on the same left/right edges. Fluid width keeps a
-     focused reading column without the phone-panel-stretched-wide look. */
-  #microLessonScreen.active .ml-top,
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content,
-  #microLessonScreen.active .ml-recap-intro,
-  #microLessonScreen.active .ml-done {
-    width: 100%;
-    max-width: min(90vw, 740px);
-    margin-inline: auto;
-    padding-inline: 24px;
-    box-sizing: border-box;
-  }
-  /* Cap the question's reading measure so it wraps to two/three lines rather
-     than stretching the full container width; long questions get a little
-     extra room. The font size set in the tablet/desktop blocks is preserved. */
-  #microLessonScreen.active .ml-question {
-    max-width: 40ch;
-  }
-  /* Controls sit a fixed, comfortable distance below the content rather than
-     pinned to the extreme viewport bottom, so they read as part of the question
-     instead of floating far away from the final answer. */
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content { flex: 0 0 auto; }
-  #microLessonScreen.active .ml-nav,
-  #microLessonScreen.active .ml-quiz-nav { margin-top: 36px; }
-  /* Keep paragraph-heavy explanation text at a readable measure even though the
-     container is wider; answer cards still use the full container width. */
-  #microLessonScreen.active .ml-core-slide p,
-  #microLessonScreen.active .ml-slide p,
-  #microLessonScreen.active .ml-key-details ul { max-width: 62ch; }
+#microLessonScreen.active {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  background: #0b0c0f;
 }
-
-/* Tablet — moderately wide container, comfortable padding, cards full-width. */
-@media (min-width: 768px) {
-  #microLessonScreen.active .ml-top,
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content,
-  #microLessonScreen.active .ml-recap-intro,
-  #microLessonScreen.active .ml-done {
-    max-width: min(90vw, 740px);
-    padding-inline: 32px;
-  }
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content { padding-top: clamp(28px, 5vh, 52px); }
-  #microLessonScreen.active .ml-question { font-size: 1.5rem; }
-  #microLessonScreen.active .ml-choices { gap: 12px; }
-  #microLessonScreen.active .ml-choice { padding: 17px 18px; font-size: 1.04rem; }
+#microLessonScreen.active > #microUnitRoot {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
-
-/* Desktop — larger answer cards and type, stronger horizontal balance, more
-   breathing room between the progress header and the content. The container
-   width stays at the focused tablet measure through this band (768–1199px). */
-@media (min-width: 1024px) {
-  #microLessonScreen.active .ml-lesson-title { font-size: 1.9rem; }
-  #microLessonScreen.active .ml-question { font-size: 1.62rem; margin-bottom: 26px; }
-  #microLessonScreen.active .ml-choices { gap: 13px; }
-  #microLessonScreen.active .ml-choice { padding: 19px 20px; font-size: 1.06rem; }
-  #microLessonScreen.active .ml-choice-letter { width: 28px; height: 28px; }
-  #microLessonScreen.active .ml-nav,
-  #microLessonScreen.active .ml-quiz-nav { margin-top: 40px; }
+/* Inherit the shell width; never exceed the app frame. */
+.ml-shell,
+#microLessonScreen.active .ml-shell {
+  width: 100%;
+  max-width: 100%;
 }
-
-/* Large desktop (1200px+) — the lesson is allowed its full focused measure of
-   ~780px and stays centered, never stretching across the wide viewport. */
-@media (min-width: 1200px) {
-  #microLessonScreen.active .ml-top,
-  #microLessonScreen.active .ml-lesson-content,
-  #microLessonScreen.active .ml-check-content,
-  #microLessonScreen.active .ml-recap-intro,
-  #microLessonScreen.active .ml-done {
-    max-width: min(88vw, 780px);
-  }
+/* Lesson sections share the shell's internal horizontal padding (.ml-shell
+   already has padding: 0 18px), aligned with the rest of the app; text wraps
+   naturally within the narrow frame. */
+#microLessonScreen.active .ml-top,
+#microLessonScreen.active .ml-lesson-content,
+#microLessonScreen.active .ml-check-content,
+#microLessonScreen.active .ml-recap-intro,
+#microLessonScreen.active .ml-done {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  padding-inline: 0;
+  box-sizing: border-box;
+}
+/* Let questions, answer choices and explanation text wrap to the frame width
+   instead of being capped to a wide-desktop reading measure. */
+#microLessonScreen.active .ml-question,
+#microLessonScreen.active .ml-core-slide p,
+#microLessonScreen.active .ml-slide p,
+#microLessonScreen.active .ml-key-details ul {
+  max-width: 100%;
 }

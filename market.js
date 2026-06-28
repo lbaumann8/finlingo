@@ -1825,32 +1825,23 @@ function _marketAskAction(action) {
   _startMarketChatFlow(_marketActionRequest(action));
 }
 
-function _marketTopicDisplayMessage(topic, asset = _currentAsset()) {
+// Lowercase a topic title for use inside a sentence, while keeping common
+// finance acronyms/tickers upper-cased (ETF, QQQ, S&P, IPO, …).
+function _marketTopicLabelText(topic) {
   const title = String(topic || '').trim();
-  const lower = title.toLowerCase();
-  const isBitcoin = asset?.kind === 'crypto' || /bitcoin|btc/i.test(asset?.name || '');
-  const isQqq = asset?.key === 'qqq';
-  if (isQqq) {
-    if (lower.includes('bond')) return 'Explain how bond yields can influence QQQ and today’s market.';
-    if (lower.includes('inflation')) return 'Explain how inflation can affect QQQ and the companies it tracks.';
-    if (lower.includes('rate')) return 'Explain how interest rates can affect QQQ and growth stocks.';
-  }
-  if (lower.includes('bond')) return 'Explain how bonds work and how they connect to today’s market.';
-  if (lower.includes('inflation')) {
-    return isBitcoin
-      ? 'Explain how interest rates and inflation can affect Bitcoin.'
-      : 'Explain today’s inflation environment and how it can affect markets.';
-  }
-  if (lower.includes('rate')) {
-    return isBitcoin
-      ? 'Explain how interest rates and inflation can affect Bitcoin.'
-      : 'Explain how interest rates affect investments and today’s market.';
-  }
-  if (lower.includes('earning')) return 'Explain earnings season and why it matters for today’s market.';
-  if (lower.includes('volatility')) return 'Explain market volatility and what beginners should understand today.';
-  if (lower.includes('diversification')) return 'Explain diversification and how it connects to today’s market.';
-  if (lower.includes('etf')) return 'Explain ETFs and how they connect to today’s market.';
-  return `Explain ${title || 'this market topic'} and how it connects to today’s market.`;
+  if (!title) return 'this market topic';
+  const keepUpper = /^(etf|etfs|ipo|ipos|s&p|qqq|spy|us|gdp|cpi|fed|ai|ira|iras|401k|esg|reit|reits)$/i;
+  return title.split(/\s+/).map(word => {
+    const bare = word.replace(/[^a-z0-9&]/gi, '');
+    return keepUpper.test(bare) ? word.toUpperCase() : word.toLowerCase();
+  }).join(' ');
+}
+
+// The VISIBLE user bubble. Keep it short and natural — "Explain risk-off
+// markets." — and let the hidden context/apiPrompt carry the market connection
+// so the question never reads as repetitive or auto-generated.
+function _marketTopicDisplayMessage(topic, asset = _currentAsset()) {
+  return `Explain ${_marketTopicLabelText(topic)}.`;
 }
 
 function _marketTopicApiContext(topic, apiPrompt) {

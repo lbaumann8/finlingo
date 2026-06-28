@@ -1189,6 +1189,13 @@
     const text = String(rawText || '').trim();
     const intent = opts.intent || _detectIntent(text);
     const requestId = opts.requestId || _requestId();
+    // Market-originated chats (opened from a Market Insight, Today's Key Topics,
+    // or a market action) carry live market data in their context. Flag the
+    // request so the backend explains the concept AND connects it to today's
+    // market without the user having to ask for the connection.
+    const marketOriginated = /market/.test(String(opts.source || ''))
+      || /market/.test(String((opts.apiContext && opts.apiContext.source) || ''))
+      || intent === 'market' || intent === 'connect_market';
     const effectiveText = (intent === 'build' && _isGenericBuildUnitLabel(text))
       ? String(opts.topic || lastTopic || 'investing for beginners').trim()
       : text;
@@ -1336,7 +1343,7 @@
         }
         payload = await _startUnitJob(jobEntry, requestChatId, requestThread);
       } else {
-        payload = await _coachFetch(mode, prompt, context, history, { responseMode, requestId });
+        payload = await _coachFetch(mode, prompt, context, history, { responseMode, requestId, marketContext: marketOriginated || undefined });
       }
       if (!activeCoachRequest || activeCoachRequest.id !== requestId) return;
       const targetThread = requestThread;
@@ -1861,6 +1868,21 @@
     return '';
   }
 
+  // Whether the question that produced this answer came from the Market screen.
+  // The cleaned visible bubble ("Explain risk-off markets.") may not look like a
+  // market question, so we read the originating user entry's market metadata.
+  function _prevUserMarketOrigin(index) {
+    for (let i = (index | 0) - 1; i >= 0; i--) {
+      const e = thread[i];
+      if (e && e.role === 'user') {
+        return /market/.test(String(e.source || ''))
+          || /market/.test(String((e.apiContext && e.apiContext.source) || ''))
+          || Boolean(e.marketTopic);
+      }
+    }
+    return false;
+  }
+
   function _shortTopic(question, topic) {
     let s = String(topic || question || '').trim().replace(/\?+$/, '').trim();
     s = s
@@ -1936,7 +1958,7 @@
     return {
       advice: advice,
       invest: /\b(invest|investing|portfolio|put my money|where to put)\b/.test(t),
-      market: /\b(market|bitcoin|btc|crypto|ethereum|stock price|share price|s p 500|nasdaq|dow|rally|sell off|selloff|moved|move|rose|fell|drop|surge|plunge|spike|today|this week|right now|why did)\b/.test(t),
+      market: /\b(market|markets|bitcoin|btc|crypto|ethereum|stock price|share price|s p 500|nasdaq|dow|rally|sell off|selloff|risk off|risk on|moved|move|rose|fell|drop|surge|plunge|spike|today|this week|right now|why did)\b/.test(t),
       comparative: /\b(vs|versus|compare|comparison|difference between|better than)\b/.test(t),
       numerical: /\b(calculate|how much is|how many|formula|compound|interest rate|rate of return|percentage|percent)\b/.test(t),
       planning: /\b(retire|retirement|save for|saving for|budget|afford|emergency fund|pay off|payoff|debt)\b/.test(t),
@@ -1988,6 +2010,16 @@
         prompt: `Compare ${T} with the stock market in 2-4 short beginner-friendly sentences. Educational only.` }),
       drivers: () => ({ purpose: 'drivers', label: 'Explain the biggest drivers', action: 'follow_up',
         prompt: `Explain the main factors that typically drive ${T} in 2-4 short beginner-friendly sentences. Do not make predictions.` }),
+      riskCauses: () => ({ purpose: 'drivers', label: 'What usually causes risk-off moves?', action: 'follow_up',
+        prompt: `Explain what usually causes risk-off moves in markets, in plain English for a beginner. Use 2-4 short sentences and do not make predictions.` }),
+      whatHoldsUp: () => ({ purpose: 'holdsup', label: 'Which assets tend to hold up best?', action: 'follow_up',
+        prompt: `In plain English for a beginner, explain which kinds of assets tend to hold up better during ${T}. Keep it general and educational, not specific recommendations. Use 2-4 short sentences.` }),
+      isTemporary: () => ({ purpose: 'temporary', label: 'How can I tell if it’s temporary?', action: 'follow_up',
+        prompt: `Explain, in plain English for a beginner, how to think about whether a market move like ${T} is temporary or longer-lasting. Use 2-4 short sentences and avoid predictions.` }),
+      compareRiskOnOff: () => ({ purpose: 'compare', label: 'Compare risk-on and risk-off', action: 'follow_up',
+        prompt: `Compare risk-on and risk-off market conditions in plain English for a beginner. Use 2-4 short sentences on how they differ and what each means.` }),
+      watchNext: () => ({ purpose: 'watch', label: 'What should I watch next?', action: 'follow_up',
+        prompt: `Explain what a beginner could reasonably watch next to understand ${T} better. Use 2-4 short sentences, educational only, with no predictions or recommendations.` }),
       learnFromIt: () => ({ purpose: 'takeaway', label: 'What should I learn from it?', action: 'follow_up',
         prompt: `Explain the key lessons a beginner should take away from ${T} in 2-4 short sentences. Educational only.` }),
       factors: () => ({ purpose: 'factors', label: 'Show me the key factors', action: 'follow_up',
@@ -2010,9 +2042,27 @@
       build: () => ({ purpose: 'build', label: 'Build a unit', action: 'create_unit', unitTopic: _unitTopicFromQuestion(question, T) })
     };
 
+    // Is the market topic itself an equity/index/market concept? If so we must
+    // NOT offer "Compare this with stocks" — that compares the asset with its
+    // own category. Detect that and route to topic-relevant follow-ups instead.
+    const tnorm = _norm(T);
+    const qnorm = _norm(question);
+    const topicIsEquity = /\b(stock|stocks|equity|equities|s p 500|sp 500|s p|index|indexes|indices|index fund|index funds|nasdaq|dow|share|shares|market|markets|selloff|sell off|rally|correction|volatility|bull|bear|risk off|risk on)\b/.test(tnorm + ' ' + qnorm);
+    const riskMove = /\brisk off\b|\brisk on\b/.test(tnorm + ' ' + qnorm);
+    const isMarket = (cls.market || _prevUserMarketOrigin(index) || topicIsEquity || riskMove);
+
     let order;
-    if (cls.market && !cls.advice) {
-      order = [C.drivers, comparand ? C.comparePair : C.compareMarket, C.quiz, C.learnFromIt, C.related];
+    if (isMarket && !cls.advice) {
+      if (riskMove) {
+        order = [C.riskCauses, C.whatHoldsUp, C.isTemporary, C.compareRiskOnOff, C.watchNext, C.quiz];
+      } else if (comparand && !topicIsEquity) {
+        order = [C.drivers, C.comparePair, C.isTemporary, C.quiz, C.learnFromIt, C.watchNext];
+      } else if (topicIsEquity) {
+        // Equity/index/market topic — never "compare with stocks".
+        order = [C.drivers, C.whatHoldsUp, C.isTemporary, C.quiz, C.watchNext, C.learnFromIt];
+      } else {
+        order = [C.drivers, C.compareMarket, C.isTemporary, C.quiz, C.learnFromIt, C.watchNext];
+      }
     } else if (cls.advice && cls.invest) {
       order = [C.compareStocksBonds, C.diversification, C.riskConcept, C.factors, C.tradeoffs];
     } else if (cls.advice || cls.planning) {
@@ -2047,7 +2097,7 @@
       }
     }
     if (_allDistinct(picked) && picked.length === 3) return picked;
-    const fallback = _fallbackSuggestions(cls, T, ST);
+    const fallback = _fallbackSuggestions(isMarket ? Object.assign({}, cls, { market: true }) : cls, T, ST);
     if (unitWorthy) {
       const buildSuggestion = C.build();
       return fallback.filter(item => item.purpose !== 'build').slice(0, 2).concat(buildSuggestion);
@@ -2905,6 +2955,10 @@
     const root = document.getElementById('coachRoot');
     if (!root) return;
     _ensureActiveLoaded();
+    // Boot / reopen / route-in: if the last interaction was >15 min ago, swap to
+    // a fresh empty chat (the old one stays in history). newChat() re-renders, so
+    // stop here to avoid briefly painting the stale conversation.
+    if (_checkAskInactivity()) return;
     const isBlank = thread.length === 0;
     const showHero = isBlank;
     const showCompact = !isBlank;
@@ -2973,17 +3027,28 @@
   }
 
   // ── Ask inactivity reset ────────────────────────────────────────────
-  // After 15 minutes without any Ask activity, start a fresh chat the next
-  // time the user returns to / focuses / interacts with Ask. The reset only
-  // happens on those return/focus/interaction triggers (never on a timer mid
-  // read) and never while a response is loading, so an actively-used chat is
-  // preserved. Reuses newChat() so there is a single new-chat reset path.
-  const ASK_INACTIVITY_MS = 15 * 60 * 1000; // 15 * 60 * 1000
+  // After 15 minutes without any meaningful interaction, the next time the user
+  // returns (reload, reopen, tab return, app resume, or routing back into Ask)
+  // we start a fresh, empty chat. The previous conversation is never deleted —
+  // it stays in history (newChat() reuses ChatStore so prior messages persist).
+  //
+  // "Meaningful interaction" is tracked app-wide (clicks, typing, navigation,
+  // message submission, visibility changes) and stored persistently, so an
+  // actively-used app — on any screen — keeps its current Ask chat, and the
+  // reset only fires after a genuine idle gap followed by a return event. The
+  // reset never fires mid-read on a timer, and never while a response loads.
+  const ASK_INACTIVITY_MS = 15 * 60 * 1000; // 15 minutes
   const ASK_ACTIVITY_KEY = 'finlingo_ask_last_activity';
   let _inactivityGuard = false;
+  let _lastActivityWrite = 0;
 
-  function _markAskActivity() {
-    try { if (global.localStorage) localStorage.setItem(ASK_ACTIVITY_KEY, String(Date.now())); }
+  function _markAskActivity(force) {
+    const now = Date.now();
+    // Throttle persistent writes (interaction events can fire rapidly); force is
+    // used for deliberate actions (opening a chat) that must not be skipped.
+    if (force !== true && now - _lastActivityWrite < 15000) return;
+    _lastActivityWrite = now;
+    try { if (global.localStorage) localStorage.setItem(ASK_ACTIVITY_KEY, String(now)); }
     catch (_) {}
   }
   function _getAskLastActivity() {
@@ -2993,16 +3058,23 @@
       return Number.isFinite(n) ? n : 0;
     } catch (_) { return 0; }
   }
-  function _checkAskInactivity() {
-    if (_inactivityGuard) return;        // avoid overlapping resets (visibility/focus/route)
-    if (!_askScreenActive()) return;     // never reset due to time spent on Learn/Market
-    if (busy) return;                    // never reset while a response is loading
+  function _askInactive() {
     const last = _getAskLastActivity();
-    if (last && (Date.now() - last > ASK_INACTIVITY_MS) && thread.length > 0) {
+    return Boolean(last && (Date.now() - last > ASK_INACTIVITY_MS));
+  }
+  // Reset trigger (return/focus/route-in). Returns true if it started a fresh
+  // chat so callers (e.g. renderCoach on boot) can stop rendering the old one.
+  function _checkAskInactivity() {
+    if (_inactivityGuard) return false;  // avoid overlapping resets (visibility/focus/route)
+    if (!_askScreenActive()) return false;
+    if (busy) return false;              // never reset while a response is loading
+    let didReset = false;
+    if (_askInactive() && thread.length > 0) {
       _inactivityGuard = true;
-      try { newChat(); } finally { _inactivityGuard = false; }
+      try { newChat(); didReset = true; } finally { _inactivityGuard = false; }
     }
     _markAskActivity();
+    return didReset;
   }
 
   function newChat() {
@@ -3021,6 +3093,7 @@
 
   function openChat(id) {
     if (!_hasStore()) return;
+    _markAskActivity(true);   // explicitly viewing a history chat is activity — never auto-reset it
     _stopAllUnitJobPolls();
     global.ChatStore.setActive(id, { silent: true });
     _ensureActiveLoaded(true);
@@ -3039,14 +3112,19 @@
       if (event?.detail?.id === 'coachScreen') { _checkAskInactivity(); _resumeUnitJobsForActiveChat(); }
       else _stopAllUnitJobPolls();
     });
-    // Returning focus / making the tab visible again are inactivity-check
-    // triggers too. _checkAskInactivity() is a no-op unless Ask is the active
-    // screen, so Learn/Market time never triggers a reset.
+    // Returning focus / making the tab visible again / restoring from the
+    // back-forward cache are all "return" triggers that re-check inactivity.
     global.addEventListener('focus', _checkAskInactivity);
+    global.addEventListener('pageshow', _checkAskInactivity); // bfcache reopen
     if (global.document && global.document.addEventListener) {
       global.document.addEventListener('visibilitychange', function () {
         if (global.document.visibilityState === 'visible') _checkAskInactivity();
       });
+      // Track meaningful interaction app-wide (clicks + typing) so an actively
+      // used app — on any screen — keeps its current Ask chat. These only stamp
+      // the activity timestamp; they never trigger a reset themselves.
+      global.document.addEventListener('pointerdown', _markAskActivity, { passive: true, capture: true });
+      global.document.addEventListener('keydown', _markAskActivity, { passive: true, capture: true });
     }
   }
 
