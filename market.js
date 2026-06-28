@@ -1574,7 +1574,6 @@ function _renderMarketTodayHeroInner() {
     <div class="market-v3-hero-copy">
       <div class="market-v3-index-select">
         <button type="button" class="market-v3-index-label" id="marketAssetLabel" aria-haspopup="listbox" aria-expanded="${_marketAssetMenuOpen ? 'true' : 'false'}" aria-label="Selected market: ${_escapeMarketHtml(a.name)}. Change market." onclick="toggleMarketAssetMenu(event)">${_escapeMarketHtml(a.name)} <span class="${_marketAssetMenuOpen ? 'is-open' : ''}">⌄</span></button>
-        ${_renderMarketWatchStar(a)}
         ${_renderMarketAssetMenu()}
       </div>
       ${a.badge ? `<div class="market-v3-index-sub">${_escapeMarketHtml(a.badge)}</div>` : ''}
@@ -1648,40 +1647,6 @@ function toggleMarketAssetMenu(event) {
 function _repaintMarketHero() {
   const hero = document.getElementById('marketTodayHero');
   if (hero) hero.innerHTML = _renderMarketTodayHeroInner();
-}
-
-// ── Watchlist star (follow the selected instrument) ─────────────────
-function _renderMarketWatchStar(asset) {
-  if (!window.FinWatchlist || !window.SavedUI || typeof window.SavedUI.starIcon !== 'function') return '';
-  const followed = window.FinWatchlist.has(asset.key);
-  const label = followed ? `Unfollow ${asset.name}` : `Follow ${asset.name}`;
-  return `<button type="button" class="market-watch-star${followed ? ' is-active' : ''}" ` +
-    `aria-pressed="${followed ? 'true' : 'false'}" aria-label="${_escapeMarketHtml(label)}" ` +
-    `title="${_escapeMarketHtml(label)}" onclick="toggleMarketWatch(event)">${window.SavedUI.starIcon(followed)}</button>`;
-}
-function toggleMarketWatch(event) {
-  if (event) event.stopPropagation();
-  if (!window.FinWatchlist) return;
-  const a = _currentAsset();
-  window.FinWatchlist.toggle(a.key);
-  _repaintMarketHero();
-}
-
-// ── Bookmark the current market insight ("Quick Take") ──────────────
-function _renderMarketInsightBookmark() {
-  if (!window.SavedUI || !window.FinBookmarks || typeof window.SavedUI.button !== 'function') return '';
-  const move = (typeof _marketAssetMove === 'function') ? _marketAssetMove() : { available: false };
-  if (!move || !move.available) return '';           // never offer to save a guess
-  const a = _currentAsset();
-  const summary = (typeof _marketAssetInsightSummary === 'function') ? _marketAssetInsightSummary() : '';
-  return window.SavedUI.button({
-    type: 'market',
-    sourceId: a.key,
-    title: `${a.name} market insight`,
-    preview: summary,
-    meta: { assetKey: a.key },
-    extraClass: 'market-insight-bm'
-  });
 }
 function _onMarketAssetDocClick(e) {
   const menu = document.getElementById('marketAssetMenu');
@@ -2545,7 +2510,6 @@ function _renderMarketInsightInner() {
       <span class="market-v3-spark" aria-hidden="true">${_marketThinIcon('spark')}</span>
       <h2>Market insight</h2>
       ${timeLine}
-      ${_renderMarketInsightBookmark()}
     </div>`;
 
   const loading = isDaily

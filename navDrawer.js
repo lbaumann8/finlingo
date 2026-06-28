@@ -68,12 +68,10 @@
   var ICON_ASK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>';
   var ICON_LEARN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4.5h7a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 4.5h-7a3 3 0 0 0-3 3V20a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>';
   var ICON_MARKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg>';
-  var ICON_SAVED = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M19 21l-7-4.5L5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 
   function _activeSection() {
     if (document.getElementById('coachScreen')?.classList.contains('active')) return 'ask';
     if (document.getElementById('marketScreen')?.classList.contains('active')) return 'market';
-    if (document.getElementById('savedScreen')?.classList.contains('active')) return 'saved';
     if (['pathScreen', 'courseScreen', 'quizScreen', 'resultScreen', 'microLessonScreen'].some(function (id) {
       return document.getElementById(id)?.classList.contains('active');
     })) return 'learn';
@@ -85,8 +83,7 @@
     return [
       ['ask', 'Ask', ICON_ASK],
       ['learn', 'Learn', ICON_LEARN],
-      ['market', 'Market', ICON_MARKET],
-      ['saved', 'Saved', ICON_SAVED]
+      ['market', 'Market', ICON_MARKET]
     ].map(function (item) {
       var key = item[0], label = item[1], icon = item[2], selected = key === active;
       return '<button type="button" class="nav-drawer-primary-row' + (selected ? ' is-active' : '') + '"' +
@@ -276,10 +273,6 @@
     }
     if (section === 'market' && typeof global.showMarket === 'function') {
       global.showMarket({ resetScroll: false });
-      return;
-    }
-    if (section === 'saved' && typeof global.showSaved === 'function') {
-      global.showSaved({ resetScroll: true });
     }
   }
 

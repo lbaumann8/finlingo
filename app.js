@@ -1132,13 +1132,6 @@ function showPractice(options = {}) {
     renderPracticePage();
   }, 'Mastery', options);
 }
-function showSaved(options = {}) {
-  if (options && typeof options !== 'object') options = {};
-  _activateScreen('savedScreen', null, () => {
-    if (typeof renderSaved === 'function') renderSaved();
-  }, 'Saved', options);
-}
-if (typeof window !== 'undefined') window.showSaved = showSaved;
 
 /** Animate the "+N XP" bubble floating up over the quiz. */
 function showXpPop(value) {
@@ -2062,94 +2055,6 @@ function getHomeIndicatorRows() {
 }
 
 // ════════════════════════════════════════════════════════════
-// YOUR WATCHLIST (Home + Learn dashboard)
-// Followed Market instruments, using the SAME live data source the Home
-// Market Snapshot already reads (getHomeIndicatorRows → S.portfolio quotes).
-// The watchlist universe is the three instruments the Market screen supports.
-// ════════════════════════════════════════════════════════════
-const WATCHLIST_ASSET_META = {
-  sp500: { key: 'sp500', name: 'S&P 500',    symbol: 'SPY', ticker: 'SPY · ETF' },
-  qqq:   { key: 'qqq',   name: 'Nasdaq 100',  symbol: 'QQQ', ticker: 'QQQ · ETF' },
-  btc:   { key: 'btc',   name: 'Bitcoin',     symbol: 'BTC', ticker: 'BTC · Crypto' }
-};
-
-/** Map followed asset keys → display rows built from current market data. */
-function getWatchlistRows(keys) {
-  const indicator = (typeof getHomeIndicatorRows === 'function') ? getHomeIndicatorRows() : [];
-  const bySymbol = {};
-  indicator.forEach(r => { bySymbol[r.symbol] = r; });
-  return (keys || []).map(key => {
-    const meta = WATCHLIST_ASSET_META[key];
-    if (!meta) return null;
-    const row = bySymbol[meta.symbol] || {};
-    return {
-      key,
-      name: meta.name,
-      ticker: meta.ticker,
-      priceText: row.value || '—',
-      changeText: row.change || '',
-      tone: row.tone || 'flat'
-    };
-  }).filter(Boolean);
-}
-
-/** Open a followed instrument directly in Market. */
-function openWatchlistInstrument(key) {
-  if (typeof showMarket === 'function') showMarket({ resetScroll: false });
-  if (typeof selectMarketAsset === 'function') setTimeout(() => selectMarketAsset(key), 80);
-}
-
-/** Render the "Your Watchlist" card into every .your-watchlist-mount node. */
-function renderYourWatchlist() {
-  const mounts = document.querySelectorAll('.your-watchlist-mount');
-  if (!mounts.length) return;
-  const keys = (window.FinWatchlist && typeof FinWatchlist.keys === 'function') ? FinWatchlist.keys() : [];
-
-  let html;
-  if (!keys.length) {
-    html = `
-      <div class="home-simple-card watchlist-empty-card">
-        <div class="watchlist-empty-title">No instruments followed yet</div>
-        <div class="watchlist-empty-copy">Open Market and tap the star next to an instrument to follow it here.</div>
-        <button class="btn btn-secondary home-card-action" onclick="showMarket()">Open Market</button>
-      </div>`;
-  } else {
-    const rows = getWatchlistRows(keys);
-    // Personalize learning from the first followed instrument, reusing the
-    // existing Market lesson-generation flow (no new content required).
-    const first = rows[0];
-    const recHtml = (first && typeof buildMarketRecapLesson === 'function')
-      ? `<button type="button" class="watchlist-rec" onclick="buildMarketRecapLesson('${String(first.name).replace(/'/g, "\\'")}')">
-          <span class="watchlist-rec-eyebrow">Because you follow ${escapeAppHtml(first.name)}</span>
-          <span class="watchlist-rec-title">Learn what moves ${escapeAppHtml(first.name)}</span>
-        </button>`
-      : '';
-    html = `
-      <div class="home-simple-card watchlist-card">
-        ${rows.map(r => `
-          <button type="button" class="watchlist-row" onclick="openWatchlistInstrument('${r.key}')" aria-label="Open ${escapeAppHtml(r.name)} in Market">
-            <span class="watchlist-row-lead">
-              <span class="watchlist-row-name">${escapeAppHtml(r.name)}</span>
-              <span class="watchlist-row-ticker">${escapeAppHtml(r.ticker)}</span>
-            </span>
-            <span class="watchlist-row-data">
-              <span class="watchlist-row-price">${escapeAppHtml(r.priceText)}</span>
-              <span class="watchlist-row-change ${r.tone}">${escapeAppHtml(r.changeText)}</span>
-            </span>
-          </button>`).join('')}
-        ${recHtml}
-      </div>`;
-  }
-  mounts.forEach(el => { el.innerHTML = html; });
-}
-
-if (typeof window !== 'undefined') {
-  window.getWatchlistRows = getWatchlistRows;
-  window.openWatchlistInstrument = openWatchlistInstrument;
-  window.renderYourWatchlist = renderYourWatchlist;
-}
-
-// ════════════════════════════════════════════════════════════
 // TODAY'S MONEY DECISION
 // A short, real-world financial scenario with a few choices and plain
 // feedback after the learner picks. Reflective, not graded — there are no
@@ -2439,7 +2344,6 @@ function updateHome() {
   // Question and Practice). The underlying data/functions remain for reuse.
   renderSkillProgress(summary);
   renderHomeMarketSnapshot();
-  if (typeof renderYourWatchlist === 'function') renderYourWatchlist();
   maybeShowRefresherQuizPrompt();
 }
 
@@ -3795,13 +3699,6 @@ function renderPath() {
           <span class="ls-value-line">${min} min <i>•</i> ${diff.label} <i>•</i> ${concepts.length} key ideas</span>
         </span>
         <span class="ls-side">
-          ${(window.SavedUI && SavedUI.button) ? SavedUI.button({
-            type: 'lesson',
-            sourceId: lesson.id,
-            title: lesson.title,
-            preview: lesson.blurb || '',
-            extraClass: 'ls-bm'
-          }) : ''}
           <span class="ls-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
         </span>
       </article>`;
@@ -3934,11 +3831,6 @@ function renderPath() {
       </div>
 
       <aside class="learn-rail" aria-label="Your progress">
-        <section class="rail-card learn-watchlist-card">
-          <div class="rail-card-head"><span class="rail-kicker">Your Watchlist</span></div>
-          <div class="your-watchlist-mount"></div>
-        </section>
-
         ${previewLesson ? `
         <section class="rail-card lesson-preview-card">
           <div class="lesson-preview-kicker">Lesson preview</div>
@@ -3987,8 +3879,6 @@ function renderPath() {
         </section>
       </aside>
     </div>`;
-
-  if (typeof renderYourWatchlist === 'function') renderYourWatchlist();
 }
 // ════════════════════════════════════════════════════════════
 // MARKET SCREEN

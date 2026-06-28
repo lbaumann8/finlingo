@@ -329,6 +329,9 @@ def _max_tokens_for(mode, response_mode):
         return 220
     if response_mode == "detailed":
         return 1000
+    # Initial overview: enough room to finish ~65-110 words naturally, no more.
+    if response_mode == "overview":
+        return 300
     if mode == "market_translate":
         return 420
     if mode == "chat":
@@ -349,7 +352,35 @@ _MARKET_CONNECT_NOTE = (
 )
 
 
+# The initial answer to a brand-new typed question. Deliberately short — one
+# clean paragraph — because the deeper learning (example / risks / deep-dive /
+# build a unit) is offered separately as follow-up actions.
+_ASK_OVERVIEW_NOTE = (
+    "This is the FIRST, overview answer to a brand-new question. Reply with ONE short paragraph of about "
+    "65 to 100 words (roughly 3 to 5 sentences) and nothing more. Define the concept directly, briefly say why "
+    "it matters, and include one useful detail or example only when it genuinely improves understanding. "
+    "Do not repeat or restate the question, do not use headings or bullet points, do not split the answer into "
+    "multiple paragraphs, do not end with a question, and never offer to do more (never say 'Would you like me "
+    "to'). Always finish on a complete sentence. Deeper explanations, examples, risks, and full units are "
+    "offered separately as follow-up actions, so keep this first answer concise."
+)
+
+# Overview answer for a question opened from the Market screen: still one short
+# paragraph, but allowed slightly more room to connect the concept to the live
+# instrument/move — honestly, without claiming a precise cause.
+_MARKET_OVERVIEW_NOTE = (
+    "This question came from the market screen. Still reply with ONE short paragraph, about 75 to 110 words. "
+    "Explain the concept in plain English and connect it to the selected instrument or today's move ONLY when "
+    "the supplied market data supports it. Do not claim a specific cause from price movement alone (prefer "
+    "language like \"today's move is consistent with a more cautious tone, although price alone does not "
+    "establish the exact cause\"). Finish with one concise, complete takeaway. Do not use headings, bullet "
+    "points, or multiple paragraphs."
+)
+
+
 def _response_note(mode, response_mode, market=False):
+    if response_mode == "overview":
+        return _ASK_OVERVIEW_NOTE + ("\n" + _MARKET_OVERVIEW_NOTE if market else "")
     if response_mode == "detailed":
         note = _ASK_MODE_PROMPTS["detailed_answer"]
     elif response_mode == "simple":
@@ -448,6 +479,14 @@ def _call_anthropic(messages, context, mode, response_mode, market=False):
     text = _extract_text(response_payload)
     if not text:
         raise RuntimeError("The tutor returned an empty response")
+    # Initial overview: force a single clean paragraph (collapse any line breaks
+    # the model emitted) and apply a tight sentence-safe fallback cap (~115 words).
+    # The fallback only fires when the model runs long; it never cuts mid-sentence
+    # and never appends an ellipsis.
+    if response_mode == "overview":
+        text = re.sub(r"\s*\n\s*", " ", text)
+        text = re.sub(r"[ \t]{2,}", " ", text).strip()
+        return trim_to_last_sentence(text, 115)
     # Soft, sentence-safe word budget. trim_to_last_sentence only trims when the
     # answer runs long, and always cuts at a sentence boundary (never mid-sentence,
     # never an ellipsis), so a complete concise answer is shown in full.
@@ -499,6 +538,14 @@ def handle_ask(payload):
 
     response_mode = _normalize_response_mode(payload.get("responseMode") or payload.get("response_mode"), mode, latest_user)
     market_originated = bool(payload.get("marketContext") or payload.get("market_context"))
+
+    # The first answer to a freshly typed question is a brief one-paragraph
+    # overview. Only normal chat answers are affected — explicit "detailed"
+    # requests, simplify, quizzes, market explainers, and unit jobs keep their
+    # existing depth, so we are not globally shortening every Ask answer.
+    initial_overview = bool(payload.get("initial") or payload.get("initialOverview"))
+    if initial_overview and mode == "chat" and response_mode == "normal":
+        response_mode = "overview"
 
     if mode == "chat" and _ask_is_prohibited(latest_user):
         return {
