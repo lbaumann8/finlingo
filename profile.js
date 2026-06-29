@@ -1020,26 +1020,33 @@ function saveEdit() {
 // ── CONFIRM RESET ─────────────────────────────────────────────
 // Shows a destructive-action modal before wiping progress.
 
+// Delegates to the single canonical confirmation + reset flow in app.js so
+// every entry point (Settings, Profile, Account) clears the same verified
+// learning-progress keys and re-renders the UI identically.
 function confirmReset() {
+  if (typeof confirmResetLearningProgress === 'function') {
+    confirmResetLearningProgress();
+    return;
+  }
+  // Defensive fallback (canonical flow unavailable): clear main state only.
   showAppModal({
     icon: 'danger',
-    title: 'Reset all progress?',
-    body:  'This will clear completed lessons, review history, and accuracy stats. Your account stays.',
+    title: 'Reset all learning progress?',
+    body:  'Completed lessons, mastery, quiz results, streaks, and learning history will be cleared. Your account and settings will remain unchanged.',
     actions: [
-      { label: 'Reset Progress', cls: 'btn btn-danger', fn: () => {
+      { label: 'Cancel', cls: 'modal-cancel', fn: closeAppModal },
+      { label: 'Reset progress', cls: 'btn btn-danger', fn: () => {
           const user   = S.user;
           const joined = S.joinedDate;
-          localStorage.removeItem(STORAGE_KEY);
           S = normalizeState();
           S.user = user;
           S.joinedDate = joined;
           save();
           closeAppModal();
           renderProfileScreen(); updateTopbar();
-          showToast('Progress reset', 'success');
+          showToast('Learning progress reset.', 'success');
         }
-      },
-      { label: 'Cancel', cls: 'modal-cancel', fn: closeAppModal }
+      }
     ]
   });
 }

@@ -329,7 +329,7 @@ def _max_tokens_for(mode, response_mode):
         return 220
     if response_mode == "detailed":
         return 1000
-    # Initial overview: enough room to finish ~65-110 words naturally, no more.
+    # Initial overview: enough room to finish a ~65-95 word answer naturally, no more.
     if response_mode == "overview":
         return 300
     if mode == "market_translate":
@@ -357,8 +357,9 @@ _MARKET_CONNECT_NOTE = (
 # build a unit) is offered separately as follow-up actions.
 _ASK_OVERVIEW_NOTE = (
     "This is the FIRST, overview answer to a brand-new question. Reply with ONE short paragraph of about "
-    "65 to 100 words (roughly 3 to 5 sentences) and nothing more. Define the concept directly, briefly say why "
-    "it matters, and include one useful detail or example only when it genuinely improves understanding. "
+    "65 to 85 words (3 to 4 sentences) and nothing more. Define the concept directly, briefly say why "
+    "it matters, and add at most one supporting detail only when it genuinely improves understanding. "
+    "Do NOT include a full worked example unless the user explicitly asks for one. "
     "Do not repeat or restate the question, do not use headings or bullet points, do not split the answer into "
     "multiple paragraphs, do not end with a question, and never offer to do more (never say 'Would you like me "
     "to'). Always finish on a complete sentence. Deeper explanations, examples, risks, and full units are "
@@ -369,9 +370,9 @@ _ASK_OVERVIEW_NOTE = (
 # paragraph, but allowed slightly more room to connect the concept to the live
 # instrument/move — honestly, without claiming a precise cause.
 _MARKET_OVERVIEW_NOTE = (
-    "This question came from the market screen. Still reply with ONE short paragraph, about 75 to 110 words. "
-    "Explain the concept in plain English and connect it to the selected instrument or today's move ONLY when "
-    "the supplied market data supports it. Do not claim a specific cause from price movement alone (prefer "
+    "This question came from the market screen. Still reply with ONE short paragraph, about 70 to 95 words. "
+    "Explain the concept first in plain English, then connect it to the selected instrument or today's move ONLY when "
+    "the supplied market data supports the connection. Do not claim a precise cause from price movement alone (prefer "
     "language like \"today's move is consistent with a more cautious tone, although price alone does not "
     "establish the exact cause\"). Finish with one concise, complete takeaway. Do not use headings, bullet "
     "points, or multiple paragraphs."
@@ -480,13 +481,13 @@ def _call_anthropic(messages, context, mode, response_mode, market=False):
     if not text:
         raise RuntimeError("The tutor returned an empty response")
     # Initial overview: force a single clean paragraph (collapse any line breaks
-    # the model emitted) and apply a tight sentence-safe fallback cap (~115 words).
+    # the model emitted) and apply a tight sentence-safe fallback cap (~95 words).
     # The fallback only fires when the model runs long; it never cuts mid-sentence
     # and never appends an ellipsis.
     if response_mode == "overview":
         text = re.sub(r"\s*\n\s*", " ", text)
         text = re.sub(r"[ \t]{2,}", " ", text).strip()
-        return trim_to_last_sentence(text, 115)
+        return trim_to_last_sentence(text, 95)
     # Soft, sentence-safe word budget. trim_to_last_sentence only trims when the
     # answer runs long, and always cuts at a sentence boundary (never mid-sentence,
     # never an ellipsis), so a complete concise answer is shown in full.

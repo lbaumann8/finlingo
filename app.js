@@ -323,44 +323,107 @@ function chooseAccountLearningLevel() {
   });
 }
 
-function _resetLearningProgressOnly() {
-  const user = S.user;
-  const joined = S.joinedDate;
-  S.completedIds = [];
-  S.unlockedIds = [1];
-  S.totalCorrect = 0;
-  S.totalAnswered = 0;
-  S.bestScores = {};
-  S.mastery = {};
-  S.reviewQueue = [];
-  S.lessonMiniProgress = typeof getDefaultLessonMiniProgress === 'function' ? getDefaultLessonMiniProgress() : {};
-  S.refresherQuiz = typeof getDefaultRefresherQuiz === 'function' ? getDefaultRefresherQuiz() : {};
-  S.pendingUnlocks = [];
-  S.rewardsSummary = typeof getDefaultRewardsSummary === 'function' ? getDefaultRewardsSummary() : S.rewardsSummary;
-  S.user = user;
-  S.joinedDate = joined;
-  try { localStorage.removeItem('finlingo_micro_progress_v1'); } catch (_) {}
-  save();
-  if (typeof updateTopbar === 'function') updateTopbar();
-  try { window.dispatchEvent(new CustomEvent('finlingo:custom-units-updated')); } catch (_) {}
+// Learning-progress localStorage keys that live OUTSIDE the main state object
+// (S / finlingo_v4). The main state is cleared by recreating S + save(); these
+// satellite stores must be removed explicitly. Deliberately excludes chat
+// (finlingo_chats / *_thread), generated-unit DEFINITIONS (finlingo_custom_units_v1),
+// Market prefs/stats, coach conversational memory, auth, theme and settings.
+const LEARNING_PROGRESS_SATELLITE_KEYS = [
+  'finlingo_micro_progress_v1',   // preset + generated unit lesson/quiz completion
+  'finlingo_daily_stats_v1',      // daily-challenge activity history
+  'finlingo_coach_review_v1'      // spaced review-flag queue of practised concepts
+];
+
+let _resetInProgress = false;
+
+// Canonical reset. Clears ALL verified learning-progress data (in-memory + on
+// disk), persists a clean default, notifies listeners, and re-renders every
+// affected surface so the UI updates without a refresh. Identity (account,
+// onboarding) and unrelated data are preserved. Safe to call repeatedly.
+function resetLearningProgress() {
+  if (_resetInProgress) return;
+  _resetInProgress = true;
+  try {
+    // Preserve identity-only fields; everything else returns to defaults.
+    const user = S.user;
+    const joined = S.joinedDate;
+    const onboarding = S.onboarding;
+
+    // 1. Recreate the in-memory state object from defaults (no stale values).
+    S = typeof normalizeState === 'function' ? normalizeState() : S;
+    S.user = user;
+    S.joinedDate = joined;
+    S.onboarding = onboarding;
+
+    // 2. Clear learning-progress satellite stores (idempotent, never throws).
+    if (window.MicroProgress && typeof MicroProgress.clearAll === 'function') {
+      MicroProgress.clearAll();
+    } else {
+      try { localStorage.removeItem('finlingo_micro_progress_v1'); } catch (_) {}
+    }
+    LEARNING_PROGRESS_SATELLITE_KEYS.forEach(key => {
+      try { localStorage.removeItem(key); } catch (_) {}
+    });
+
+    // 3. Persist clean state (rewrites finlingo_v4 + the per-email backup).
+    if (typeof save === 'function') save();
+
+    // 4. Notify listeners + re-render everything that shows progress.
+    _broadcastProgressReset();
+    _rerenderAfterReset();
+  } finally {
+    _resetInProgress = false;
+  }
 }
 
-function confirmAccountResetProgress() {
+function _broadcastProgressReset() {
+  ['finlingo:custom-units-updated', 'finlingo:review-updated', 'finlingo:micro-progress-updated'].forEach(name => {
+    try { window.dispatchEvent(new CustomEvent(name)); } catch (_) {}
+  });
+}
+
+function _rerenderAfterReset() {
+  const safe = fn => { try { if (typeof fn === 'function') fn(); } catch (_) {} };
+  safe(window.updateTopbar);     // header progress / accuracy
+  safe(window.updateHome);       // home dashboard cards + rings
+  safe(window.renderPath);       // active Learn workspace (lesson cards, completion)
+  safe(window.renderProfileScreen); // profile stats summary
+  // Practice/review page and Market progress re-render via the events above.
+}
+
+// Back-compat alias for older call sites.
+function _resetLearningProgressOnly() { resetLearningProgress(); }
+
+// Single confirmation dialog shared by every reset entry point (Settings,
+// Profile, Account). Uses the app's modal pattern; opts.afterReset closes the
+// surface the user triggered it from.
+function confirmResetLearningProgress(opts) {
+  opts = opts || {};
   showAppModal({
     icon: 'danger',
-    title: 'Reset learning progress?',
-    body: 'This will remove lesson progress, completed units, quiz results, and learning history. Your generated units and chats will remain.',
+    title: 'Reset all learning progress?',
+    body: 'Completed lessons, mastery, quiz results, streaks, and learning history will be cleared. Your account and settings will remain unchanged.',
     actions: [
-      { label: 'Cancel', cls: 'modal-cancel', fn: closeAppModal },
-      { label: 'Reset progress', cls: 'btn btn-danger', fn: () => {
-          _resetLearningProgressOnly();
+      { label: 'Cancel', cls: 'modal-cancel', fn: () => {
           closeAppModal();
-          closeFinlingoAccount();
-          if (typeof showToast === 'function') showToast('Progress reset', 'success');
+          if (typeof opts.onCancel === 'function') opts.onCancel();
+        }
+      },
+      { label: 'Reset progress', cls: 'btn btn-danger', fn: () => {
+          resetLearningProgress();
+          closeAppModal();
+          if (typeof opts.afterReset === 'function') opts.afterReset();
+          if (typeof showToast === 'function') showToast('Learning progress reset.', 'success');
+          // Return to a clean starting point: the beginning of Learn.
+          if (typeof showLearn === 'function') showLearn();
         }
       }
     ]
   });
+}
+
+function confirmAccountResetProgress() {
+  confirmResetLearningProgress({ afterReset: closeFinlingoAccount });
 }
 
 function confirmAccountSignOut() {
@@ -489,6 +552,7 @@ function _renderBootFallback(message) {
 let _refresherPromptChecked = false;
 let _refresherPromptTimer = null;
 let _appModalOnClose = null;
+let _appModalReturnFocus = null;
 let _streakRepairPromptTimer = null;
 let _pendingResultStreakCelebration = null;
 let _pendingResultStreakTimer = null;
@@ -1222,7 +1286,23 @@ function showAppModal({ icon, iconSvg, title, body, bodyIsHTML, actions, showClo
     actionsEl.appendChild(btn);
   });
 
+  // Remember the element that opened the modal so focus can be restored on
+  // close (e.g. back to the Reset button after Cancel/Escape).
+  _appModalReturnFocus = document.activeElement && typeof document.activeElement.focus === 'function'
+    ? document.activeElement
+    : null;
+  if (overlay) overlay.setAttribute('role', 'dialog');
+  if (overlay) overlay.setAttribute('aria-modal', 'true');
+  if (boxEl) boxEl.setAttribute('aria-label', title || 'Dialog');
+
   overlay.classList.add('open');
+
+  // Move focus into the dialog. Prefer the safe (cancel) action so a
+  // destructive default isn't focused; otherwise the first enabled button.
+  const btns = Array.from(actionsEl.querySelectorAll('button')).filter(b => !b.disabled);
+  const safeBtn = btns.find(b => /modal-cancel/.test(b.className)) || btns[0]
+    || (closeBtn && closeBtn.style.display !== 'none' ? closeBtn : null);
+  if (safeBtn) setTimeout(() => { try { safeBtn.focus(); } catch (_) {} }, 20);
 }
 
 function closeAppModal() {
@@ -1230,16 +1310,49 @@ function closeAppModal() {
   const boxEl = document.getElementById('appModalBox');
   const closeBtn = document.getElementById('modalCloseBtn');
   const onClose = _appModalOnClose;
+  const returnFocus = _appModalReturnFocus;
   _appModalOnClose = null;
+  _appModalReturnFocus = null;
   overlay.classList.remove('open');
   if (boxEl) boxEl.className = 'modal-box';
   if (closeBtn) closeBtn.style.display = 'none';
+  // Restore focus to whatever opened the modal (e.g. the Reset button).
+  if (returnFocus && document.contains(returnFocus) && typeof returnFocus.focus === 'function') {
+    try { returnFocus.focus(); } catch (_) {}
+  }
   if (typeof onClose === 'function') onClose();
 }
 
 // Close modal when clicking the dim overlay background
 document.getElementById('appModal').addEventListener('click', function (e) {
   if (e.target === this) closeAppModal();
+});
+
+// Single global key handler for the app modal: Escape cancels, Tab is trapped
+// inside the dialog. Registered once, so no duplicate listeners accumulate.
+document.addEventListener('keydown', function (e) {
+  const overlay = document.getElementById('appModal');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeAppModal();
+    return;
+  }
+  if (e.key === 'Tab') {
+    const focusables = Array.from(
+      overlay.querySelectorAll('button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])')
+    ).filter(el => el.offsetParent !== null);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    } else if (!overlay.contains(document.activeElement)) {
+      e.preventDefault(); first.focus();
+    }
+  }
 });
 
 

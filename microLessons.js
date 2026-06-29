@@ -1170,10 +1170,25 @@
     all[unitId] = data;
     try { localStorage.setItem(PKEY, JSON.stringify(all)); } catch {}
   }
+  // Wipe ALL stored unit progress (used by the canonical learning-progress
+  // reset) and drop any in-memory player state so a stale, half-played unit
+  // can't write its progress back after the reset.
+  function clearAllProgress() {
+    try { localStorage.removeItem(PKEY); } catch {}
+    _unit = null;
+    _progress = null;
+    _phase = 'slides';
+    _index = 0;
+    _slideIndex = 0;
+    _selectedAnswer = null;
+    _selectedRecapAnswer = null;
+    _reviewMode = false;
+  }
   global.MicroProgress = {
     summary: summary,
     isComplete: isComplete,
     remove: removeProgress,
+    clearAll: clearAllProgress,
     getRaw: getRawProgress,
     restore: restoreProgress
   };
