@@ -243,6 +243,17 @@
 
     persist: function () { _persist(); },
 
+    // Full wipe used by the app-data reset: clears the persisted chats, the
+    // active-chat pointer, and legacy single-thread caches, AND resets the live
+    // in-memory cache so a fresh empty chat is created from scratch afterwards.
+    clearAll: function () {
+      _chats = [];
+      try { localStorage.removeItem(KEY_CHATS); } catch (_) {}
+      try { localStorage.removeItem(KEY_ACTIVE); } catch (_) {}
+      LEGACY_KEYS.forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
+      _emit('finlingo:chats-updated');
+    },
+
     touch: function (id) {
       var c = this.get(id);
       if (c) { c.updatedAt = _now(); _persist(); }

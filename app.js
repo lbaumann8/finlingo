@@ -284,8 +284,8 @@ function openFinlingoAccount() {
 
         <section class="account-section account-danger-section" aria-labelledby="accountDangerLabel">
           <h2 id="accountDangerLabel">DATA</h2>
-          <button type="button" class="account-row account-row-button account-row-danger" onclick="confirmAccountResetProgress()">
-            <span>Reset learning progress</span>
+          <button type="button" class="account-row account-row-button account-row-danger" onclick="confirmAccountResetData()">
+            <span>Reset App Data</span>
           </button>
         </section>
       </main>
@@ -323,61 +323,96 @@ function chooseAccountLearningLevel() {
   });
 }
 
-// Learning-progress localStorage keys that live OUTSIDE the main state object
-// (S / finlingo_v4). The main state is cleared by recreating S + save(); these
-// satellite stores must be removed explicitly. Deliberately excludes chat
-// (finlingo_chats / *_thread), generated-unit DEFINITIONS (finlingo_custom_units_v1),
-// Market prefs/stats, coach conversational memory, auth, theme and settings.
-const LEARNING_PROGRESS_SATELLITE_KEYS = [
-  'finlingo_micro_progress_v1',   // preset + generated unit lesson/quiz completion
-  'finlingo_daily_stats_v1',      // daily-challenge activity history
-  'finlingo_coach_review_v1'      // spaced review-flag queue of practised concepts
+// localStorage keys cleared by a full app-data reset. These hold the user's
+// FinLingo CONTENT and learning activity — chats, generated-unit definitions,
+// lesson/quiz progress, review history, daily activity, and cached Ask state.
+// Deliberately EXCLUDES identity/auth, theme, general settings, and ALL Market
+// data (prefs + cached market data), which are preserved. Prefix groups
+// (level-promotion + streak-repair flags) are cleared separately below.
+const APP_DATA_CLEAR_KEYS = [
+  'finlingo_chats',                // all saved chats
+  'finlingo_active_chat_id',       // the active-chat pointer
+  'finlingo_ask_thread',           // legacy single-thread Ask cache
+  'finlingo_coach_thread',         // legacy single-thread coach cache
+  'finlingo_ask_last_activity',    // Ask inactivity timestamp
+  'finlingo_custom_units_v1',      // AI-generated unit DEFINITIONS
+  'finlingo_micro_progress_v1',    // preset + generated unit lesson/quiz completion
+  'finlingo_daily_stats_v1',       // daily-challenge / learning activity history
+  'finlingo_coach_review_v1',      // spaced review / practice history
+  'finlingo_learning_memory_v1',   // Ask/coach learning memory
+  'finlingo_asked_topics_v1',      // Ask asked-topic history
+  'finlingo_streak_repair_pending' // de-gamified streak-repair transient
 ];
+// Any localStorage key beginning with one of these prefixes is also cleared.
+const APP_DATA_CLEAR_PREFIXES = ['finlingo_promoted_', 'finlingo_streak_repair_seen_'];
 
 let _resetInProgress = false;
 
-// Canonical reset. Clears ALL verified learning-progress data (in-memory + on
-// disk), persists a clean default, notifies listeners, and re-renders every
-// affected surface so the UI updates without a refresh. Identity (account,
-// onboarding) and unrelated data are preserved. Safe to call repeatedly.
-function resetLearningProgress() {
+// Canonical full reset. Clears ALL FinLingo content + learning data (in-memory
+// AND on disk), invalidates any active background unit build, persists a clean
+// default state, notifies listeners, and re-renders every affected surface so
+// the UI updates without a refresh. Identity (account, auth, onboarding), theme,
+// general settings, and Market data are preserved. Safe to call repeatedly.
+function resetAppData() {
   if (_resetInProgress) return;
   _resetInProgress = true;
   try {
-    // Preserve identity-only fields; everything else returns to defaults.
+    // 1. Invalidate any in-flight background unit build + clear coach in-memory
+    //    state FIRST, so a late poll response cannot re-persist a deleted unit
+    //    or chat after we wipe storage below (generation/reset-epoch guard).
+    if (window.CoachPage && typeof CoachPage.handleAppDataReset === 'function') {
+      try { CoachPage.handleAppDataReset(); } catch (_) {}
+    }
+
+    // 2. Preserve identity-only fields; everything else returns to defaults.
     const user = S.user;
     const joined = S.joinedDate;
     const onboarding = S.onboarding;
-
-    // 1. Recreate the in-memory state object from defaults (no stale values).
     S = typeof normalizeState === 'function' ? normalizeState() : S;
     S.user = user;
     S.joinedDate = joined;
     S.onboarding = onboarding;
 
-    // 2. Clear learning-progress satellite stores (idempotent, never throws).
+    // 3. Clear satellite content/progress stores (idempotent, never throws).
     if (window.MicroProgress && typeof MicroProgress.clearAll === 'function') {
       MicroProgress.clearAll();
-    } else {
-      try { localStorage.removeItem('finlingo_micro_progress_v1'); } catch (_) {}
     }
-    LEARNING_PROGRESS_SATELLITE_KEYS.forEach(key => {
-      try { localStorage.removeItem(key); } catch (_) {}
-    });
+    if (window.ChatStore && typeof ChatStore.clearAll === 'function') {
+      ChatStore.clearAll();   // wipes chats + active id + legacy threads + cache
+    }
+    APP_DATA_CLEAR_KEYS.forEach(key => { try { localStorage.removeItem(key); } catch (_) {} });
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && APP_DATA_CLEAR_PREFIXES.some(p => k.indexOf(p) === 0)) localStorage.removeItem(k);
+      }
+    } catch (_) {}
+    try { sessionStorage.removeItem('finlingo_streak_repair_pending'); } catch (_) {}
 
-    // 3. Persist clean state (rewrites finlingo_v4 + the per-email backup).
+    // 4. Persist clean state (rewrites finlingo_v4 + the per-email backup).
     if (typeof save === 'function') save();
 
-    // 4. Notify listeners + re-render everything that shows progress.
-    _broadcastProgressReset();
+    // 5. Notify listeners + re-render everything that shows content/progress.
+    _broadcastAppDataReset();
     _rerenderAfterReset();
   } finally {
     _resetInProgress = false;
   }
 }
 
-function _broadcastProgressReset() {
-  ['finlingo:custom-units-updated', 'finlingo:review-updated', 'finlingo:micro-progress-updated'].forEach(name => {
+// Back-compat aliases for older call sites.
+function resetLearningProgress() { resetAppData(); }
+function _resetLearningProgressOnly() { resetAppData(); }
+
+function _broadcastAppDataReset() {
+  [
+    'finlingo:app-data-reset',
+    'finlingo:custom-units-updated',
+    'finlingo:review-updated',
+    'finlingo:micro-progress-updated',
+    'finlingo:chats-updated',
+    'finlingo:active-chat-changed'
+  ].forEach(name => {
     try { window.dispatchEvent(new CustomEvent(name)); } catch (_) {}
   });
 }
@@ -388,43 +423,47 @@ function _rerenderAfterReset() {
   safe(window.updateHome);       // home dashboard cards + rings
   safe(window.renderPath);       // active Learn workspace (lesson cards, completion)
   safe(window.renderProfileScreen); // profile stats summary
-  // Practice/review page and Market progress re-render via the events above.
+  // Practice/review, Market, and the nav-drawer chat list re-render via events.
 }
-
-// Back-compat alias for older call sites.
-function _resetLearningProgressOnly() { resetLearningProgress(); }
 
 // Single confirmation dialog shared by every reset entry point (Settings,
 // Profile, Account). Uses the app's modal pattern; opts.afterReset closes the
-// surface the user triggered it from.
-function confirmResetLearningProgress(opts) {
+// surface the user triggered it from. After a successful reset the user lands on
+// a clean, empty Ask page ready for a new question.
+function confirmResetAppData(opts) {
   opts = opts || {};
   showAppModal({
-    icon: 'danger',
-    title: 'Reset all learning progress?',
-    body: 'Completed lessons, mastery, quiz results, streaks, and learning history will be cleared. Your account and settings will remain unchanged.',
+    icon: 'neutral',
+    title: 'Reset all app data?',
+    body: 'Your chats, AI-created units, lesson progress, quiz results, and learning activity will be permanently cleared. Your account, settings, and Market preferences will remain unchanged.',
     actions: [
       { label: 'Cancel', cls: 'modal-cancel', fn: () => {
           closeAppModal();
           if (typeof opts.onCancel === 'function') opts.onCancel();
         }
       },
-      { label: 'Reset progress', cls: 'btn btn-danger', fn: () => {
-          resetLearningProgress();
+      { label: 'Reset data', cls: 'btn btn-primary', fn: () => {
+          resetAppData();
           closeAppModal();
           if (typeof opts.afterReset === 'function') opts.afterReset();
-          if (typeof showToast === 'function') showToast('Learning progress reset.', 'success');
-          // Return to a clean starting point: the beginning of Learn.
-          if (typeof showLearn === 'function') showLearn();
+          if (typeof showToast === 'function') showToast('Data reset.');
+          // Land on a clean, empty Ask page (NOT Learn) ready for a new question.
+          if (window.CoachPage && typeof CoachPage.newChat === 'function') CoachPage.newChat();
+          else if (typeof showCoach === 'function') showCoach({ resetScroll: true });
         }
       }
     ]
   });
 }
 
-function confirmAccountResetProgress() {
-  confirmResetLearningProgress({ afterReset: closeFinlingoAccount });
+// Back-compat alias.
+function confirmResetLearningProgress(opts) { confirmResetAppData(opts); }
+
+function confirmAccountResetData() {
+  confirmResetAppData({ afterReset: closeFinlingoAccount });
 }
+// Back-compat alias.
+function confirmAccountResetProgress() { confirmAccountResetData(); }
 
 function confirmAccountSignOut() {
   showAppModal({
@@ -479,8 +518,8 @@ function _renderSettingsSheet() {
       <button type="button" class="settings-row" onclick="settingsResetProgress()">
         <span class="settings-row-icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
         <span class="settings-row-info">
-          <span class="settings-row-label">Reset learning progress</span>
-          <span class="settings-row-val">Clears lessons, reviews, and accuracy</span>
+          <span class="settings-row-label">Reset App Data</span>
+          <span class="settings-row-val">Clears chats, units, and learning activity</span>
         </span>
         <span class="settings-row-action settings-row-action-danger">Reset</span>
       </button>
@@ -1252,6 +1291,17 @@ function showAppModal({ icon, iconSvg, title, body, bodyIsHTML, actions, showClo
   const boxEl    = document.getElementById('appModalBox');
   const iconEl   = document.getElementById('modalIcon');
   const closeBtn = document.getElementById('modalCloseBtn');
+
+  // Stacking fix: the modal markup lives inside `.app`, which establishes a
+  // stacking context (`isolation: isolate`) and sits BELOW body-level overlays
+  // such as the Account page (#accountPageOverlay, z-index 1900). Mounting the
+  // overlay directly on <body> lets its own fixed positioning + high z-index win
+  // so the dialog always appears above the Account page / settings sheet / drawer
+  // instead of being buried beneath them. Moving the existing node preserves its
+  // id and the click/keydown listeners already bound to it (no duplicates).
+  if (overlay && overlay.parentElement !== document.body) {
+    document.body.appendChild(overlay);
+  }
 
   // Fallback SVG icons keyed by icon name
   const fallbacks = {

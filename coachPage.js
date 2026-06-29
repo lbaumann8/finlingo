@@ -167,6 +167,11 @@
   let activeChatId = null;
   let depthSelector = null;
   const unitJobPollers = new Map();
+  // Monotonic generation/session token. Bumped on a full app-data reset so any
+  // in-flight poll started before the reset is recognised as stale and refuses
+  // to apply its (late) response — preventing a deleted unit/chat from coming
+  // back after the user resets.
+  let _resetEpoch = 0;
   const UNIT_JOB_ACTIVE_STATUSES = new Set([
     'queued',
     'generating_outline',
@@ -617,12 +622,16 @@
   function _scheduleUnitJobPoll(entry, chatId, messages, delay) {
     if (!entry?.jobId || !UNIT_JOB_ACTIVE_STATUSES.has(entry.status)) return;
     if (unitJobPollers.has(entry.jobId)) return;
-    const poller = { stopped: false, timer: null, failures: 0 };
+    const poller = { stopped: false, timer: null, failures: 0, epoch: _resetEpoch };
     unitJobPollers.set(entry.jobId, poller);
 
     const poll = async () => {
       if (poller.stopped) return;
-      if (chatId !== activeChatId || !_askScreenActive()) {
+      // Keep polling even when the Ask screen is NOT visible (user opened Learn,
+      // Account, or backgrounded the tab) so a durable server build keeps
+      // advancing and is up to date the instant they return. Stop only when the
+      // active chat changes or the app data was reset (stale generation epoch).
+      if (poller.epoch !== _resetEpoch || chatId !== activeChatId) {
         _stopUnitJobPoll(entry.jobId);
         return;
       }
@@ -1712,7 +1721,7 @@
     if (!savedUnit) return;
     entry.saved = true;
     entry.unitId = savedUnit.id;
-    if (typeof showToast === 'function') showToast('Saved to Learn', 'success');
+    if (typeof showToast === 'function') showToast('Saved to Learn');
     _persistActive();
     _renderThread({ preserveScroll: true });
   }
@@ -2511,19 +2520,37 @@
     return UNIT_JOB_ETA_LABELS[Math.max(0, Math.min(UNIT_JOB_ETA_LABELS.length - 1, level))];
   }
 
-  function _unitJobSecondary(entry) {
-    const completed = Math.max(0, Number(entry.completedLessonCount) || 0);
+  // The trailing stage descriptor on the progress card's secondary line. Derived
+  // ENTIRELY from real build progress (server status + completed lesson count),
+  // never from an elapsed-time estimate — so it can NEVER read "Finishing up…"
+  // while lessons are still being generated, even after the user navigated away
+  // and a time-based countdown would otherwise have run out. "Finishing up…"
+  // appears only once every lesson is complete and the unit is in final assembly.
+  function _unitJobStageText(entry) {
     const total = _unitJobTargetLessons(entry);
-    const eta = _unitJobEtaText(entry);
+    const completed = Math.max(0, Number(entry.completedLessonCount) || 0);
     if (entry.status === 'queued' || entry.status === 'generating_outline') {
-      return total ? `0 of ${total} lessons ready · ${eta}` : 'Preparing your unit…';
+      return 'Planning your unit…';
     }
     if (entry.status === 'generating_lessons') {
-      return total ? `${completed} of ${total} lessons ready · ${eta}` : eta;
+      // Still building lessons → never "Finishing up". If the server has counted
+      // every lesson but not yet advanced its status, it is between stages.
+      if (total && completed >= total) return 'Finishing up…';
+      return `Building lesson ${Math.min(total || (completed + 1), completed + 1)}…`;
     }
-    if (entry.status === 'generating_quizzes') return `All lessons ready · ${eta}`;
-    if (entry.status === 'validating') return eta;
-    return total ? `${completed} of ${total} lessons ready · ${eta}` : eta;
+    // generating_quizzes / validating → all lessons done, final assembly/save.
+    return 'Finishing up…';
+  }
+
+  function _unitJobSecondary(entry) {
+    const total = _unitJobTargetLessons(entry);
+    const completed = Math.max(0, Math.min(total || Number.MAX_SAFE_INTEGER, Number(entry.completedLessonCount) || 0));
+    const stage = _unitJobStageText(entry);
+    if (!total) return stage;
+    if (entry.status === 'generating_quizzes' || entry.status === 'validating') {
+      return `${total} of ${total} lessons ready · ${stage}`;
+    }
+    return `${completed} of ${total} lessons ready · ${stage}`;
   }
 
   // ── Live unit-job ticker ────────────────────────────────────────────
@@ -3083,6 +3110,28 @@
     return didReset;
   }
 
+  // Invalidate everything Ask/coach holds in memory when the app data is reset.
+  // Bumping the reset epoch makes any in-flight poll abandon its late response so
+  // a build that finishes after the reset cannot resurrect a deleted unit/chat.
+  function handleAppDataReset() {
+    _resetEpoch++;
+    _stopAllUnitJobPolls();
+    _stopUnitJobTicker();
+    // Stop any streamed-answer reveal timer (its target thread is being wiped).
+    if (answerReveal && answerReveal.timer) { try { clearInterval(answerReveal.timer); } catch (_) {} }
+    answerReveal = null;
+    // Drop the in-flight coach request handle. Its requestId no longer matches,
+    // so a late response is ignored by the id guards in the request handlers.
+    activeCoachRequest = null;
+    thread = [];
+    activeChatId = null;
+    busy = false;
+    busyLabel = '';
+    busyMode = 'normal';
+    lastTopic = '';
+    userScrollLockedDuringGeneration = false;
+  }
+
   function newChat() {
     if (!_hasStore()) { thread = []; composerVisible = true; renderCoach(); return; }
     _stopAllUnitJobPolls();
@@ -3115,8 +3164,17 @@
       if (_askScreenActive()) renderCoach();
     });
     global.addEventListener('finlingo:screen-changed', function (event) {
-      if (event?.detail?.id === 'coachScreen') { _checkAskInactivity(); _resumeUnitJobsForActiveChat(); }
-      else _stopAllUnitJobPolls();
+      if (event?.detail?.id === 'coachScreen') {
+        // Returning to Ask: re-check inactivity, then immediately resume polling
+        // so the card reflects the latest server state right away.
+        _checkAskInactivity();
+        _resumeUnitJobsForActiveChat();
+      }
+      // Leaving Ask: do NOT stop the active chat's unit-job pollers — let durable
+      // background builds keep advancing so progress never freezes and Learn/Ask
+      // are current on return. The pollers self-stop on chat switch or reset, and
+      // skip DOM work while off-screen. Only the 1s ETA ticker pauses (it resumes
+      // on the next render). Switching chats still stops pollers elsewhere.
     });
     // Returning focus / making the tab visible again / restoring from the
     // back-forward cache are all "return" triggers that re-check inactivity.
@@ -3124,7 +3182,12 @@
     global.addEventListener('pageshow', _checkAskInactivity); // bfcache reopen
     if (global.document && global.document.addEventListener) {
       global.document.addEventListener('visibilitychange', function () {
-        if (global.document.visibilityState === 'visible') _checkAskInactivity();
+        if (global.document.visibilityState === 'visible') {
+          _checkAskInactivity();
+          // Tab became active again: make sure the active chat's build pollers are
+          // running and immediately re-synced to the latest server state.
+          _resumeUnitJobsForActiveChat();
+        }
       });
       // Track meaningful interaction app-wide (clicks + typing) so an actively
       // used app — on any screen — keeps its current Ask chat. These only stamp
@@ -3140,6 +3203,7 @@
     retryUnit: retryUnit, chooseAnotherDepth: chooseAnotherDepth, cancelUnitJob: cancelUnitJob,
     simplifyAnswer: simplifyAnswer, submit: submit, ask: coachAsk, newChat: newChat, openChat: openChat,
     selectDepth: selectDepth, confirmDepthSelection: confirmDepthSelection, closeDepthSelector: _closeDepthSelector,
-    buildCourseUnit: buildCourseUnit, isBusy: function () { return busy; }
+    buildCourseUnit: buildCourseUnit, isBusy: function () { return busy; },
+    handleAppDataReset: handleAppDataReset
   };
 })(typeof window !== 'undefined' ? window : this);

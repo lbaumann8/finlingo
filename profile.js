@@ -1024,18 +1024,22 @@ function saveEdit() {
 // every entry point (Settings, Profile, Account) clears the same verified
 // learning-progress keys and re-renders the UI identically.
 function confirmReset() {
+  if (typeof confirmResetAppData === 'function') {
+    confirmResetAppData();
+    return;
+  }
   if (typeof confirmResetLearningProgress === 'function') {
     confirmResetLearningProgress();
     return;
   }
   // Defensive fallback (canonical flow unavailable): clear main state only.
   showAppModal({
-    icon: 'danger',
-    title: 'Reset all learning progress?',
-    body:  'Completed lessons, mastery, quiz results, streaks, and learning history will be cleared. Your account and settings will remain unchanged.',
+    icon: 'neutral',
+    title: 'Reset all app data?',
+    body:  'Your chats, AI-created units, lesson progress, quiz results, and learning activity will be permanently cleared. Your account, settings, and Market preferences will remain unchanged.',
     actions: [
       { label: 'Cancel', cls: 'modal-cancel', fn: closeAppModal },
-      { label: 'Reset progress', cls: 'btn btn-danger', fn: () => {
+      { label: 'Reset data', cls: 'btn btn-primary', fn: () => {
           const user   = S.user;
           const joined = S.joinedDate;
           S = normalizeState();
@@ -1044,7 +1048,7 @@ function confirmReset() {
           save();
           closeAppModal();
           renderProfileScreen(); updateTopbar();
-          showToast('Learning progress reset.', 'success');
+          showToast('Data reset.');
         }
       }
     ]

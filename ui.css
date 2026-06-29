@@ -35,18 +35,25 @@
 /* ── IN-APP CONFIRM / MODAL ──────────────────────────────────── */
 /* Full-screen dimmed overlay with centred dialog box */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.5);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  /* Above every other overlay (Account page 1900, Market modal 2000) so a
+     confirm dialog is never buried beneath the surface that opened it. The
+     element is also re-parented to <body> in showAppModal() so this fixed
+     positioning + z-index resolves against the viewport, not `.app`. */
+  z-index: 2200;
   padding: 20px;
 }
 .modal-overlay.open { display: flex; }
 .modal-box {
   width: 100%;
+  /* The overlay is now viewport-fixed (re-parented to <body>), so cap the box so
+     it stays phone-canvas sized and centered on desktop instead of stretching. */
+  max-width: 380px;
   background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
