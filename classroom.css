@@ -158,9 +158,11 @@
 /* ── Loading ────────────────────────────────────────────────────────────── */
 .cl-loading { text-align: center; padding: 30px 0; }
 .cl-loading p { margin-top: 12px; color: var(--cl-muted); font: 400 0.88rem var(--font-b); }
+/* Loading spinner: white indicator on a dark-gray track (never green — green is
+   reserved for correct/success states only). */
 .cl-spinner {
   width: 26px; height: 26px; margin: 0 auto; border-radius: 50%;
-  border: 2.5px solid var(--cl-border-strong); border-top-color: var(--cl-green-bright);
+  border: 2.5px solid var(--cl-border-strong); border-top-color: #ffffff;
   animation: cl-spin 0.7s linear infinite;
 }
 @keyframes cl-spin { to { transform: rotate(360deg); } }
@@ -203,8 +205,10 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
   border-radius: 50%; background: #c4c9d0; transition: transform .15s ease, background .15s ease;
 }
-.cl-toggle-row.is-on .cl-toggle-switch { background: var(--cl-green); border-color: var(--cl-green); }
-.cl-toggle-row.is-on .cl-toggle-switch::after { transform: translateX(18px); background: #06210f; }
+/* Active = near-white track with a dark knob (white is the primary "on" colour
+   in the learner/leader assignment flow; green stays reserved for correctness). */
+.cl-toggle-row.is-on .cl-toggle-switch { background: #f1f3f5; border-color: #f1f3f5; }
+.cl-toggle-row.is-on .cl-toggle-switch::after { transform: translateX(18px); background: #0b0c0f; }
 
 /* ── Generating state ─────────────────────────────────────────────────────── */
 .cl-generating { padding-top: 40px; }
@@ -215,23 +219,26 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-gen-step:nth-child(1) { animation-delay: 0s; }
 .cl-gen-step:nth-child(2) { animation-delay: 0.45s; }
 .cl-gen-step:nth-child(3) { animation-delay: 0.9s; }
-.cl-gen-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--cl-green-bright); }
+.cl-gen-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #ffffff; }
 @keyframes cl-gen-reveal { 0%, 70%, 100% { opacity: 0.32; } 25%, 45% { opacity: 1; } }
 .cl-gen-note { margin-top: 22px; color: var(--cl-muted); font: 400 0.84rem var(--font-b); }
 
 /* ── Inline success banner (published / etc.) ─────────────────────────────── */
 .cl-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--cl-radius); margin: 2px 0 4px; }
 .cl-banner-success { background: rgba(43,189,106,0.1); border: 1px solid rgba(43,189,106,0.32); }
-.cl-banner-icon { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--cl-green); color: #06210f; font-weight: 800; font-size: 0.95rem; }
+.cl-banner-icon { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--cl-green); color: #ffffff; font-weight: 800; font-size: 0.95rem; }
 .cl-banner-text { display: flex; flex-direction: column; gap: 3px; }
 .cl-banner-text strong { color: var(--cl-title); font: 700 1rem var(--font-b); }
 .cl-banner-text span { color: var(--cl-body); font: 400 0.88rem/1.45 var(--font-b); }
 
 /* ── Join-code success / card ───────────────────────────────────────────── */
+/* Large success circle: green disc + WHITE checkmark glyph. Uses the same ✓
+   glyph and heavy weight as the quiz correct-answer mark (.ml-choice-mark) so
+   every success/completion check in Classroom looks identical. */
 .cl-success-badge {
   width: 56px; height: 56px; margin: 8px auto 14px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-  color: #06210f; background: var(--cl-green); font-weight: 800;
+  color: #ffffff; background: var(--cl-green); font-weight: 800; line-height: 1;
 }
 .cl-success-title { margin: 0 0 4px; font: 700 1.3rem var(--font-d, var(--font-b)); color: var(--cl-title); }
 .cl-success-sub { margin: 0 0 4px; color: var(--cl-muted); font: 400 0.95rem var(--font-b); }
@@ -248,12 +255,31 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-preview-q { display: flex; gap: 11px; padding: 13px; background: var(--cl-card); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm); }
 .cl-q-num { flex: 0 0 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--cl-card-2); border: 1px solid var(--cl-border); color: var(--cl-muted); font: 700 0.74rem var(--font-b); margin-top: 1px; }
 .cl-q-body { min-width: 0; }
-.cl-q-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cl-q-tags { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px; margin-bottom: 4px; }
+/* Concept/category first, in high-contrast light type (never green). */
+.cl-q-cat { font: 600 0.74rem var(--font-b); color: var(--cl-title); }
+/* Separator + question type both muted gray, after the category. */
+.cl-q-sep { color: var(--cl-border-strong); font: 600 0.72rem var(--font-b); }
 .cl-q-type { font: 600 0.72rem var(--font-b); color: var(--cl-muted); }
-/* Skill label: muted green, softened (no all-caps shouting). */
-.cl-q-skill { font: 600 0.74rem var(--font-b); letter-spacing: 0; text-transform: none; color: var(--cl-green); }
-.cl-q-skill::before { content: '·'; margin-right: 7px; color: var(--cl-border-strong); }
 .cl-q-prompt { color: var(--cl-title); font: 500 0.94rem/1.4 var(--font-b); }
+
+/* ── Add-question card (lower emphasis than the real question cards) ──────── */
+.cl-add-q {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px 13px; cursor: pointer;
+  background: var(--cl-card-2); border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius-sm); color: var(--cl-muted);
+  font: 600 0.88rem var(--font-b);
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+.cl-add-q:hover { border-color: var(--cl-border-strong); color: var(--cl-title); }
+.cl-add-q svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Manual question editor: answer-option rows ──────────────────────────── */
+.cl-opt-row { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.cl-opt-row input[type="radio"] { flex: 0 0 auto; width: 16px; height: 16px; accent-color: #ffffff; }
+.cl-opt-row .cl-input { margin: 0; }
+.cl-opt-hint { margin: 2px 0 12px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); }
 
 /* ── Assignment preview: sticky bottom actions (never clipped) ────────────── */
 .cl-preview-screen { padding-bottom: 96px; }
@@ -283,6 +309,9 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-bar-slim { height: 6px; flex: 1; }
 .cl-bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.34,1.2,.64,1); }
 .cl-bar-good { background: linear-gradient(90deg, var(--cl-green), var(--cl-green-bright)); }
+/* Plain white fill — the learner assignment progress colour (green is reserved
+   for correctness, not progress). */
+.cl-bar-white { background: #ffffff; }
 .cl-bar-mid { background: linear-gradient(90deg, #b78a2e, var(--cl-amber)); }
 .cl-bar-low { background: linear-gradient(90deg, #a14a42, var(--cl-red)); }
 
@@ -312,12 +341,42 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   color: #0b0c0f; background: var(--cl-amber);
 }
 
+/* ── Demo entry — opt-in, kept clearly apart from real owned groups ──────── */
+.cl-demo-entry { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.cl-demo-entry-copy { color: var(--cl-muted); font: 400 0.78rem/1.45 var(--font-b); max-width: 260px; }
+/* Lower-emphasis variant shown beneath a leader's real groups. */
+.cl-demo-entry-link { padding-top: 14px; border-top: 1px solid var(--cl-border); }
+.cl-demo-link {
+  background: transparent; border: 0; color: var(--cl-body);
+  font: 600 0.86rem var(--font-b); cursor: pointer; padding: 4px 6px; border-radius: 8px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.cl-demo-link:hover { color: var(--cl-title); }
+.cl-demo-link:focus-visible { outline: 2px solid var(--cl-border-strong); outline-offset: 2px; }
+
 /* ── Learner player chrome ──────────────────────────────────────────────── */
 .cl-player-top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .cl-back-x { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--cl-border); background: var(--cl-card-2); color: var(--cl-muted); font-size: 0.9rem; cursor: pointer; }
 .cl-back-x:hover { color: var(--cl-title); }
 .cl-qcount { flex: 0 0 auto; color: var(--cl-muted); font: 700 0.8rem var(--font-num, var(--font-b)); }
 .cl-teach { margin-top: 4px; }
+
+/* ── Learner completion summary (private, lighter than leader insights) ──── */
+.cl-ls { text-align: left; margin-top: 22px; }
+.cl-ls-section { margin-top: 16px; }
+.cl-ls-label { font: 700 0.68rem var(--font-b); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cl-muted); margin-bottom: 8px; }
+.cl-ls-item {
+  padding: 12px 13px; margin-bottom: 8px;
+  background: var(--cl-card-2); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
+  border-left: 3px solid var(--cl-border-strong);
+}
+.cl-ls-item:last-child { margin-bottom: 0; }
+.cl-ls-item-know { border-left-color: var(--cl-green); }
+.cl-ls-item-review { border-left-color: var(--cl-amber); }
+.cl-ls-item-teach { border-left-color: var(--cl-border-strong); }
+.cl-ls-title { color: var(--cl-title); font: 600 0.9rem var(--font-b); margin-bottom: 3px; }
+.cl-ls-desc { color: var(--cl-muted); font: 400 0.84rem/1.5 var(--font-b); }
+.cl-ls-desc + .cl-ls-desc { margin-top: 4px; }
 
 /* ── Account: Finlingo-mode toggle (rendered inside the Account overlay) ─── */
 .account-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -329,13 +388,17 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .account-mode-opt strong { color: var(--cl-title); font: 600 0.88rem var(--font-b); }
 .account-mode-opt small { color: var(--cl-muted); font: 400 0.74rem var(--font-b); }
-/* Selected = neutral white fill (no green), black text on a subtle light border. */
-.account-mode-opt.is-active { border-color: rgba(0,0,0,0.12); background: #ffffff; }
-.account-mode-opt.is-active strong { color: #0a0a0a; }
-.account-mode-opt.is-active small { color: #5b6470; }
+/* Selected = refined outlined selection: same dark family, a brighter light
+   border, a subtle lighter dark fill — never a white button. */
+.account-mode-opt.is-active {
+  border-color: rgba(255,255,255,0.62);
+  background: var(--cl-card);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+}
+.account-mode-opt.is-active strong { color: var(--cl-title); }
+.account-mode-opt.is-active small { color: var(--cl-muted); }
 /* Clearly visible keyboard focus on both states. */
 .account-mode-opt:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
-.account-mode-opt.is-active:focus-visible { outline-color: #0a0a0a; }

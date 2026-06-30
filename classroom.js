@@ -218,7 +218,8 @@
       if (!box) return;
       if (!groups.length) { box.innerHTML = leaderEmptyState(); return; }
       box.innerHTML = groups.map(groupCard).join('') +
-        '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateGroup()">Create group</button>';
+        '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateGroup()">Create group</button>' +
+        demoEntry();
     }).catch(function () {
       var box = document.getElementById('clGroups');
       if (box) box.innerHTML = errorBox('Could not load your groups. The classroom database may not be set up yet.', 'renderClassroom()') + leaderEmptyState();
@@ -230,7 +231,20 @@
       '<h2>Create your first group</h2>' +
       '<p>Assign a short Finlingo activity and see anonymous group-level learning gaps.</p>' +
       '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateGroup()">Create group</button>' +
-      '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
+      '<div class="cl-demo-entry">' +
+        '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
+        '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Lower-emphasis demo entry shown beneath a leader's real groups. The demo
+  // is always opt-in: it never appears in real group/learner/assignment counts
+  // and never writes to Supabase.
+  function demoEntry() {
+    return '<div class="cl-demo-entry cl-demo-entry-link cl-mt">' +
+      '<button type="button" class="cl-demo-link" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
+      '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
     '</div>';
   }
 
@@ -575,12 +589,14 @@
 
   function previewQ(q, i) {
     var typeLabel = q.type === 'teachback' ? 'Teach it back' : 'Multiple choice';
+    // Concept/category first (high-contrast light), then a muted separator and
+    // the question type (muted). Never green for the category label.
     return '<div class="cl-preview-q">' +
       '<span class="cl-q-num">' + (i + 1) + '</span>' +
       '<div class="cl-q-body">' +
         '<div class="cl-q-tags">' +
+          (q.skill ? '<span class="cl-q-cat">' + esc(q.skill) + '</span><span class="cl-q-sep">·</span>' : '') +
           '<span class="cl-q-type">' + typeLabel + '</span>' +
-          (q.skill ? '<span class="cl-q-skill">' + esc(q.skill) + '</span>' : '') +
         '</div>' +
         '<div class="cl-q-prompt">' + esc(q.prompt) + '</div>' +
       '</div>' +
@@ -589,6 +605,8 @@
 
   function assignmentPreview(unit, ctx) {
     CR.pendingUnit = unit; CR.pendingCtx = ctx;
+    // Counts recompute on every render, so manually-added questions update the
+    // metadata line immediately. Question type is no longer hard-capped at five.
     var mcqCount = unit.questions.filter(function (q) { return q.type === 'mcq'; }).length;
     var teachCount = unit.questions.filter(function (q) { return q.type === 'teachback'; }).length;
     mount(
@@ -597,10 +615,13 @@
         '<div class="cl-kicker">Assignment preview</div>' +
         '<h1 class="cl-preview-title">' + esc(unit.title) + '</h1>' +
         '<div class="cl-card-meta"><span>' + esc(unit.topic) + '</span><span>•</span><span>' + esc(unit.difficulty) + '</span>' +
-          '<span>•</span><span>' + mcqCount + ' questions</span>' +
-          (teachCount ? '<span>•</span><span>1 teach-it-back</span>' : '') + '</div>' +
+          '<span>•</span><span>' + mcqCount + ' question' + (mcqCount === 1 ? '' : 's') + '</span>' +
+          (teachCount ? '<span>•</span><span>' + teachCount + ' teach-it-back</span>' : '') + '</div>' +
         '<div class="cl-preview-list cl-mt">' +
           unit.questions.map(previewQ).join('') +
+          '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+            'Add question</button>' +
         '</div>' +
         '<div class="cl-preview-actions">' +
           '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')">Edit</button>' +
@@ -608,6 +629,90 @@
         '</div>' +
       '</div>'
     );
+  }
+
+  // ── Manual question editor (adds to the current draft; included on publish) ──
+  function openQuestionEditor(classroomId, type) {
+    if (!CR.pendingUnit) { renderClassroom(); return; }
+    CR.qEditorType = type || CR.qEditorType || 'mcq';
+    var isMcq = CR.qEditorType !== 'teachback';
+    var typeOpts =
+      '<option value="mcq"' + (isMcq ? ' selected' : '') + '>Multiple choice</option>' +
+      '<option value="teachback"' + (!isMcq ? ' selected' : '') + '>Teach it back</option>';
+    var optionsHtml = '';
+    if (isMcq) {
+      var rows = '';
+      for (var i = 0; i < 4; i++) {
+        rows += '<div class="cl-opt-row">' +
+          '<input type="radio" name="clQECorrect" value="' + i + '" id="clQEC' + i + '"' + (i === 0 ? ' checked' : '') +
+            ' aria-label="Mark option ' + 'ABCD'[i] + ' correct">' +
+          '<input class="cl-input" id="clQEOpt' + i + '" type="text" maxlength="160" placeholder="Option ' + 'ABCD'[i] + '">' +
+        '</div>';
+      }
+      optionsHtml = field('Answer options', '<div>' + rows + '</div>') +
+        '<p class="cl-opt-hint">Select the radio beside the correct option. Empty options are dropped.</p>';
+    }
+    mount(
+      '<div class="cl-screen">' +
+        back('Preview', 'ClassroomUI.backToPreview()') +
+        header('Add question', 'This question is added to the current assignment draft.') +
+        '<form class="cl-form" onsubmit="return false;">' +
+          field('Question type', '<select class="cl-input" id="clQEType" onchange="ClassroomUI.switchQuestionType(\'' + classroomId + '\')">' + typeOpts + '</select>') +
+          field('Concept / category', '<input class="cl-input" id="clQECat" type="text" maxlength="80" placeholder="' + (isMcq ? 'Diversification basics' : 'Diversification explain') + '">') +
+          field('Question text', '<textarea class="cl-input" id="clQEPrompt" rows="3" maxlength="400" placeholder="' + (isMcq ? 'What does diversification mainly do?' : 'In your own words, explain…') + '"></textarea>') +
+          optionsHtml +
+          field('Explanation' + (isMcq ? '' : ' (optional)'), '<textarea class="cl-input" id="clQEExpl" rows="2" maxlength="400" placeholder="' + (isMcq ? 'Why the correct answer is right.' : 'A model answer learners can compare against.') + '"></textarea>') +
+          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clQEBtn" onclick="ClassroomUI.submitNewQuestion(\'' + classroomId + '\')">Add to assignment</button>' +
+        '</form>' +
+      '</div>',
+      function () { var el = document.getElementById('clQECat'); if (el) el.focus(); }
+    );
+  }
+
+  function switchQuestionType(classroomId) {
+    var sel = document.getElementById('clQEType');
+    CR.qEditorType = (sel && sel.value === 'teachback') ? 'teachback' : 'mcq';
+    openQuestionEditor(classroomId, CR.qEditorType);
+  }
+
+  function backToPreview() {
+    if (CR.pendingUnit && CR.pendingCtx) assignmentPreview(CR.pendingUnit, CR.pendingCtx);
+    else renderClassroom();
+  }
+
+  function submitNewQuestion(classroomId) {
+    var unit = CR.pendingUnit;
+    if (!unit) { renderClassroom(); return; }
+    var type = ((document.getElementById('clQEType') || {}).value === 'teachback') ? 'teachback' : 'mcq';
+    var cat = (((document.getElementById('clQECat') || {}).value) || '').trim();
+    var prompt = (((document.getElementById('clQEPrompt') || {}).value) || '').trim();
+    var expl = (((document.getElementById('clQEExpl') || {}).value) || '').trim();
+    if (!prompt) { toast('Add the question text', 'error'); return; }
+    CR.customSeq = (CR.customSeq || 0) + 1;
+    var id = 'qcustom' + CR.customSeq;
+    var q;
+    if (type === 'teachback') {
+      q = { id: id, type: 'teachback', skill: cat, prompt: prompt, objective: cat || prompt, explanation: expl };
+    } else {
+      var raw = [];
+      for (var i = 0; i < 4; i++) raw.push((((document.getElementById('clQEOpt' + i) || {}).value) || '').trim());
+      if (raw.filter(function (c) { return c; }).length < 2) { toast('Add at least two answer options', 'error'); return; }
+      var correctEl = document.querySelector('input[name="clQECorrect"]:checked');
+      var correctIdx = correctEl ? parseInt(correctEl.value, 10) : 0;
+      if (!raw[correctIdx]) { toast('The correct option can’t be empty', 'error'); return; }
+      // Drop empty options, keeping the correct answer aligned to its new index.
+      var choices = [], answerIndex = 0;
+      raw.forEach(function (c, idx) {
+        if (!c) return;
+        if (idx === correctIdx) answerIndex = choices.length;
+        choices.push(c);
+      });
+      q = { id: id, type: 'mcq', skill: cat, prompt: prompt, choices: choices, answerIndex: answerIndex, explanation: expl };
+    }
+    unit.questions.push(q);
+    unit.teachItBack = unit.questions.some(function (qq) { return qq.type === 'teachback'; });
+    toast('Question added', 'success');
+    assignmentPreview(unit, CR.pendingCtx);
   }
 
   function confirmAssignment() {
@@ -696,6 +801,12 @@
     var strongest = concepts.length ? concepts[0] : null;
     var weakest = concepts.length ? concepts[concepts.length - 1] : null;
 
+    // In demo mode the back control is labelled to make it obvious the user is
+    // leaving sample data and returning to their real classroom home.
+    var backBar = isDemo
+      ? back('Exit demo', 'ClassroomUI.exitDemo()')
+      : back('Classroom', 'renderClassroom()');
+
     var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable group pattern.';
 
     // Empty state: no learners AND no responses yet — show a light prompt with
@@ -703,7 +814,7 @@
     var hasData = learners > 0 || totalGraded > 0 || completedCount > 0;
     if (!hasData) {
       mount('<div class="cl-screen">' +
-        back('Classroom', 'renderClassroom()') +
+        backBar +
         (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
         header('Group insights', groupName) +
         '<div class="cl-empty">' +
@@ -722,7 +833,7 @@
     }
 
     var html = '<div class="cl-screen">' +
-      back('Classroom', 'renderClassroom()') +
+      backBar +
       (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
       header('Group insights', groupName) +
       '<div class="cl-stat-grid">' +
@@ -905,6 +1016,13 @@
     renderInsights(demo.classroom.name, demo.assignment, agg, 'demo', true);
   }
 
+  // Leave the read-only demo and return to the real classroom home. The toast
+  // plus the relabelled "Exit demo" back button make the transition obvious.
+  function exitDemo() {
+    toast('Back to your classroom', 'info');
+    renderClassroom();
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   // LEARNER: home + join
   // ════════════════════════════════════════════════════════════════════════
@@ -1014,7 +1132,8 @@
           classroomId: classroomId, assignment: assignment, attempt: attempt,
           questions: (assignment.content || {}).questions || [],
           content: assignment.content || {},
-          idx: 0, score: 0, graded: 0, answered: false
+          idx: 0, score: 0, graded: 0, answered: false,
+          results: [] // per-question {skill, type, prompt, correct, understood, evaluation}
         };
         renderQuestion();
       });
@@ -1029,7 +1148,9 @@
     if (!p) { renderClassroom(); return; }
     if (p.idx >= p.questions.length) { finishAssignment(); return; }
     var q = p.questions[p.idx];
-    var pct = Math.round((p.idx / p.questions.length) * 100);
+    // Progress reflects the CURRENT question number / total (Q2 of 5 = 40%),
+    // not completed-so-far. Works for any total, not just five.
+    var pct = Math.round(((p.idx + 1) / p.questions.length) * 100);
     p.answered = false; p.selected = null;
 
     var body;
@@ -1048,7 +1169,7 @@
       '<div class="cl-screen cl-player">' +
         '<div class="cl-player-top">' +
           '<button type="button" class="cl-back-x" onclick="ClassroomUI.exitPlayer()" aria-label="Exit">✕</button>' +
-          '<div class="cl-bar cl-bar-slim"><div class="cl-bar-fill cl-bar-good" style="width:' + pct + '%"></div></div>' +
+          '<div class="cl-bar cl-bar-slim"><div class="cl-bar-fill cl-bar-white" style="width:' + pct + '%"></div></div>' +
           '<span class="cl-qcount">' + (p.idx + 1) + '/' + p.questions.length + '</span>' +
         '</div>' +
         '<div class="ml-check">' +
@@ -1096,10 +1217,12 @@
         recordResponse(q, { text: text }, ev.understood, ev);
         if (ev.understood) { p.score++; }
         p.graded++;
+        p.results.push({ skill: q.skill || '', type: 'teachback', prompt: q.prompt, understood: ev.understood, evaluation: ev });
         showTeachFeedback(ev);
       }).catch(function () {
         // Don't block completion on an eval failure — store ungraded.
         recordResponse(q, { text: text }, null, null);
+        p.results.push({ skill: q.skill || '', type: 'teachback', prompt: q.prompt, understood: null, evaluation: null });
         showTeachFeedback({ understood: null, feedback: 'Saved. We couldn’t grade this one automatically.', strengths: '', missing: '' });
       });
       return;
@@ -1111,6 +1234,7 @@
     if (correct) p.score++;
     p.graded++;
     recordResponse(q, { selectedIndex: p.selected, correct: correct }, correct, null);
+    p.results.push({ skill: q.skill || '', type: 'mcq', prompt: q.prompt, correct: correct, explanation: q.explanation || '' });
     revealMcq(q, correct);
   }
 
@@ -1122,8 +1246,14 @@
       Array.prototype.forEach.call(choices.querySelectorAll('.ml-choice'), function (b) {
         var i = parseInt(b.getAttribute('data-i'), 10);
         b.classList.remove('is-selected');
-        if (i === q.answerIndex) { b.classList.add('is-correct'); b.querySelector('.ml-choice-mark').textContent = '✓'; }
-        else if (i === p.selected) { b.classList.add('is-wrong'); b.querySelector('.ml-choice-mark').textContent = '✕'; }
+        var mark = b.querySelector('.ml-choice-mark');
+        if (i === q.answerIndex) { b.classList.add('is-correct'); mark.textContent = '✓'; }
+        else if (i === p.selected) {
+          b.classList.add('is-wrong');
+          // Red ✕ (matches the red card/feedback) — not the default green check.
+          mark.classList.add('is-wrong');
+          mark.textContent = '✕';
+        }
         b.disabled = true;
       });
     }
@@ -1159,6 +1289,7 @@
 
   function finishAssignment() {
     var p = CR.player;
+    var summary = buildLearnerSummary(p);
     mount(loading('Saving your results…'));
     D().completeAttempt(p.attempt.id, p.score, p.graded).then(function () {}).catch(function () {})
       .then(function () {
@@ -1167,13 +1298,84 @@
             '<div class="cl-success-badge">✓</div>' +
             '<h1 class="cl-success-title">Assignment complete</h1>' +
             '<p class="cl-success-sub">You scored ' + p.score + ' of ' + p.graded + '</p>' +
-            '<div class="cl-bar cl-mt"><div class="cl-bar-fill cl-bar-good" style="width:' + (p.graded ? Math.round(p.score / p.graded * 100) : 0) + '%"></div></div>' +
+            '<div class="cl-bar cl-mt"><div class="cl-bar-fill cl-bar-white" style="width:' + (p.graded ? Math.round(p.score / p.graded * 100) : 0) + '%"></div></div>' +
             '<p class="cl-muted cl-mt">Your responses are private. Your leader sees only anonymous group results.</p>' +
+            learnerSummaryHtml(summary) +
             '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="renderClassroom()">Done</button>' +
           '</div>'
         );
         CR.player = null;
       });
+  }
+
+  // Derive a private, response-specific learning summary from the just-completed
+  // attempt only. Objective concepts come from correct/incorrect MCQ data;
+  // teach-it-back feedback reuses the structured AI grade when present. No fake
+  // percentages or confidence scores, and no "mastered"-style overclaiming.
+  function buildLearnerSummary(p) {
+    var results = (p && p.results) || [];
+    var bySkill = {};
+    results.forEach(function (r) {
+      if (r.type !== 'mcq') return;
+      var key = r.skill || 'This concept';
+      var s = bySkill[key] || (bySkill[key] = { skill: key, correct: 0, total: 0, correctExpl: '', missExpl: '' });
+      s.total++;
+      if (r.correct) { s.correct++; if (!s.correctExpl && r.explanation) s.correctExpl = r.explanation; }
+      else if (!s.missExpl && r.explanation) s.missExpl = r.explanation;
+    });
+    var skills = Object.keys(bySkill).map(function (k) {
+      var s = bySkill[k]; s.pct = s.total ? (s.correct / s.total) : 0; return s;
+    });
+
+    var know = skills.filter(function (s) { return s.correct >= 1 && s.pct >= 0.6; })
+      .sort(function (a, b) { return b.pct - a.pct; }).slice(0, 2)
+      .map(function (s) {
+        return { title: s.skill, desc: s.correctExpl || ('You answered the ' + s.skill.toLowerCase() + ' question' + (s.correct === 1 ? '' : 's') + ' correctly.') };
+      });
+    var knowKeys = {}; know.forEach(function (k) { knowKeys[k.title] = true; });
+    var review = skills.filter(function (s) { return (s.total - s.correct) >= 1 && !knowKeys[s.skill]; })
+      .sort(function (a, b) { return a.pct - b.pct; }).slice(0, 2)
+      .map(function (s) {
+        return { title: s.skill, desc: s.missExpl ? ('Review: ' + s.missExpl) : ('Revisit ' + s.skill.toLowerCase() + ' and why the correct answer holds.') };
+      });
+
+    var teach = null;
+    var tb = results.filter(function (r) { return r.type === 'teachback' && r.evaluation; })[0];
+    if (tb) {
+      var ev = tb.evaluation;
+      teach = {
+        good: ev.strengths || ev.feedback || 'You put the idea into your own words.',
+        improve: ev.missing || ''
+      };
+    }
+    return { know: know, review: review, teach: teach };
+  }
+
+  function learnerSummaryHtml(summary) {
+    if (!summary || (!summary.know.length && !summary.review.length && !summary.teach)) return '';
+    var html = '<div class="cl-ls">';
+    if (summary.know.length) {
+      html += '<div class="cl-ls-section"><div class="cl-ls-label">What you know</div>' +
+        summary.know.map(function (it) {
+          return '<div class="cl-ls-item cl-ls-item-know"><div class="cl-ls-title">' + esc(it.title) + '</div>' +
+            '<div class="cl-ls-desc">' + esc(it.desc) + '</div></div>';
+        }).join('') + '</div>';
+    }
+    if (summary.review.length) {
+      html += '<div class="cl-ls-section"><div class="cl-ls-label">Review next</div>' +
+        summary.review.map(function (it) {
+          return '<div class="cl-ls-item cl-ls-item-review"><div class="cl-ls-title">' + esc(it.title) + '</div>' +
+            '<div class="cl-ls-desc">' + esc(it.desc) + '</div></div>';
+        }).join('') + '</div>';
+    }
+    if (summary.teach) {
+      html += '<div class="cl-ls-section"><div class="cl-ls-label">Teach-it-back feedback</div>' +
+        '<div class="cl-ls-item cl-ls-item-teach">' +
+          '<div class="cl-ls-desc">' + esc(summary.teach.good) + '</div>' +
+          (summary.teach.improve ? '<div class="cl-ls-desc">To sharpen it: ' + esc(summary.teach.improve) + '</div>' : '') +
+        '</div></div>';
+    }
+    return html + '</div>';
   }
 
   function exitPlayer() {
@@ -1205,6 +1407,10 @@
     openCreateAssignment: openCreateAssignment,
     toggleTeach: toggleTeach,
     buildAssignment: buildAssignment,
+    openQuestionEditor: openQuestionEditor,
+    switchQuestionType: switchQuestionType,
+    backToPreview: backToPreview,
+    submitNewQuestion: submitNewQuestion,
     confirmAssignment: confirmAssignment,
     openInsights: openInsights,
     buildFollowup: buildFollowup,
@@ -1212,6 +1418,7 @@
     assignFollowup: assignFollowup,
     demoAssignNotice: demoAssignNotice,
     openDemo: openDemo,
+    exitDemo: exitDemo,
     openJoin: openJoin,
     submitJoin: submitJoin,
     openLearnerAssignment: openLearnerAssignment,
