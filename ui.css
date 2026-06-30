@@ -122,6 +122,7 @@
 .modal-icon.neutral svg { stroke: var(--muted); }
 .modal-title { font-family: var(--font-d); font-size: 1rem; font-weight: 600; letter-spacing: -0.018em; margin-bottom: 6px; color: var(--text); }
 .modal-body  { padding: 8px 18px 16px; font-size: 0.83rem; color: var(--muted); line-height: 1.55; text-align: center; }
+.app-modal-inline-error { margin: 12px 0 0; padding: 9px 12px; border-radius: 10px; background: var(--red-dim, rgba(192,89,79,0.12)); color: var(--red-text, #e9b3ad); font-size: 0.8rem; line-height: 1.45; text-align: center; }
 .modal-price { font-family: var(--font-num); font-size: 1.3rem; font-weight: 500; color: var(--text); margin: 8px 0 4px; display: block; font-variant-numeric: tabular-nums; }
 .modal-price-sub { font-size: 0.72rem; color: var(--muted); }
 .modal-actions { display: flex; flex-direction: column; gap: 8px; padding: 0 18px 20px; }

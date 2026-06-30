@@ -1034,12 +1034,12 @@ function confirmReset() {
   }
   // Defensive fallback (canonical flow unavailable): clear main state only.
   showAppModal({
-    icon: 'neutral',
-    title: 'Reset all app data?',
-    body:  'Your chats, AI-created units, lesson progress, quiz results, and learning activity will be permanently cleared. Your account, settings, and Market preferences will remain unchanged.',
+    icon: 'danger',
+    title: 'Reset all Finlingo data?',
+    body:  'This clears your learning progress, Classroom data, preferences, and local app data, then signs you out. This cannot be undone.',
     actions: [
       { label: 'Cancel', cls: 'modal-cancel', fn: closeAppModal },
-      { label: 'Reset data', cls: 'btn btn-primary', fn: () => {
+      { label: 'Reset and sign out', cls: 'btn btn-danger', fn: () => {
           const user   = S.user;
           const joined = S.joinedDate;
           S = normalizeState();

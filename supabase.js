@@ -626,6 +626,31 @@ async function authRequestPasswordReset(email) {
 }
 
 /**
+ * Sign the current user out of Supabase Auth.
+ *
+ * Fires a best-effort POST /logout to revoke the refresh token server-side
+ * (so a leaked token can't be refreshed later), then clears all locally
+ * stored tokens SYNCHRONOUSLY. The network call is fire-and-forget — sign-out
+ * must never block on connectivity, and local tokens are always cleared.
+ */
+function authSignOut() {
+  const session = getStoredSession();
+  if (session?.accessToken) {
+    try {
+      fetch(`${SB_AUTH}/logout`, {
+        method:  'POST',
+        headers: {
+          'apikey':        SB_KEY,
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type':  'application/json'
+        }
+      }).catch(() => { /* best-effort: token is cleared locally regardless */ });
+    } catch (_) { /* ignore */ }
+  }
+  clearStoredSession();
+}
+
+/**
  * Set a new password using the short-lived recovery token from the
  * reset email. The token is a one-time-use JWT — it expires after use
  * or after 1 hour, whichever comes first.

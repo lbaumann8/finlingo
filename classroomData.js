@@ -132,6 +132,67 @@
     return attempt(5);
   }
 
+  // Update editable group fields (leader-only via RLS owner policy).
+  function updateGroup(classroomId, opts) {
+    var patch = {};
+    if (opts.name != null) patch.name = String(opts.name).trim().slice(0, 80);
+    if (opts.description != null) patch.description = String(opts.description).trim().slice(0, 400);
+    if (opts.audience != null) patch.audience_type = opts.audience;
+    return global.sbPatch('classrooms', '?id=eq.' + classroomId, patch).then(function (res) {
+      return Array.isArray(res) ? res[0] : res;
+    });
+  }
+
+  // Leader-only hard delete of one owned group + all dependent rows. Routed
+  // through the SECURITY DEFINER classroom_delete_group RPC (owner-checked
+  // server-side). Also drops the id from the learner's local joined list, if
+  // the owner happened to be a member too.
+  function deleteGroup(classroomId) {
+    return sbRpc('classroom_delete_group', { p_classroom_id: classroomId }).then(function (res) {
+      if (!res || !res.ok) {
+        var reason = res && res.error;
+        if (reason === 'forbidden') throw new Error('Only the group owner can delete this group.');
+        if (reason === 'not_found') throw new Error('That group no longer exists.');
+        if (reason === 'not_authenticated') throw new Error('Please sign in again to delete this group.');
+        throw new Error('Could not delete the group. Please try again.');
+      }
+      try {
+        if (typeof S !== 'undefined' && S && Array.isArray(S.classroomJoinedIds)) {
+          var next = S.classroomJoinedIds.filter(function (id) { return id !== classroomId; });
+          if (next.length !== S.classroomJoinedIds.length) {
+            S.classroomJoinedIds = next;
+            if (typeof save === 'function') save();
+          }
+        }
+      } catch (_) {}
+      return res;
+    });
+  }
+
+  // Wipe every classroom row tied to the signed-in user (owned groups + learner
+  // footprint). Returns the RPC result; throws on a real failure so the caller
+  // can ABORT the local reset / sign-out instead of pretending it succeeded.
+  // err.status is preserved (404 = RPC/tables not installed) so callers can
+  // tell "nothing to clear" apart from a genuine server error.
+  function resetUserData() {
+    return sbRpc('classroom_reset_user_data', {}).then(function (res) {
+      if (!res || !res.ok) {
+        var reason = (res && res.error) || 'reset_failed';
+        if (reason === 'not_authenticated') throw new Error('Please sign in again before resetting.');
+        throw new Error('Could not reset your Classroom data. Please try again.');
+      }
+      return res;
+    });
+  }
+
+  // Suggest an assignment title from a topic, e.g. "Diversification" →
+  // "Understanding Diversification". Keeps title and topic aligned by default.
+  function suggestAssignmentTitle(topic) {
+    var t = String(topic || '').trim();
+    if (!t) return '';
+    return 'Understanding ' + t;
+  }
+
   function listGroups() {
     var uid = currentUserId();
     if (!uid) return Promise.resolve([]);
@@ -421,6 +482,10 @@
     classroomAI: classroomAI,
     currentUserId: currentUserId,
     createGroup: createGroup,
+    updateGroup: updateGroup,
+    deleteGroup: deleteGroup,
+    resetUserData: resetUserData,
+    suggestAssignmentTitle: suggestAssignmentTitle,
     listGroups: listGroups,
     joinGroup: joinGroup,
     myMemberships: myMemberships,

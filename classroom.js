@@ -81,7 +81,7 @@
     // the signed-out gate at an authenticated user.
     if (status === 'loading') {
       mount('<div class="cl-screen">' +
-        header('Classroom', 'Create short financial-literacy activities and understand where your group needs support.') +
+        header('Classroom', 'Create short activities and see where your group needs support.') +
         loading('Loading your account…') + '</div>');
       _scheduleAuthPoll(view);
       return;
@@ -117,7 +117,7 @@
   function renderSignedOut() {
     mount(
       '<div class="cl-screen">' +
-        header('Classroom', 'Create short financial-literacy activities and understand where your group needs support.') +
+        header('Classroom', 'Create short activities and see where your group needs support.') +
         '<div class="cl-empty">' +
           '<p>Sign in to create a group or join one with a code.</p>' +
           '<button type="button" class="cl-btn cl-btn-primary" onclick="openFinlingoAccount()">Sign in</button>' +
@@ -131,18 +131,89 @@
       (sub ? '<p>' + esc(sub) + '</p>' : '') + '</header>';
   }
 
+  // ── Group lookup cache (so overflow-menu actions can resolve a name/code by
+  //    id without re-escaping user text into inline handlers) ────────────────
+  function setGroups(groups) { CR.groups = groups || []; return CR.groups; }
+  function groupById(id) {
+    return (CR.groups || []).filter(function (g) { return g && g.id === id; })[0] || null;
+  }
+
+  // ── Overflow ("•••") menu ───────────────────────────────────────────────────
+  // items: [{ label, onclick, danger }]. onclick is a JS snippet string; ids/
+  // join-codes only (never raw names) are interpolated, so no escaping hazard.
+  var _menuDismissBound = false;
+  function overflowMenu(id, items) {
+    return '<div class="cl-menu" data-menu="' + esc(id) + '">' +
+      '<button type="button" class="cl-menu-btn" aria-haspopup="true" aria-label="More actions" ' +
+        'onclick="ClassroomUI.toggleMenu(\'' + esc(id) + '\', event)">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+          '<circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/>' +
+        '</svg>' +
+      '</button>' +
+      '<div class="cl-menu-pop" id="clMenuPop_' + esc(id) + '" role="menu">' +
+        items.map(function (it) {
+          return '<button type="button" role="menuitem" class="cl-menu-item' +
+            (it.danger ? ' cl-menu-item-danger' : '') + '" ' +
+            'onclick="ClassroomUI.closeMenus();' + it.onclick + '">' + esc(it.label) + '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }
+  function toggleMenu(id, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    var pop = document.getElementById('clMenuPop_' + id);
+    if (!pop) return;
+    var wasOpen = pop.classList.contains('is-open');
+    closeMenus();
+    if (!wasOpen) { pop.classList.add('is-open'); _bindMenuDismiss(); }
+  }
+  function closeMenus() {
+    Array.prototype.forEach.call(document.querySelectorAll('.cl-menu-pop.is-open'),
+      function (p) { p.classList.remove('is-open'); });
+  }
+  function _bindMenuDismiss() {
+    if (_menuDismissBound) return;
+    _menuDismissBound = true;
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest || !e.target.closest('.cl-menu')) closeMenus();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeMenus();
+    });
+  }
+
+  // ── Assignment status helpers ───────────────────────────────────────────────
+  // Current flow only produces 'active' (published immediately); 'draft' and
+  // 'closed' are mapped too so the labels stay correct if that changes.
+  function statusText(a) {
+    var s = (a && a.status) || 'active';
+    if (s === 'draft') return 'Draft';
+    if (s === 'closed') return 'Closed';
+    return 'Published';
+  }
+  function statusPill(a) {
+    var s = (a && a.status) || 'active';
+    var key = s === 'draft' ? 'draft' : (s === 'closed' ? 'closed' : 'pub');
+    return '<span class="cl-status cl-status-' + key + '">' + statusText(a) + '</span>';
+  }
+  function summaryItem(val, label) {
+    return '<div class="cl-summary-item"><div class="cl-summary-val">' + esc(String(val)) +
+      '</div><div class="cl-summary-label">' + esc(label) + '</div></div>';
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   // LEADER: dashboard
   // ════════════════════════════════════════════════════════════════════════
   function renderLeaderDashboard() {
     mount(
       '<div class="cl-screen">' +
-        header('Classroom', 'Create short financial-literacy activities and understand where your group needs support.') +
+        header('Classroom', 'Create short activities and see where your group needs support.') +
         '<div class="cl-section-title">Your groups</div>' +
         '<div id="clGroups">' + loading('Loading your groups…') + '</div>' +
       '</div>'
     );
     D().listGroups().then(function (groups) {
+      setGroups(groups);
       var box = document.getElementById('clGroups');
       if (!box) return;
       if (!groups.length) { box.innerHTML = leaderEmptyState(); return; }
@@ -164,53 +235,167 @@
   }
 
   function groupCard(c) {
-    var assignment = c.active_assignment;
-    return '<div class="cl-card">' +
+    var a = c.active_assignment;
+    var menu = overflowMenu('card_' + c.id, [
+      { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
+      { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
+      { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
+    ]);
+    return '<div class="cl-card cl-group-card">' +
       '<div class="cl-card-head">' +
-        '<strong>' + esc(c.name) + '</strong>' +
-        '<span class="cl-code-chip">' + esc(c.join_code) + '</span>' +
+        '<div class="cl-card-head-main">' +
+          '<strong>' + esc(c.name) + '</strong>' +
+          '<span class="cl-code-chip">' + esc(c.join_code) + '</span>' +
+        '</div>' +
+        menu +
       '</div>' +
       '<div class="cl-card-meta">' +
         '<span>' + (c.learner_count || 0) + ' learner' + ((c.learner_count === 1) ? '' : 's') + '</span>' +
-        '<span>•</span>' +
-        '<span>' + (assignment ? esc(assignment.title) : 'No assignment yet') + '</span>' +
-        (assignment ? '<span>•</span><span>' + (c.completed_count || 0) + ' completed</span>' : '') +
+        (a
+          ? '<span>•</span><span>' + esc(a.title) + '</span><span>•</span><span>' + (c.completed_count || 0) + ' completed</span>'
+          : '<span>•</span><span>No assignment yet</span>') +
       '</div>' +
       '<div class="cl-card-actions">' +
-        (assignment
-          ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>'
-          : '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">Create assignment</button>') +
-        '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">Manage</button>' +
+        '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">View group</button>' +
+        '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">Insights</button>' +
       '</div>' +
     '</div>';
   }
 
-  // Group management (code + create assignment shortcut).
+  // Group detail: summary row, compact join code, status, CTAs, overflow menu.
   function openGroup(id) {
     mount(loading('Opening group…'));
     D().listGroups().then(function (groups) {
-      var c = groups.filter(function (g) { return g.id === id; })[0];
+      setGroups(groups);
+      var c = groupById(id);
       if (!c) { renderLeaderDashboard(); return; }
+      var a = c.active_assignment;
+      var menu = overflowMenu('grp_' + c.id, [
+        { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
+        { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
+        { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
+      ]);
       mount(
         '<div class="cl-screen">' +
           back('Classroom', 'renderClassroom()') +
-          header(c.name, c.description || '') +
-          '<div class="cl-card cl-code-card">' +
-            '<div class="cl-code-label">Join code</div>' +
-            '<div class="cl-code-big">' + esc(c.join_code) + '</div>' +
-            '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(c.join_code) + '\')">Copy join code</button>' +
+          '<div class="cl-detail-head">' +
+            '<div class="cl-detail-head-main">' +
+              '<h1>' + esc(c.name) + '</h1>' +
+              (c.description ? '<p>' + esc(c.description) + '</p>' : '') +
+            '</div>' +
+            menu +
           '</div>' +
-          '<div class="cl-card-meta cl-mt"><span>' + (c.learner_count || 0) + ' learners</span><span>•</span>' +
-            '<span>' + (c.active_assignment ? esc(c.active_assignment.title) : 'No assignment yet') + '</span></div>' +
+          '<div class="cl-summary">' +
+            summaryItem(c.learner_count || 0, 'Learners') +
+            summaryItem(a ? statusText(a) : 'None', 'Active assignment') +
+            summaryItem(a ? (c.completed_count || 0) : 0, 'Completed') +
+          '</div>' +
+          '<div class="cl-card cl-code-card cl-code-card-sm">' +
+            '<div class="cl-code-inline">' +
+              '<div><div class="cl-code-label">Join code</div>' +
+                '<div class="cl-code-mid">' + esc(c.join_code) + '</div></div>' +
+              '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.copyCode(\'' + esc(c.join_code) + '\')">Copy</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cl-assign-line">' +
+            (a
+              ? '<span class="cl-assign-title">' + esc(a.title) + '</span>' + statusPill(a)
+              : '<span class="cl-muted">No active assignment yet.</span>') +
+          '</div>' +
           '<div class="cl-stack cl-mt">' +
-            (c.active_assignment
-              ? '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>'
-              : '') +
-            '<button type="button" class="cl-btn ' + (c.active_assignment ? 'cl-btn-ghost' : 'cl-btn-primary') + '" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">Create assignment</button>' +
+            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">Create assignment</button>' +
+            (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>' : '') +
           '</div>' +
         '</div>'
       );
     }).catch(function () { renderLeaderDashboard(); });
+  }
+
+  // ── Edit group ──────────────────────────────────────────────────────────────
+  function openEditGroup(id) {
+    var c = groupById(id);
+    if (c) { editGroupForm(c); return; }
+    mount(loading('Opening…'));
+    D().listGroups().then(function (groups) {
+      setGroups(groups);
+      var g = groupById(id);
+      if (g) editGroupForm(g); else renderLeaderDashboard();
+    }).catch(function () { renderLeaderDashboard(); });
+  }
+  function editGroupForm(c) {
+    var audiences = D().AUDIENCE_TYPES.map(function (a) {
+      return '<option value="' + a.id + '"' + (a.id === c.audience_type ? ' selected' : '') + '>' + esc(a.label) + '</option>';
+    }).join('');
+    mount(
+      '<div class="cl-screen">' +
+        back('Group', 'ClassroomUI.openGroup(\'' + c.id + '\')') +
+        header('Edit group', 'Update the group name and details.') +
+        '<form class="cl-form" onsubmit="return false;">' +
+          field('Group name', '<input class="cl-input" id="clEditName" type="text" maxlength="80" value="' + esc(c.name) + '" required>') +
+          field('Description (optional)', '<textarea class="cl-input" id="clEditDesc" maxlength="400" rows="2">' + esc(c.description || '') + '</textarea>') +
+          field('Audience type', '<select class="cl-input" id="clEditAudience">' + audiences + '</select>') +
+          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clEditBtn" onclick="ClassroomUI.submitEditGroup(\'' + c.id + '\')">Save changes</button>' +
+        '</form>' +
+      '</div>',
+      function () { var el = document.getElementById('clEditName'); if (el) el.focus(); }
+    );
+  }
+  function submitEditGroup(id) {
+    var name = (document.getElementById('clEditName') || {}).value || '';
+    if (!name.trim()) { toast('Group name can’t be empty', 'error'); return; }
+    var desc = (document.getElementById('clEditDesc') || {}).value || '';
+    var audience = (document.getElementById('clEditAudience') || {}).value || 'other';
+    var btn = document.getElementById('clEditBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    D().updateGroup(id, { name: name, description: desc, audience: audience }).then(function () {
+      toast('Group updated', 'success');
+      return D().listGroups().then(function (groups) { setGroups(groups); openGroup(id); });
+    }).catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+      toast((err && err.message) || 'Could not update the group.', 'error');
+    });
+  }
+
+  // ── Delete group (leader-only, confirmed, server-enforced) ──────────────────
+  function confirmDeleteGroup(id) {
+    var c = groupById(id);
+    var name = (c && c.name) ? c.name : 'this group';
+    if (typeof global.showAppModal !== 'function') {
+      if (global.confirm && global.confirm('Delete ' + name + '? This cannot be undone.')) performDeleteGroup(id);
+      return;
+    }
+    global.showAppModal({
+      icon: 'danger',
+      title: 'Delete ' + name + '?',
+      body: 'This permanently deletes the group, assignments, learner memberships, attempts, responses, and insights. This cannot be undone.',
+      actions: [
+        { label: 'Cancel', cls: 'modal-cancel', fn: global.closeAppModal },
+        { label: 'Delete group', cls: 'btn btn-danger', fn: function () { performDeleteGroup(id); } }
+      ]
+    });
+  }
+  function performDeleteGroup(id) {
+    var actionsEl = document.getElementById('modalActions');
+    var btns = actionsEl ? actionsEl.querySelectorAll('button') : [];
+    var delBtn = btns.length ? btns[btns.length - 1] : null;
+    Array.prototype.forEach.call(btns, function (b) { b.disabled = true; });
+    if (delBtn) delBtn.textContent = 'Deleting…';
+    D().deleteGroup(id).then(function () {
+      if (typeof global.closeAppModal === 'function') global.closeAppModal();
+      CR.groups = (CR.groups || []).filter(function (g) { return g.id !== id; });
+      toast('Group deleted', 'success');
+      if (global.NavDrawer && NavDrawer.refresh) NavDrawer.refresh();
+      renderLeaderDashboard();
+    }).catch(function (err) {
+      Array.prototype.forEach.call(btns, function (b) { b.disabled = false; });
+      if (delBtn) delBtn.textContent = 'Delete group';
+      var bodyEl = document.getElementById('modalBody');
+      if (bodyEl) {
+        var e = bodyEl.querySelector('.app-modal-inline-error');
+        if (!e) { e = document.createElement('p'); e.className = 'app-modal-inline-error'; bodyEl.appendChild(e); }
+        e.textContent = (err && err.message) || 'Could not delete the group. Please try again.';
+      }
+    });
   }
 
   function copyCode(code) {
@@ -280,26 +465,76 @@
   // LEADER: create assignment
   // ════════════════════════════════════════════════════════════════════════
   function openCreateAssignment(classroomId) {
+    CR.titleEdited = false;
+    var firstTopic = D().TOPICS[0];
+    var suggested = D().suggestAssignmentTitle(firstTopic);
     var topics = D().TOPICS.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
     var diffs = D().DIFFICULTIES.map(function (d) { return '<option value="' + d.id + '">' + esc(d.label) + '</option>'; }).join('');
     mount(
       '<div class="cl-screen">' +
-        back('Classroom', 'renderClassroom()') +
+        back('Group', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
         header('Create assignment', 'A five-question concept challenge.') +
-        '<form class="cl-form" onsubmit="return false;">' +
-          field('Assignment title', '<input class="cl-input" id="clAsgTitle" type="text" maxlength="120" placeholder="Understanding Inflation">') +
-          field('Topic', '<select class="cl-input" id="clAsgTopic">' + topics + '</select>') +
-          field('Difficulty', '<select class="cl-input" id="clAsgDiff">' + diffs + '</select>') +
-          field('Due date (optional)', '<input class="cl-input" id="clAsgDue" type="date">') +
-          '<label class="cl-check"><input type="checkbox" id="clAsgTeach" checked> Include a teach-it-back question</label>' +
-          '<div class="cl-section-title cl-mt">How should we build it?</div>' +
-          '<div class="cl-stack">' +
-            '<button type="button" class="cl-btn cl-btn-line" id="clPresetBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'preset\')">Use a preset question set</button>' +
-            '<button type="button" class="cl-btn cl-btn-primary" id="clGenBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'claude\')">Generate with Claude</button>' +
+        '<form class="cl-form cl-form-spaced" onsubmit="return false;">' +
+          '<div class="cl-form-group">' +
+            field('Topic', '<select class="cl-input" id="clAsgTopic">' + topics + '</select>') +
+            field('Assignment title', '<input class="cl-input" id="clAsgTitle" type="text" maxlength="120" value="' + esc(suggested) + '" placeholder="' + esc(suggested) + '">') +
+            field('Difficulty', '<select class="cl-input" id="clAsgDiff">' + diffs + '</select>') +
+            field('Due date (optional)', '<input class="cl-input" id="clAsgDue" type="date">') +
+          '</div>' +
+          '<div class="cl-form-group">' +
+            '<button type="button" class="cl-toggle-row is-on" id="clAsgTeachRow" aria-pressed="true" onclick="ClassroomUI.toggleTeach()">' +
+              '<span class="cl-toggle-text">Include a teach-it-back question</span>' +
+              '<span class="cl-toggle-switch" aria-hidden="true"></span>' +
+            '</button>' +
+            '<input type="hidden" id="clAsgTeach" value="1">' +
+          '</div>' +
+          '<div class="cl-form-group">' +
+            '<div class="cl-section-title">Question source</div>' +
+            '<div class="cl-stack">' +
+              '<button type="button" class="cl-btn cl-btn-line" id="clPresetBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'preset\')">Use preset questions</button>' +
+              '<button type="button" class="cl-btn cl-btn-primary" id="clGenBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'claude\')">Generate with Claude</button>' +
+            '</div>' +
           '</div>' +
         '</form>' +
-      '</div>'
+      '</div>',
+      function () {
+        var topicSel = document.getElementById('clAsgTopic');
+        var titleInp = document.getElementById('clAsgTitle');
+        // Mark the title as user-owned once they type into it (non-empty), so an
+        // auto-suggestion never clobbers a manually edited title.
+        if (titleInp) titleInp.addEventListener('input', function () {
+          CR.titleEdited = titleInp.value.trim() !== '';
+        });
+        if (topicSel) topicSel.addEventListener('change', function () {
+          if (!CR.titleEdited && titleInp) titleInp.value = D().suggestAssignmentTitle(topicSel.value);
+        });
+      }
     );
+  }
+
+  function toggleTeach() {
+    var row = document.getElementById('clAsgTeachRow');
+    var hidden = document.getElementById('clAsgTeach');
+    if (!row || !hidden) return;
+    var on = hidden.value !== '1';
+    hidden.value = on ? '1' : '0';
+    row.classList.toggle('is-on', on);
+    row.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  // Generating state: spinner + progressively-animated status lines + honest
+  // "few seconds" hint. No fake percentages.
+  function generatingScreen() {
+    return '<div class="cl-screen cl-center cl-generating">' +
+      '<div class="cl-spinner cl-spinner-lg"></div>' +
+      '<h2 class="cl-gen-title">Claude is building your five-question activity</h2>' +
+      '<ul class="cl-gen-steps">' +
+        '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Creating concept coverage</li>' +
+        '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Checking answer quality</li>' +
+        '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Preparing the teach-it-back question</li>' +
+      '</ul>' +
+      '<p class="cl-gen-note">This usually takes a few seconds.</p>' +
+    '</div>';
   }
 
   function buildAssignment(classroomId, mode) {
@@ -307,7 +542,7 @@
     var topic = (document.getElementById('clAsgTopic') || {}).value || D().TOPICS[0];
     var diff = (document.getElementById('clAsgDiff') || {}).value || 'beginner';
     var due = (document.getElementById('clAsgDue') || {}).value || '';
-    var teach = !!(document.getElementById('clAsgTeach') || {}).checked;
+    var teach = (document.getElementById('clAsgTeach') || {}).value === '1';
     var ctx = { classroomId: classroomId, title: title, due: due };
 
     if (mode === 'preset') {
@@ -320,7 +555,7 @@
       return;
     }
     // Claude
-    mount(loading('Claude is writing your five-question challenge…'));
+    mount(generatingScreen());
     D().classroomAI('generate_assignment', {
       topic: topic, difficulty: diff, teachItBack: teach
     }).then(function (res) {
@@ -338,12 +573,26 @@
     });
   }
 
+  function previewQ(q, i) {
+    var typeLabel = q.type === 'teachback' ? 'Teach it back' : 'Multiple choice';
+    return '<div class="cl-preview-q">' +
+      '<span class="cl-q-num">' + (i + 1) + '</span>' +
+      '<div class="cl-q-body">' +
+        '<div class="cl-q-tags">' +
+          '<span class="cl-q-type">' + typeLabel + '</span>' +
+          (q.skill ? '<span class="cl-q-skill">' + esc(q.skill) + '</span>' : '') +
+        '</div>' +
+        '<div class="cl-q-prompt">' + esc(q.prompt) + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function assignmentPreview(unit, ctx) {
     CR.pendingUnit = unit; CR.pendingCtx = ctx;
     var mcqCount = unit.questions.filter(function (q) { return q.type === 'mcq'; }).length;
     var teachCount = unit.questions.filter(function (q) { return q.type === 'teachback'; }).length;
     mount(
-      '<div class="cl-screen">' +
+      '<div class="cl-screen cl-preview-screen">' +
         back('Edit', 'ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')') +
         '<div class="cl-kicker">Assignment preview</div>' +
         '<h1 class="cl-preview-title">' + esc(unit.title) + '</h1>' +
@@ -351,15 +600,11 @@
           '<span>•</span><span>' + mcqCount + ' questions</span>' +
           (teachCount ? '<span>•</span><span>1 teach-it-back</span>' : '') + '</div>' +
         '<div class="cl-preview-list cl-mt">' +
-          unit.questions.map(function (q, i) {
-            return '<div class="cl-preview-q"><span class="cl-q-num">' + (i + 1) + '</span>' +
-              '<div><div class="cl-q-skill">' + esc(q.skill || '') + '</div>' +
-              '<div class="cl-q-prompt">' + esc(q.prompt) + '</div></div></div>';
-          }).join('') +
+          unit.questions.map(previewQ).join('') +
         '</div>' +
-        '<div class="cl-stack cl-mt">' +
-          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">Assign to group</button>' +
-          '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')">Cancel</button>' +
+        '<div class="cl-preview-actions">' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')">Edit</button>' +
+          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">Publish assignment</button>' +
         '</div>' +
       '</div>'
     );
@@ -371,12 +616,43 @@
     mount(loading('Publishing assignment…'));
     D().createAssignment(ctx.classroomId, unit, ctx.due || null).then(function () {
       toast('Assignment published', 'success');
+      var title = unit.title;
       CR.pendingUnit = null; CR.pendingCtx = null;
-      openGroup(ctx.classroomId);
+      publishedScreen(ctx.classroomId, title);
     }).catch(function (err) {
       toast((err && err.message) || 'Could not publish. Please try again.', 'error');
       assignmentPreview(unit, ctx);
     });
+  }
+
+  // Inline published-success state (not toast-dependent): banner near the top
+  // with Copy join code + View group.
+  function publishedScreen(classroomId, title) {
+    var render = function (code) {
+      mount(
+        '<div class="cl-screen">' +
+          back('Classroom', 'renderClassroom()') +
+          '<div class="cl-banner cl-banner-success">' +
+            '<div class="cl-banner-icon">✓</div>' +
+            '<div class="cl-banner-text">' +
+              '<strong>Assignment published</strong>' +
+              '<span>Learners can now complete ' + esc(title) + '.</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cl-stack cl-mt">' +
+            (code ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy join code</button>' : '') +
+            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + classroomId + '\')">View group</button>' +
+          '</div>' +
+        '</div>'
+      );
+    };
+    var c = groupById(classroomId);
+    if (c) { render(c.join_code); return; }
+    D().listGroups().then(function (groups) {
+      setGroups(groups);
+      var g = groupById(classroomId);
+      render(g ? g.join_code : '');
+    }).catch(function () { render(''); });
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -386,7 +662,8 @@
     mount(loading('Loading group insights…'));
     var groupName = '';
     D().listGroups().then(function (groups) {
-      var c = groups.filter(function (g) { return g.id === classroomId; })[0];
+      setGroups(groups);
+      var c = groupById(classroomId);
       groupName = c ? c.name : 'Group';
       if (!c || !c.active_assignment) {
         mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
@@ -396,8 +673,9 @@
         return;
       }
       var assignment = c.active_assignment;
+      var joinCode = c.join_code || '';
       return D().aggregate(assignment.id).then(function (agg) {
-        renderInsights(groupName, assignment, agg, classroomId, false);
+        renderInsights(groupName, assignment, agg, classroomId, false, joinCode);
       });
     }).catch(function (err) {
       mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
@@ -406,14 +684,42 @@
   }
 
   // Shared by live insights and the demo (demo passes isDemo=true + seeded data).
-  function renderInsights(groupName, assignment, agg, classroomId, isDemo) {
+  function renderInsights(groupName, assignment, agg, classroomId, isDemo, joinCode) {
     var content = assignment.content || {};
     var concepts = D().conceptRows(agg);
-    var completion = agg.learners ? Math.round((agg.completed / agg.learners) * 100) : 0;
+    var learners = Number(agg.learners) || 0;
+    var completedCount = Number(agg.completed) || 0;
+    var totalGraded = D().totalGradedResponses(agg);
+    var completion = learners ? Math.round((agg.completed / agg.learners) * 100) : 0;
     var avgAcc = Math.round((agg.avg_accuracy || 0) * 100);
     var meets = D().meetsInsightThreshold(agg);
     var strongest = concepts.length ? concepts[0] : null;
     var weakest = concepts.length ? concepts[concepts.length - 1] : null;
+
+    var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable group pattern.';
+
+    // Empty state: no learners AND no responses yet — show a light prompt with
+    // the join code instead of four large zero-stat cards.
+    var hasData = learners > 0 || totalGraded > 0 || completedCount > 0;
+    if (!hasData) {
+      mount('<div class="cl-screen">' +
+        back('Classroom', 'renderClassroom()') +
+        (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
+        header('Group insights', groupName) +
+        '<div class="cl-empty">' +
+          '<h2>No responses yet</h2>' +
+          '<p>Share the join code so learners can complete the activity.</p>' +
+          (joinCode
+            ? '<div class="cl-card cl-code-card cl-code-card-sm"><div class="cl-code-inline">' +
+                '<div><div class="cl-code-label">Join code</div><div class="cl-code-mid">' + esc(joinCode) + '</div></div>' +
+                '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.copyCode(\'' + esc(joinCode) + '\')">Copy</button>' +
+              '</div></div>'
+            : '') +
+        '</div>' +
+        '<div class="cl-threshold cl-mt">' + esc(thresholdMsg) + '</div>' +
+      '</div>');
+      return;
+    }
 
     var html = '<div class="cl-screen">' +
       back('Classroom', 'renderClassroom()') +
@@ -890,8 +1196,14 @@
     openCreateGroup: openCreateGroup,
     submitCreateGroup: submitCreateGroup,
     openGroup: openGroup,
+    openEditGroup: openEditGroup,
+    submitEditGroup: submitEditGroup,
+    confirmDeleteGroup: confirmDeleteGroup,
     copyCode: copyCode,
+    toggleMenu: toggleMenu,
+    closeMenus: closeMenus,
     openCreateAssignment: openCreateAssignment,
+    toggleTeach: toggleTeach,
     buildAssignment: buildAssignment,
     confirmAssignment: confirmAssignment,
     openInsights: openInsights,

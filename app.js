@@ -305,7 +305,7 @@ function openFinlingoAccount() {
         <section class="account-section account-danger-section" aria-labelledby="accountDangerLabel">
           <h2 id="accountDangerLabel">DATA</h2>
           <button type="button" class="account-row account-row-button account-row-danger" onclick="confirmAccountResetData()">
-            <span>Reset App Data</span>
+            <span>Reset account data</span>
           </button>
         </section>
       </main>
@@ -472,33 +472,115 @@ function _rerenderAfterReset() {
   // Practice/review, Market, and the nav-drawer chat list re-render via events.
 }
 
+// ── Reset account data (full reset + sign out) ───────────────────────────────
+// "Reset account data" goes further than the in-memory content wipe in
+// resetAppData(): it ALSO deletes the user's server-side Classroom data (groups
+// they own + their learner footprint) and signs them out. Order matters — the
+// server delete runs FIRST so we never sign out while leaving classroom rows
+// behind. On any real server failure we ABORT (no partial local clear, no
+// sign-out) and surface the error. Idempotent guard prevents double-runs.
+let _accountResetInProgress = false;
+
+function resetAccountData(opts) {
+  opts = opts || {};
+  if (_accountResetInProgress) return;
+  _accountResetInProgress = true;
+
+  const fail = (msg) => {
+    _accountResetInProgress = false;
+    if (typeof opts.onError === 'function') opts.onError(msg);
+  };
+
+  // 1. Server-side: delete all Classroom rows for this user. Atomic in the RPC.
+  const serverStep = (window.ClassroomData && typeof ClassroomData.resetUserData === 'function')
+    ? ClassroomData.resetUserData()
+    : Promise.resolve({ ok: true, skipped: true });
+
+  serverStep
+    .then(() => { _finishAccountReset(opts); })
+    .catch((err) => {
+      // Tolerate "feature not installed" (RPC/tables absent → 404): there is no
+      // server Classroom data to leave behind, so the reset can still proceed.
+      if (err && err.status === 404) { _finishAccountReset(opts); return; }
+      fail((err && err.message) || 'Could not reset your data. Please try again.');
+    });
+}
+
+// Runs only after the server delete has succeeded (or is provably unnecessary).
+// Clears local content/progress + classroom-local state, signs out through
+// Supabase, drops cached session/user, and returns to the sign-in screen.
+function _finishAccountReset(opts) {
+  // Local content + progress + classroom-local state (finlingoMode /
+  // classroomJoinedIds are reset to defaults by normalizeState() in here).
+  try { resetAppData(); } catch (_) {}
+
+  // Sign out through Supabase auth + clear cached session/user.
+  if (typeof authSignOut === 'function') { try { authSignOut(); } catch (_) {} }
+  else if (typeof clearStoredSession === 'function') { clearStoredSession(); }
+  if (typeof S !== 'undefined' && S) S.user = null;
+  if (typeof save === 'function') save();
+
+  _accountResetInProgress = false;
+  if (typeof opts.afterReset === 'function') opts.afterReset();
+  if (typeof showToast === 'function') showToast('All data reset. You have been signed out.');
+
+  // Return to the sign-in screen (never leave the user visually signed in).
+  if (typeof _showAuthBootScreen === 'function') _showAuthBootScreen();
+  else if (typeof openAuthModal === 'function') openAuthModal('signin', { dismissible: false });
+}
+
 // Single confirmation dialog shared by every reset entry point (Settings,
 // Profile, Account). Uses the app's modal pattern; opts.afterReset closes the
-// surface the user triggered it from. After a successful reset the user lands on
-// a clean, empty Ask page ready for a new question.
+// surface the user triggered it from. Reset deletes Classroom data and signs
+// the user out, so it requires explicit confirmation and lands on sign-in.
 function confirmResetAppData(opts) {
   opts = opts || {};
   showAppModal({
-    icon: 'neutral',
-    title: 'Reset all app data?',
-    body: 'Your chats, AI-created units, lesson progress, quiz results, and learning activity will be permanently cleared. Your account, settings, and Market preferences will remain unchanged.',
+    icon: 'danger',
+    title: 'Reset all Finlingo data?',
+    body: 'This clears your learning progress, Classroom data, preferences, and local app data, then signs you out. This cannot be undone.',
     actions: [
       { label: 'Cancel', cls: 'modal-cancel', fn: () => {
           closeAppModal();
           if (typeof opts.onCancel === 'function') opts.onCancel();
         }
       },
-      { label: 'Reset data', cls: 'btn btn-primary', fn: () => {
-          resetAppData();
-          closeAppModal();
-          if (typeof opts.afterReset === 'function') opts.afterReset();
-          if (typeof showToast === 'function') showToast('Data reset.');
-          // Land on a clean, empty Ask page (NOT Learn) ready for a new question.
-          if (window.CoachPage && typeof CoachPage.newChat === 'function') CoachPage.newChat();
-          else if (typeof showCoach === 'function') showCoach({ resetScroll: true });
+      { label: 'Reset and sign out', cls: 'btn btn-danger', fn: () => {
+          _runAccountResetFromModal(opts);
         }
       }
     ]
+  });
+}
+
+// Drives the modal during reset: disables both buttons, shows progress, and on
+// failure re-enables + shows an inline error (the user stays signed in).
+function _runAccountResetFromModal(opts) {
+  const actionsEl = document.getElementById('modalActions');
+  const btns = actionsEl ? actionsEl.querySelectorAll('button') : [];
+  const resetBtn = btns.length ? btns[btns.length - 1] : null;
+  Array.prototype.forEach.call(btns, b => { b.disabled = true; });
+  if (resetBtn) resetBtn.textContent = 'Resetting…';
+
+  resetAccountData({
+    afterReset: () => {
+      closeAppModal();
+      if (typeof opts.afterReset === 'function') opts.afterReset();
+    },
+    onError: (msg) => {
+      Array.prototype.forEach.call(btns, b => { b.disabled = false; });
+      if (resetBtn) resetBtn.textContent = 'Reset and sign out';
+      const bodyEl = document.getElementById('modalBody');
+      if (bodyEl) {
+        let errEl = bodyEl.querySelector('.app-modal-inline-error');
+        if (!errEl) {
+          errEl = document.createElement('p');
+          errEl.className = 'app-modal-inline-error';
+          bodyEl.appendChild(errEl);
+        }
+        errEl.textContent = msg;
+      }
+    }
   });
 }
 
@@ -564,8 +646,8 @@ function _renderSettingsSheet() {
       <button type="button" class="settings-row" onclick="settingsResetProgress()">
         <span class="settings-row-icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
         <span class="settings-row-info">
-          <span class="settings-row-label">Reset App Data</span>
-          <span class="settings-row-val">Clears chats, units, and learning activity</span>
+          <span class="settings-row-label">Reset account data</span>
+          <span class="settings-row-val">Clears all data &amp; signs you out</span>
         </span>
         <span class="settings-row-action settings-row-action-danger">Reset</span>
       </button>

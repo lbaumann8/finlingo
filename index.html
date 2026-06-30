@@ -32,13 +32,13 @@
   <link rel="stylesheet" href="theme.css"/>
   <link rel="stylesheet" href="base.css?v=redesign-2"/>
   <link rel="stylesheet" href="screens.css?v=redesign-2"/>
-  <link rel="stylesheet" href="ui.css?v=reset-appdata-1"/>
+  <link rel="stylesheet" href="ui.css?v=classroom-ux-1"/>
   <link rel="stylesheet" href="practice.css?v=redesign-2"/>
   <!-- Visual refinement pass — loaded last so it wins the cascade. -->
   <link rel="stylesheet" href="refine.css?v=classroom-fix-1"/>
   <!-- Ask-first components — loaded after refine so they win. -->
   <link rel="stylesheet" href="coach.css?v=classroom-fix-1"/>
-  <link rel="stylesheet" href="classroom.css?v=classroom-fix-1"/>
+  <link rel="stylesheet" href="classroom.css?v=classroom-ux-1"/>
 </head>
 <body class="entry-gate-visible">
 
@@ -422,8 +422,8 @@
         <div class="profile-row">
           <div class="profile-row-icon"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
           <div class="profile-row-info">
-            <div class="profile-row-label">Reset App Data</div>
-            <div class="profile-row-val placeholder">Clears chats, units, and learning activity</div>
+            <div class="profile-row-label">Reset account data</div>
+            <div class="profile-row-val placeholder">Clears all data &amp; signs you out</div>
           </div>
           <button class="profile-row-action" onclick="confirmReset()">Reset</button>
         </div>
@@ -602,18 +602,18 @@
 <script src="data.js?v=desktop-1"></script>
 <script src="lessonBank.js"></script>
 <script src="dailyQuestionBank.js"></script>
-<script src="supabase.js"></script>
+<script src="supabase.js?v=classroom-ux-1"></script>
 <script src="state.js?v=classroom-1"></script>
 <script src="progression.js?v=free-clean-1"></script>
 <script src="reviewEngine.js"></script>
 <script src="auth.js?v=email-confirm-1"></script>
 <script src="quiz.js?v=ai-features-1"></script>
 <script src="questionEngine.js"></script>
-<script src="profile.js?v=reset-appdata-1"></script>
+<script src="profile.js?v=classroom-ux-1"></script>
 <script src="personalization.js"></script>
 <script src="dailyLoop.js"></script>
 <script src="fluencyEngine.js"></script>
-<script src="app.js?v=classroom-fix-1"></script>
+<script src="app.js?v=classroom-ux-1"></script>
 <script src="market.js?v=market-simplify-13"></script>
 <script src="practice.js?v=desktop-1"></script>
 <script src="tutor.js?v=ask-v3-1"></script>
@@ -623,8 +623,8 @@
 <script src="coachPage.js?v=reset-appdata-1"></script>
 <script src="learnSwipe.js?v=swipe-delete-1"></script>
 <script src="navDrawer.js?v=classroom-fix-1"></script>
-<script src="classroomData.js?v=classroom-fix-1"></script>
-<script src="classroom.js?v=classroom-fix-1"></script>
+<script src="classroomData.js?v=classroom-ux-1"></script>
+<script src="classroom.js?v=classroom-ux-1"></script>
 
 </body>
 </html>
