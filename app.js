@@ -273,6 +273,25 @@ function openFinlingoAccount() {
           </div>
         </section>` : ''}
 
+        ${isAuthenticated ? `<section class="account-section" aria-labelledby="accountClassroomLabel">
+          <h2 id="accountClassroomLabel">Finlingo mode</h2>
+          <div class="account-mode-toggle" role="group" aria-label="Finlingo mode">
+            <button type="button" class="account-mode-opt ${_accountMode() === 'personal' ? 'is-active' : ''}" onclick="setFinlingoMode('personal')">
+              <strong>Personal learning</strong>
+              <small>Just for you</small>
+            </button>
+            <button type="button" class="account-mode-opt ${_accountMode() === 'leader' ? 'is-active' : ''}" onclick="setFinlingoMode('leader')">
+              <strong>Classroom leader</strong>
+              <small>Create groups &amp; activities</small>
+            </button>
+          </div>
+          <div class="account-list account-action-list" style="margin-top:10px;">
+            ${_accountMode() === 'leader'
+              ? `<button type="button" class="account-row account-row-button" onclick="openClassroomFromAccount()"><span>Open Classroom</span>${_accountChevron()}</button>`
+              : `<button type="button" class="account-row account-row-button" onclick="joinClassroomFromAccount()"><span>Join a classroom</span>${_accountChevron()}</button>`}
+          </div>
+        </section>` : ''}
+
         <section class="account-section" aria-labelledby="accountActionsLabel">
           <h2 id="accountActionsLabel">Account</h2>
           <div class="account-list account-action-list">
@@ -298,6 +317,26 @@ function openFinlingoAccount() {
 function closeFinlingoAccount() {
   document.getElementById('accountPageOverlay')?.classList.remove('open');
   document.body.classList.remove('account-page-open');
+}
+
+// ── Classroom mode (Account setting) ─────────────────────────────────────────
+function _accountMode() {
+  return (typeof S !== 'undefined' && S && S.finlingoMode === 'leader') ? 'leader' : 'personal';
+}
+function setFinlingoMode(mode) {
+  if (typeof S === 'undefined' || !S) return;
+  S.finlingoMode = mode === 'leader' ? 'leader' : 'personal';
+  if (typeof save === 'function') save();
+  if (window.NavDrawer && typeof NavDrawer.refresh === 'function') NavDrawer.refresh();
+  if (typeof openFinlingoAccount === 'function') openFinlingoAccount(); // re-render toggle state
+}
+function openClassroomFromAccount() {
+  closeFinlingoAccount();
+  if (typeof showClassroom === 'function') showClassroom({ resetScroll: true });
+}
+function joinClassroomFromAccount() {
+  closeFinlingoAccount();
+  if (typeof showClassroom === 'function') showClassroom({ resetScroll: true, view: 'join' });
 }
 
 function chooseAccountLearningLevel() {
@@ -1234,6 +1273,12 @@ function showPractice(options = {}) {
   _activateScreen('ranksScreen', null, () => {
     renderPracticePage();
   }, 'Mastery', options);
+}
+function showClassroom(options = {}) {
+  if (options && typeof options !== 'object') options = {};
+  _activateScreen('classroomScreen', null, () => {
+    if (typeof renderClassroom === 'function') renderClassroom(options && options.view);
+  }, 'Classroom', options);
 }
 
 /** Animate the "+N XP" bubble floating up over the quiz. */

@@ -1,0 +1,218 @@
+/* ============================================================================
+   classroom.css — Finlingo Classroom
+   Matches the existing dark / black-gray-card / white-type / restrained-green
+   visual language. Reuses the .ml-* quiz components from coach.css for the
+   learner assignment player; everything else is .cl-*. Lives inside the narrow
+   app-shell (.screen provides the page padding + width).
+   ============================================================================ */
+
+:root {
+  --cl-bg: #0B0D0F;
+  --cl-card: #14171A;
+  --cl-card-2: #0F1215;
+  --cl-border: #23272D;
+  --cl-border-strong: #2C323A;
+  --cl-title: #F5F5F5;
+  --cl-body: #D1D5DB;
+  --cl-muted: #9CA3AF;
+  --cl-eyebrow: #C7CDD6;
+  --cl-green: #2bbd6a;
+  --cl-green-bright: #22F05A;
+  --cl-amber: #d8a23a;
+  --cl-red: #c0594f;
+  --cl-radius: 16px;
+  --cl-radius-sm: 12px;
+}
+
+.cl-screen { display: block; }
+.cl-center { text-align: center; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.cl-header { margin: 2px 0 18px; }
+.cl-header h1 { margin: 0 0 6px; font: 700 1.5rem/1.2 var(--font-d, var(--font-b)); color: var(--cl-title); letter-spacing: -0.01em; }
+.cl-header p { margin: 0; color: var(--cl-muted); font: 400 0.92rem/1.45 var(--font-b); }
+
+.cl-kicker { font: 700 0.7rem var(--font-b); letter-spacing: 0.09em; text-transform: uppercase; color: var(--cl-eyebrow); margin-bottom: 6px; }
+.cl-section-title { font: 700 0.8rem var(--font-b); letter-spacing: 0.04em; text-transform: uppercase; color: var(--cl-eyebrow); margin: 6px 0 12px; }
+.cl-mt { margin-top: 14px; }
+.cl-muted { color: var(--cl-muted); font: 400 0.88rem/1.5 var(--font-b); }
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.cl-card {
+  background: var(--cl-card);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.cl-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cl-card-head strong { font: 600 1.02rem var(--font-b); color: var(--cl-title); }
+.cl-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 8px; color: var(--cl-muted); font: 400 0.82rem var(--font-b); }
+.cl-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.cl-card-actions .cl-btn { width: auto; flex: 1; }
+
+.cl-code-chip {
+  font: 700 0.78rem var(--font-m, monospace); letter-spacing: 0.06em;
+  color: var(--cl-green-bright); background: rgba(43,189,106,0.12);
+  border: 1px solid rgba(43,189,106,0.3); border-radius: 999px; padding: 4px 10px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.cl-btn {
+  width: 100%; display: inline-flex; align-items: center; justify-content: center;
+  padding: 13px 16px; border-radius: 13px; border: 1px solid transparent;
+  font: 700 0.92rem var(--font-b); cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .06s ease, opacity .12s ease;
+}
+.cl-btn:active { transform: translateY(1px); }
+.cl-btn:disabled { opacity: 0.55; cursor: default; }
+.cl-btn-primary { background: #ffffff; color: #0b0c0f; }
+.cl-btn-primary:hover:not(:disabled) { background: #eceef0; }
+.cl-btn-line { background: transparent; border-color: var(--cl-border-strong); color: var(--cl-title); }
+.cl-btn-line:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); }
+.cl-btn-ghost { background: transparent; color: var(--cl-muted); }
+.cl-btn-ghost:hover:not(:disabled) { color: var(--cl-title); }
+
+.cl-stack { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Back link ──────────────────────────────────────────────────────────── */
+.cl-back {
+  display: inline-flex; align-items: center; gap: 4px; background: none; border: 0;
+  color: var(--cl-muted); font: 600 0.86rem var(--font-b); cursor: pointer;
+  padding: 0; margin: 0 0 14px;
+}
+.cl-back:hover { color: var(--cl-title); }
+.cl-back svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Empty / threshold / error states ──────────────────────────────────── */
+.cl-empty {
+  text-align: center; padding: 30px 18px; background: var(--cl-card-2);
+  border: 1px solid var(--cl-border); border-radius: var(--cl-radius); margin-top: 4px;
+}
+.cl-empty h2 { margin: 0 0 8px; font: 700 1.12rem var(--font-d, var(--font-b)); color: var(--cl-title); }
+.cl-empty p { margin: 0 auto 16px; max-width: 280px; color: var(--cl-muted); font: 400 0.9rem/1.5 var(--font-b); }
+.cl-empty .cl-btn { margin-top: 8px; }
+
+.cl-threshold {
+  padding: 16px; border: 1px dashed var(--cl-border-strong); border-radius: var(--cl-radius-sm);
+  color: var(--cl-muted); font: 400 0.9rem/1.5 var(--font-b); text-align: center;
+}
+.cl-error { padding: 16px; border: 1px solid rgba(192,89,79,0.4); background: rgba(192,89,79,0.08); border-radius: var(--cl-radius-sm); }
+.cl-error p { margin: 0 0 10px; color: #e9b3ad; font: 400 0.9rem/1.5 var(--font-b); }
+
+/* ── Loading ────────────────────────────────────────────────────────────── */
+.cl-loading { text-align: center; padding: 30px 0; }
+.cl-loading p { margin-top: 12px; color: var(--cl-muted); font: 400 0.88rem var(--font-b); }
+.cl-spinner {
+  width: 26px; height: 26px; margin: 0 auto; border-radius: 50%;
+  border: 2.5px solid var(--cl-border-strong); border-top-color: var(--cl-green-bright);
+  animation: cl-spin 0.7s linear infinite;
+}
+@keyframes cl-spin { to { transform: rotate(360deg); } }
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+.cl-form { display: block; }
+.cl-field { display: block; margin-bottom: 14px; }
+.cl-field-label { display: block; margin-bottom: 6px; font: 600 0.82rem var(--font-b); color: var(--cl-eyebrow); }
+.cl-input {
+  width: 100%; box-sizing: border-box; padding: 12px 13px;
+  background: var(--cl-card-2); border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius-sm); color: var(--cl-title);
+  font: 500 0.96rem var(--font-b); outline: none; transition: border-color .12s ease;
+}
+.cl-input:focus { border-color: rgba(255,255,255,0.35); }
+textarea.cl-input { resize: vertical; line-height: 1.5; }
+select.cl-input { appearance: none; -webkit-appearance: none; }
+.cl-input-code { letter-spacing: 0.28em; text-transform: uppercase; font-family: var(--font-m, monospace); font-weight: 700; text-align: center; font-size: 1.15rem; }
+.cl-check { display: flex; align-items: center; gap: 9px; color: var(--cl-body); font: 500 0.9rem var(--font-b); margin: 4px 0 4px; cursor: pointer; }
+.cl-check input { width: 16px; height: 16px; accent-color: var(--cl-green); }
+
+/* ── Join-code success / card ───────────────────────────────────────────── */
+.cl-success-badge {
+  width: 56px; height: 56px; margin: 8px auto 14px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+  color: #06210f; background: var(--cl-green); font-weight: 800;
+}
+.cl-success-title { margin: 0 0 4px; font: 700 1.3rem var(--font-d, var(--font-b)); color: var(--cl-title); }
+.cl-success-sub { margin: 0 0 4px; color: var(--cl-muted); font: 400 0.95rem var(--font-b); }
+.cl-code-card { text-align: center; }
+.cl-code-label { font: 600 0.75rem var(--font-b); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cl-muted); }
+.cl-code-big {
+  margin: 8px 0 14px; font: 800 2rem var(--font-m, monospace); letter-spacing: 0.18em;
+  color: var(--cl-green-bright); text-transform: uppercase;
+}
+
+/* ── Assignment preview ─────────────────────────────────────────────────── */
+.cl-preview-title { margin: 2px 0 6px; font: 700 1.3rem var(--font-d, var(--font-b)); color: var(--cl-title); }
+.cl-preview-list { display: flex; flex-direction: column; gap: 8px; }
+.cl-preview-q { display: flex; gap: 12px; padding: 13px; background: var(--cl-card); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm); }
+.cl-q-num { flex: 0 0 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: var(--cl-card-2); border: 1px solid var(--cl-border); color: var(--cl-muted); font: 700 0.82rem var(--font-b); }
+.cl-q-skill { font: 700 0.7rem var(--font-b); letter-spacing: 0.05em; text-transform: uppercase; color: var(--cl-green); margin-bottom: 3px; }
+.cl-q-prompt { color: var(--cl-title); font: 500 0.94rem/1.4 var(--font-b); }
+.cl-explain p { margin: 0; color: var(--cl-body); font: 400 0.94rem/1.6 var(--font-b); }
+.cl-chart-note span, .cl-insight-row span { display: block; font: 700 0.7rem var(--font-b); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cl-muted); margin-bottom: 4px; }
+.cl-chart-note p { margin: 0; color: var(--cl-body); font: 400 0.9rem/1.5 var(--font-b); }
+
+/* ── Insights: stats grid ───────────────────────────────────────────────── */
+.cl-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cl-stat { background: var(--cl-card); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm); padding: 14px; }
+.cl-stat-val { font: 700 1.5rem var(--font-d, var(--font-b)); color: var(--cl-title); }
+.cl-stat-label { margin-top: 2px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); }
+
+/* ── Concept bars ───────────────────────────────────────────────────────── */
+.cl-concept { margin-bottom: 12px; }
+.cl-concept-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cl-concept-top span { color: var(--cl-body); font: 500 0.9rem var(--font-b); }
+.cl-concept-top strong { color: var(--cl-title); font: 700 0.9rem var(--font-num, var(--font-b)); }
+.cl-bar { height: 8px; border-radius: 999px; background: #1c2029; overflow: hidden; }
+.cl-bar-slim { height: 6px; flex: 1; }
+.cl-bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.34,1.2,.64,1); }
+.cl-bar-good { background: linear-gradient(90deg, var(--cl-green), var(--cl-green-bright)); }
+.cl-bar-mid { background: linear-gradient(90deg, #b78a2e, var(--cl-amber)); }
+.cl-bar-low { background: linear-gradient(90deg, #a14a42, var(--cl-red)); }
+
+.cl-callouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cl-callout { padding: 13px; border-radius: var(--cl-radius-sm); border: 1px solid var(--cl-border); background: var(--cl-card); }
+.cl-callout span { display: block; font: 700 0.68rem var(--font-b); letter-spacing: 0.05em; text-transform: uppercase; color: var(--cl-muted); margin-bottom: 4px; }
+.cl-callout strong { color: var(--cl-title); font: 600 0.92rem var(--font-b); }
+.cl-callout-up { border-left: 3px solid var(--cl-green); }
+.cl-callout-down { border-left: 3px solid var(--cl-red); }
+
+/* ── Claude group-insight card ──────────────────────────────────────────── */
+.cl-insight-card { background: var(--cl-card); border: 1px solid var(--cl-border-strong); border-radius: var(--cl-radius); padding: 16px; }
+.cl-insight-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 700 0.95rem var(--font-b); color: var(--cl-title); margin-bottom: 8px; }
+.cl-insight-summary { margin: 0 0 12px; color: var(--cl-body); font: 400 0.95rem/1.6 var(--font-b); }
+.cl-insight-row { margin-bottom: 10px; }
+.cl-insight-row p { margin: 0; color: var(--cl-body); font: 400 0.92rem/1.55 var(--font-b); }
+.cl-insight-note { margin-top: 6px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); font-style: italic; }
+.cl-conf { font: 700 0.66rem var(--font-b); letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+.cl-conf-high { color: var(--cl-green-bright); background: rgba(43,189,106,0.14); }
+.cl-conf-medium { color: var(--cl-amber); background: rgba(216,162,58,0.14); }
+.cl-conf-low { color: #b9bec6; background: rgba(255,255,255,0.06); }
+
+/* ── Demo tag ───────────────────────────────────────────────────────────── */
+.cl-demo-tag {
+  display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px;
+  font: 700 0.68rem var(--font-b); letter-spacing: 0.08em; text-transform: uppercase;
+  color: #0b0c0f; background: var(--cl-amber);
+}
+
+/* ── Learner player chrome ──────────────────────────────────────────────── */
+.cl-player-top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cl-back-x { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--cl-border); background: var(--cl-card-2); color: var(--cl-muted); font-size: 0.9rem; cursor: pointer; }
+.cl-back-x:hover { color: var(--cl-title); }
+.cl-qcount { flex: 0 0 auto; color: var(--cl-muted); font: 700 0.8rem var(--font-num, var(--font-b)); }
+.cl-teach { margin-top: 4px; }
+
+/* ── Account: Finlingo-mode toggle (rendered inside the Account overlay) ─── */
+.account-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.account-mode-opt {
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  padding: 12px; border-radius: var(--cl-radius-sm);
+  border: 1px solid var(--cl-border); background: var(--cl-card-2); cursor: pointer;
+  transition: border-color .12s ease, background .12s ease;
+}
+.account-mode-opt strong { color: var(--cl-title); font: 600 0.88rem var(--font-b); }
+.account-mode-opt small { color: var(--cl-muted); font: 400 0.74rem var(--font-b); }
+.account-mode-opt.is-active { border-color: var(--cl-green); background: rgba(43,189,106,0.10); }
+.account-mode-opt.is-active strong { color: #ffffff; }

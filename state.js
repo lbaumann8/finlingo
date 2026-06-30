@@ -122,6 +122,8 @@ function getDefaultState() {
     streakFreeze: false,
     dailyOn: null,            // date the daily challenge was last played
     user: null,               // { id, name, email, tier, avatarColor }
+    finlingoMode: 'personal', // 'personal' | 'leader' — Classroom role (Account setting)
+    classroomJoinedIds: [],   // classroom ids the user has joined as a learner
     onboarding: null,         // null = not done; { done, goal, level, topics, completedAt } when complete
     firstWinComplete: false,
     firstWinPending: false,
@@ -297,6 +299,10 @@ function normalizeState(rawState = {}) {
     next.unlockedIds = buildDerivedUnlockedIds(next.completedIds, next.user);
   }
   delete next.xpBoostEndsAt;
+  next.finlingoMode = rawState?.finlingoMode === 'leader' ? 'leader' : 'personal';
+  next.classroomJoinedIds = Array.isArray(rawState?.classroomJoinedIds)
+    ? [...new Set(rawState.classroomJoinedIds.filter(id => typeof id === 'string' && id))]
+    : [];
   return syncDerivedProgressState(next);
 }
 
