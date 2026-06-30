@@ -214,15 +214,29 @@
       var assignment = (parts[1] || [])[0] || null;
       c.learner_count = members.length;
       c.active_assignment = assignment;
-      if (!assignment) { c.completed_count = 0; return c; }
+      if (!assignment) { c.completed_count = 0; c.intel = null; return c; }
       return global.sbGet('classroom_attempts',
         '?assignment_id=eq.' + assignment.id + '&completed_at=not.is.null&select=id')
-        .then(function (att) { c.completed_count = (att || []).length; return c; })
-        .catch(function () { c.completed_count = 0; return c; });
+        .then(function (att) {
+          c.completed_count = (att || []).length;
+          // No responses yet → "Waiting for responses"; no aggregate call needed.
+          if (!c.completed_count) {
+            c.intel = { state: 'waiting', concept: '', label: 'Waiting for responses' };
+            return c;
+          }
+          // One anonymized aggregate read per group-with-responses → real intel.
+          return aggregate(assignment.id).then(function (agg) {
+            c.intel = computeGroupIntel(agg);
+            c._agg = agg;
+            return c;
+          }).catch(function () { c.intel = null; return c; });
+        })
+        .catch(function () { c.completed_count = 0; c.intel = null; return c; });
     }).catch(function () {
       c.learner_count = c.learner_count || 0;
       c.active_assignment = c.active_assignment || null;
       c.completed_count = c.completed_count || 0;
+      c.intel = c.intel || null;
       return c;
     });
   }
@@ -357,6 +371,94 @@
       .sort(function (a, b) { return b.pct - a.pct; });
   }
 
+  // ── Human-readable concept labels ─────────────────────────────────────────
+  // Turn machine/slug or terse skill tags into polished, human labels:
+  //   "diversification-explain" → "Explaining diversification"
+  //   "Diversification explain"  → "Explaining diversification"
+  //   "diversification-limits"   → "Recognizing diversification limits"
+  //   "Diversification basics"   → "Diversification basics" (already human)
+  function humanizeSkill(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return 'This concept';
+    var spaced = s.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    var tokens = spaced.split(' ');
+    var last = tokens[tokens.length - 1].toLowerCase();
+    var out;
+    if ((last === 'explain' || last === 'explanation') && tokens.length > 1) {
+      out = 'Explaining ' + tokens.slice(0, -1).join(' ').toLowerCase();
+    } else if (last === 'limits' && tokens.length > 1) {
+      out = 'Recognizing ' + tokens.slice(0, -1).join(' ').toLowerCase() + ' limits';
+    } else {
+      out = spaced;
+    }
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
+
+  // ── Small-group confidence (based on completed-learner count) ─────────────
+  // Graduates naturally and never implies certainty from a tiny group. We never
+  // surface the phrase "Low confidence"; "Strong pattern" requires a larger set.
+  function confidenceLabel(completed) {
+    var n = Number(completed) || 0;
+    if (n >= 6) return 'Strong pattern';
+    if (n >= 3) return 'Developing pattern';
+    return 'Early signal';
+  }
+  function confidenceTone(completed) {
+    var n = Number(completed) || 0;
+    if (n >= 6) return 'strong';
+    if (n >= 3) return 'developing';
+    return 'early';
+  }
+  function isEarlyResults(completed) {
+    return (Number(completed) || 0) < 3;
+  }
+
+  // ── Concept grouping: understood vs needs-reinforcement ───────────────────
+  function groupConcepts(agg) {
+    var rows = conceptRows(agg);
+    var understood = [], needs = [];
+    rows.forEach(function (r) {
+      var item = { skill: r.skill, label: humanizeSkill(r.skill), pct: r.pct, correct: r.correct, total: r.total };
+      if (r.pct >= 60) understood.push(item); else needs.push(item);
+    });
+    return { understood: understood, needs: needs, rows: rows };
+  }
+
+  // Weakest concept (lowest %) — grounds the gap label + evidence.
+  function weakestConcept(agg) {
+    var rows = conceptRows(agg);
+    return rows.length ? rows[rows.length - 1] : null;
+  }
+
+  // Responsible, small-group-aware evidence line for the detected gap. Uses
+  // "response" language for 1–2 learners to avoid implying a broad group trend.
+  function gapEvidenceLine(weakest, completed) {
+    if (!weakest) return '';
+    var total = Number(weakest.total) || 0;
+    var missed = Math.max(0, total - (Number(weakest.correct) || 0));
+    var c = Number(completed) || 0;
+    if (c <= 2) {
+      if (missed <= 0) return 'Responses so far were correct on this concept.';
+      return missed === 1 ? 'One response missed this concept.'
+                          : missed + ' responses missed this concept.';
+    }
+    return missed + ' of ' + total + ' responses on this concept were incorrect.';
+  }
+
+  // Lightweight, NO-AI intelligence state for a group card / detail, derived
+  // only from the anonymized aggregate of its latest assignment. Never uses demo
+  // data and never calls Claude — keeps the dashboard fast and honest.
+  function computeGroupIntel(agg) {
+    var completed = Number(agg && agg.completed) || 0;
+    var rows = agg ? conceptRows(agg) : [];
+    if (!completed || !rows.length) return { state: 'waiting', concept: '', label: 'Waiting for responses' };
+    var weak = rows[rows.length - 1];
+    if (!weak || weak.pct >= 50) return { state: 'ontrack', concept: '', label: 'On track: No major gaps detected' };
+    var concept = humanizeSkill(weak.skill);
+    if (completed >= 3) return { state: 'attention', concept: concept, label: 'Needs attention: ' + concept };
+    return { state: 'early', concept: concept, label: 'Early signal: ' + concept };
+  }
+
   // ── Demo classroom (entirely client-side) ─────────────────────────────────
   function buildDemo() {
     var assignmentId = 'demo-assignment';
@@ -424,7 +526,19 @@
       summary: 'The group is comfortable with diversification and the basic idea that inflation erodes purchasing power. Most answered those confidently.',
       primaryGap: 'Many learners think bond prices fall when interest rates fall — the inverse price/yield relationship is the shared sticking point.',
       recommendedFocus: 'Show concretely why an existing higher-coupon bond becomes more valuable when new rates drop, then re-test with a price-vs-yield question.',
-      confidence: 'high'
+      confidence: 'high',
+      // ── Intervention-brief fields ──
+      needsAttention: 'Learners grasp that bonds and rates are connected, but need support recognizing that bond prices move opposite to yields when rates fall.',
+      whatTheyKnow: 'The group reliably explains how diversification spreads risk and that inflation erodes the purchasing power of cash.',
+      primaryMisconception: 'Many learners assume a bond’s price falls whenever interest rates fall, treating price and yield as moving together.',
+      whyItMatters: 'The inverse price/yield relationship underpins how bond portfolios respond to rate changes — without it, learners misread the most common fixed-income scenario.',
+      recommendedMove: 'Walk through a single 5% bond when new bonds pay 3%, showing why buyers pay more for the older bond, then re-test with one price-vs-yield question.',
+      gapConcept: 'Bond price/yield relationship',
+      suggestedObjective: 'Help learners explain why existing bond prices rise when market yields fall.',
+      discussionQuestion: 'If new bonds start paying less than one you already own, should your bond be worth more or less — and why?',
+      plainExplanation: 'When new bonds pay less, an older bond paying a higher coupon becomes more attractive, so buyers bid its price up. Price and yield move in opposite directions.',
+      realWorldExample: 'You hold a bond paying 5%. New bonds now pay only 3%. Because your bond pays more, other investors will pay above face value to buy it — its price rises even though its coupon never changed.',
+      followUpCheck: 'If market rates fall, the price of an existing bond usually rises, falls, or stays the same?'
     };
 
     var followup = {
@@ -434,6 +548,7 @@
       teachItBack: true,
       objectives: ['Explain the inverse relationship between bond prices and yields.'],
       explanation: 'Imagine you own a bond paying 5%. If new bonds start paying only 3%, your 5% bond is suddenly more attractive — so buyers will pay more for it. Its price rises even though its coupon never changed. That’s the whole idea: when yields fall, the price of existing bonds rises, and vice-versa.',
+      scenario: 'A community member bought a bond last year paying 5%. This year, new bonds of the same type pay only 3%. A friend says “rates dropped, so your bond must be worth less now.” Use what you know about price and yield to decide whether the friend is right.',
       chartPrompt: 'Which line shows a bond’s price as yields fall over time — the one sloping up or down?',
       questions: [
         { id: 'q1', type: 'mcq', skill: 'Bond prices and yields',
@@ -499,6 +614,14 @@
     totalGradedResponses: totalGradedResponses,
     meetsInsightThreshold: meetsInsightThreshold,
     conceptRows: conceptRows,
+    humanizeSkill: humanizeSkill,
+    confidenceLabel: confidenceLabel,
+    confidenceTone: confidenceTone,
+    isEarlyResults: isEarlyResults,
+    groupConcepts: groupConcepts,
+    weakestConcept: weakestConcept,
+    gapEvidenceLine: gapEvidenceLine,
+    computeGroupIntel: computeGroupIntel,
     presetUnitFor: presetUnitFor,
     buildDemo: buildDemo
   };

@@ -357,6 +357,18 @@ _INSIGHT_SCHEMA = {
         "primaryGap": {"type": "string"},
         "recommendedFocus": {"type": "string"},
         "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+        # ── Intervention-brief fields (structured teaching guidance) ──
+        "needsAttention": {"type": "string"},
+        "whatTheyKnow": {"type": "string"},
+        "primaryMisconception": {"type": "string"},
+        "whyItMatters": {"type": "string"},
+        "recommendedMove": {"type": "string"},
+        "gapConcept": {"type": "string"},
+        "suggestedObjective": {"type": "string"},
+        "discussionQuestion": {"type": "string"},
+        "plainExplanation": {"type": "string"},
+        "realWorldExample": {"type": "string"},
+        "followUpCheck": {"type": "string"},
     },
     "required": ["summary", "primaryGap", "recommendedFocus", "confidence"],
 }
@@ -391,9 +403,28 @@ def group_insight(payload):
         + "\nReturn a short `summary` of what the group understands, the single "
         "`primaryGap` (the most important shared misunderstanding), a concrete "
         "`recommendedFocus` for a follow-up, and a `confidence` of low/medium/high "
-        "based on how much data supports the pattern."
+        "based on how much data supports the pattern.\n\n"
+        "Also return a structured intervention brief a facilitator can act on, "
+        "all grounded in the SAME single gap:\n"
+        "- `needsAttention`: one sentence naming what the group understands AND the "
+        "specific thing they need support with. Do not overstate certainty.\n"
+        "- `whatTheyKnow`: one short sentence on what the group reliably gets right.\n"
+        "- `primaryMisconception`: one short sentence stating the likely wrong mental "
+        "model behind the gap.\n"
+        "- `whyItMatters`: one short sentence on why closing this gap matters.\n"
+        "- `recommendedMove`: one concrete, specific teaching action.\n"
+        "- `gapConcept`: a 2–5 word human-readable label for the gap concept "
+        "(e.g. \"Limits of diversification\").\n"
+        "- `suggestedObjective`: one sentence learning objective for a follow-up.\n"
+        "- `discussionQuestion`: one open discussion question that surfaces the gap.\n"
+        "- `plainExplanation`: a 1–2 sentence plain-language explanation of the "
+        "correct idea.\n"
+        "- `realWorldExample`: one concrete everyday example that makes it click.\n"
+        "- `followUpCheck`: one short check question to confirm understanding later.\n"
+        "Keep every field concise. If the data is thin, stay measured and avoid "
+        "implying a broad group-wide trend."
     )
-    data = _call_claude("group_insight", _INSIGHT_SCHEMA, prompt, max_tokens=900, timeout=50)
+    data = _call_claude("group_insight", _INSIGHT_SCHEMA, prompt, max_tokens=1400, timeout=55)
     confidence = (data.get("confidence") or "medium").lower()
     if confidence not in {"low", "medium", "high"}:
         confidence = "medium"
@@ -402,6 +433,17 @@ def group_insight(payload):
         "primaryGap": _clean_str(data.get("primaryGap"), "", 300),
         "recommendedFocus": _clean_str(data.get("recommendedFocus"), "", 300),
         "confidence": confidence,
+        "needsAttention": _clean_str(data.get("needsAttention"), "", 320),
+        "whatTheyKnow": _clean_str(data.get("whatTheyKnow"), "", 320),
+        "primaryMisconception": _clean_str(data.get("primaryMisconception"), "", 320),
+        "whyItMatters": _clean_str(data.get("whyItMatters"), "", 320),
+        "recommendedMove": _clean_str(data.get("recommendedMove"), "", 320),
+        "gapConcept": _clean_str(data.get("gapConcept"), "", 60),
+        "suggestedObjective": _clean_str(data.get("suggestedObjective"), "", 240),
+        "discussionQuestion": _clean_str(data.get("discussionQuestion"), "", 280),
+        "plainExplanation": _clean_str(data.get("plainExplanation"), "", 400),
+        "realWorldExample": _clean_str(data.get("realWorldExample"), "", 400),
+        "followUpCheck": _clean_str(data.get("followUpCheck"), "", 280),
     }}
 
 
@@ -412,6 +454,7 @@ _FOLLOWUP_SCHEMA = {
     "properties": {
         "title": {"type": "string"},
         "explanation": {"type": "string"},
+        "scenario": {"type": "string"},
         "chartPrompt": {"type": "string"},
         "questions": {
             "type": "array",
@@ -437,6 +480,8 @@ _FOLLOWUP_SCHEMA = {
 def followup_activity(payload):
     topic = _clean_str(payload.get("topic"), "this topic", 80)
     gap = _clean_str(payload.get("gap"), "the group's main gap", 300)
+    gap_concept = _clean_str(payload.get("gapConcept"), "", 80)
+    objective = _clean_str(payload.get("objective"), "", 240)
     objectives = [
         _clean_str(o, limit=160) for o in (payload.get("objectives") or [])
         if isinstance(o, str) and o.strip()
@@ -444,15 +489,22 @@ def followup_activity(payload):
 
     prompt = (
         f"A group studying \"{topic}\" has this shared learning gap: \"{gap}\".\n"
-        f"Original objectives: {json.dumps(objectives)}\n\n"
-        "Design a short remediation activity that targets exactly this gap. "
-        "Return a `title`, a tight `explanation` (a 2-minute plain-English read "
-        "of the misunderstood idea), an optional `chartPrompt` describing a simple "
-        "chart-based check if one helps, exactly 2 multiple-choice `questions` "
-        "(each with skill, prompt, 4 choices, answerIndex 0-3, explanation), a "
-        "`teachBackPrompt`, and a `teachBackObjective`."
+        + (f"Short label for the gap concept: \"{gap_concept}\".\n" if gap_concept else "")
+        + (f"Target objective for the follow-up: \"{objective}\".\n" if objective else "")
+        + f"Original objectives: {json.dumps(objectives)}\n\n"
+        "Design a short remediation activity that targets EXACTLY this gap — not a "
+        "generic overview of the topic. Every part must carry the detected gap "
+        "concept into the next screen. Return:\n"
+        "- a focused `title` that names the gap concept,\n"
+        "- a tight `explanation` (a 2-minute plain-English read of the misunderstood idea),\n"
+        "- a `scenario`: one short, concrete real-world situation (2-3 sentences) that "
+        "makes the misconception tangible,\n"
+        "- an optional `chartPrompt` describing a simple chart-based check if one helps,\n"
+        "- exactly 3 multiple-choice `questions` (each with skill, prompt, 4 choices, "
+        "answerIndex 0-3, explanation) that directly probe the gap,\n"
+        "- a `teachBackPrompt`, and a `teachBackObjective`."
     )
-    data = _call_claude("build_followup", _FOLLOWUP_SCHEMA, prompt, max_tokens=1800, timeout=55)
+    data = _call_claude("build_followup", _FOLLOWUP_SCHEMA, prompt, max_tokens=2200, timeout=55)
 
     questions = []
     for raw in (data.get("questions") or []):
@@ -461,7 +513,7 @@ def followup_activity(payload):
         q = _coerce_mcq(raw, f"q{len(questions) + 1}", _slug(topic))
         if q:
             questions.append(q)
-        if len(questions) >= 2:
+        if len(questions) >= 3:
             break
     if len(questions) < 2:
         raise ClassroomAIError(
@@ -486,11 +538,13 @@ def followup_activity(payload):
         "title": _clean_str(data.get("title"), f"{topic}: targeted review", 120),
         "topic": topic,
         "difficulty": "beginner",
-        "objectives": objectives or [gap],
+        "objectives": ([objective] if objective else objectives) or [gap],
         "teachItBack": True,
         "explanation": _clean_str(data.get("explanation"), "", 1200),
+        "scenario": _clean_str(data.get("scenario"), "", 600),
         "chartPrompt": _clean_str(data.get("chartPrompt"), "", 400),
         "questions": questions,
+        "gapConcept": gap_concept,
         "source": "claude-followup",
     }
     return {"ok": True, "activity": activity}

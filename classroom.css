@@ -315,13 +315,6 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-bar-mid { background: linear-gradient(90deg, #b78a2e, var(--cl-amber)); }
 .cl-bar-low { background: linear-gradient(90deg, #a14a42, var(--cl-red)); }
 
-.cl-callouts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.cl-callout { padding: 13px; border-radius: var(--cl-radius-sm); border: 1px solid var(--cl-border); background: var(--cl-card); }
-.cl-callout span { display: block; font: 700 0.68rem var(--font-b); letter-spacing: 0.05em; text-transform: uppercase; color: var(--cl-muted); margin-bottom: 4px; }
-.cl-callout strong { color: var(--cl-title); font: 600 0.92rem var(--font-b); }
-.cl-callout-up { border-left: 3px solid var(--cl-green); }
-.cl-callout-down { border-left: 3px solid var(--cl-red); }
-
 /* ── Claude group-insight card ──────────────────────────────────────────── */
 .cl-insight-card { background: var(--cl-card); border: 1px solid var(--cl-border-strong); border-radius: var(--cl-radius); padding: 16px; }
 .cl-insight-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 700 0.95rem var(--font-b); color: var(--cl-title); margin-bottom: 8px; }
@@ -377,6 +370,183 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-ls-title { color: var(--cl-title); font: 600 0.9rem var(--font-b); margin-bottom: 3px; }
 .cl-ls-desc { color: var(--cl-muted); font: 400 0.84rem/1.5 var(--font-b); }
 .cl-ls-desc + .cl-ls-desc { margin-top: 4px; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   INTERVENTION WORKFLOW — premium insights hierarchy
+   Hierarchy through spacing/typography/dividers rather than many bordered
+   cards. Green = positive, amber = emerging concern, red = severe/persistent.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* Insights header + "Early results" + mission/privacy lines */
+.cl-insights-header p { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cl-early-tag {
+  font: 700 0.6rem var(--font-b); letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--cl-eyebrow); background: rgba(255,255,255,0.06);
+  border: 1px solid var(--cl-border); border-radius: 999px; padding: 2px 8px;
+}
+.cl-privacy-note { margin-top: 22px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); font-style: italic; }
+.cl-mission-note { margin-top: 16px; color: var(--cl-muted); font: 400 0.78rem/1.5 var(--font-b); }
+
+/* ── B. What needs attention (visually dominant, light-touch amber accent) ── */
+.cl-attention {
+  padding: 16px 4px 18px; margin: 18px 0 6px;
+  border-top: 1px solid var(--cl-border); border-bottom: 1px solid var(--cl-border);
+}
+.cl-attention-kicker {
+  font: 800 0.68rem var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--cl-amber); margin-bottom: 9px;
+}
+.cl-attention-headline {
+  margin: 0 0 12px; color: var(--cl-title);
+  font: 700 1.3rem/1.35 var(--font-d, var(--font-b)); letter-spacing: -0.01em;
+}
+.cl-attention-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.cl-attention-evidence { color: var(--cl-muted); font: 400 0.84rem var(--font-b); }
+
+/* Confidence labels (Early signal / Developing pattern / Strong pattern) */
+.cl-conf-early { color: var(--cl-eyebrow); background: rgba(255,255,255,0.06); }
+.cl-conf-developing { color: var(--cl-amber); background: rgba(216,162,58,0.14); }
+.cl-conf-strong { color: var(--cl-green-bright); background: rgba(43,189,106,0.14); }
+
+/* ── C. Concept understanding (grouped chips, no equal-weight bar wall) ───── */
+.cl-concept-group { margin-bottom: 14px; }
+.cl-concept-group-label {
+  font: 700 0.7rem var(--font-b); letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cl-concept-group-good { color: var(--cl-green-bright); }
+.cl-concept-group-needs { color: var(--cl-amber); }
+.cl-concept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cl-concept-chip {
+  display: flex; align-items: center; gap: 9px; padding: 9px 11px;
+  background: var(--cl-card-2); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
+}
+.cl-concept-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; }
+.cl-concept-chip-good .cl-concept-dot { background: var(--cl-green); }
+.cl-concept-chip-needs .cl-concept-dot { background: var(--cl-amber); }
+.cl-concept-name { flex: 1; min-width: 0; color: var(--cl-body); font: 500 0.9rem var(--font-b); }
+.cl-concept-pct { flex: 0 0 auto; color: var(--cl-amber); font: 700 0.84rem var(--font-num, var(--font-b)); }
+
+/* ── Disclosures (View all concepts / View detailed analysis) ─────────────── */
+.cl-disclosure { margin-top: 4px; }
+.cl-disclosure > summary {
+  list-style: none; cursor: pointer; color: var(--cl-eyebrow);
+  font: 600 0.82rem var(--font-b); padding: 8px 0;
+}
+.cl-disclosure > summary::-webkit-details-marker { display: none; }
+.cl-disclosure > summary::before { content: '▸ '; color: var(--cl-muted); }
+.cl-disclosure[open] > summary::before { content: '▾ '; }
+.cl-disclosure > summary:hover { color: var(--cl-title); }
+.cl-disclosure-body { padding-top: 8px; }
+.cl-disclosure-tight .cl-disclosure-body p { margin: 0 0 8px; color: var(--cl-body); font: 400 0.9rem/1.55 var(--font-b); }
+
+/* ── D. Claude intervention brief ────────────────────────────────────────── */
+.cl-brief {
+  background: var(--cl-card); border: 1px solid var(--cl-border-strong);
+  border-radius: var(--cl-radius); padding: 16px 16px 14px;
+}
+.cl-brief-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  font: 700 1rem var(--font-b); color: var(--cl-title);
+}
+.cl-brief-badge {
+  font: 800 0.6rem var(--font-b); letter-spacing: 0.08em; text-transform: uppercase;
+  color: #0b0c0f; background: var(--cl-green-bright); border-radius: 6px; padding: 3px 7px;
+}
+.cl-brief-block { padding: 11px 0; border-top: 1px solid var(--cl-border); }
+.cl-brief-block:first-of-type { border-top: 0; padding-top: 0; }
+.cl-brief-label {
+  font: 700 0.68rem var(--font-b); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--cl-muted); margin-bottom: 5px;
+}
+.cl-brief-text { margin: 0; color: var(--cl-body); font: 400 0.94rem/1.55 var(--font-b); }
+.cl-brief-move .cl-brief-label { color: var(--cl-green-bright); }
+.cl-brief-move .cl-brief-text { color: var(--cl-title); font-weight: 500; }
+.cl-brief-evidence {
+  margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--cl-border);
+  color: var(--cl-muted); font: 400 0.8rem/1.5 var(--font-b); font-style: italic;
+}
+.cl-brief .cl-disclosure { margin-top: 8px; }
+
+/* ── Grounded actions ────────────────────────────────────────────────────── */
+.cl-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.cl-action-primary { grid-column: 1 / -1; }
+.cl-actions-grid .cl-btn { width: auto; }
+
+.cl-action-card {
+  margin-top: 12px; padding: 14px; background: var(--cl-card-2);
+  border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
+}
+.cl-action-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 8px; color: var(--cl-title); font: 700 0.86rem var(--font-b);
+}
+.cl-action-copy {
+  flex: 0 0 auto; padding: 5px 12px; border-radius: 9px; cursor: pointer;
+  background: transparent; border: 1px solid var(--cl-border-strong);
+  color: var(--cl-title); font: 600 0.78rem var(--font-b);
+}
+.cl-action-copy:hover { border-color: rgba(255,255,255,0.4); }
+.cl-action-body { margin: 0 0 8px; color: var(--cl-body); font: 400 0.92rem/1.55 var(--font-b); }
+.cl-action-note { margin-top: 6px; color: var(--cl-muted); font: 400 0.76rem var(--font-b); font-style: italic; }
+.cl-notes {
+  margin: 0; white-space: pre-wrap; word-break: break-word;
+  color: var(--cl-body); font: 400 0.86rem/1.55 var(--font-m, monospace);
+}
+
+/* ── Follow-up grounding banner + scenario card ──────────────────────────── */
+.cl-gap-banner {
+  margin: 0 0 14px; padding: 12px 14px; border-radius: var(--cl-radius-sm);
+  background: rgba(216,162,58,0.08); border: 1px solid rgba(216,162,58,0.28);
+}
+.cl-gap-banner-kicker {
+  font: 800 0.64rem var(--font-b); letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--cl-amber); margin-bottom: 4px;
+}
+.cl-gap-banner-concept { color: var(--cl-title); font: 700 1.05rem var(--font-d, var(--font-b)); }
+.cl-gap-banner-obj { margin-top: 8px; color: var(--cl-body); font: 400 0.86rem/1.5 var(--font-b); }
+.cl-gap-banner-obj span {
+  display: block; font: 700 0.64rem var(--font-b); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--cl-muted); margin-bottom: 2px;
+}
+.cl-scenario-label {
+  display: block; font: 700 0.68rem var(--font-b); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--cl-eyebrow); margin-bottom: 5px;
+}
+.cl-scenario p { margin: 0; color: var(--cl-body); font: 400 0.92rem/1.6 var(--font-b); }
+
+/* ── Group-card intelligence line ────────────────────────────────────────── */
+.cl-intel {
+  display: flex; align-items: center; gap: 8px; margin-top: 9px;
+  color: var(--cl-body); font: 500 0.84rem var(--font-b);
+}
+.cl-intel-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--cl-muted); }
+.cl-intel-ontrack { color: var(--cl-body); }
+.cl-intel-ontrack .cl-intel-dot { background: var(--cl-green); }
+.cl-intel-attention .cl-intel-dot,
+.cl-intel-early .cl-intel-dot { background: var(--cl-amber); }
+.cl-intel-attention, .cl-intel-early { color: var(--cl-eyebrow); }
+.cl-intel-waiting { color: var(--cl-muted); }
+
+/* ── Group-detail: active-assignment status + latest finding ──────────────── */
+.cl-active-assign {
+  padding: 14px 0; margin-bottom: 14px;
+  border-top: 1px solid var(--cl-border); border-bottom: 1px solid var(--cl-border);
+}
+.cl-active-empty { border-bottom: 1px solid var(--cl-border); }
+.cl-active-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.cl-active-kicker {
+  font: 700 0.66rem var(--font-b); letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--cl-muted); margin-bottom: 4px;
+}
+.cl-active-title { color: var(--cl-title); font: 600 1.02rem var(--font-b); }
+.cl-active-progress { margin-top: 8px; color: var(--cl-body); font: 500 0.86rem var(--font-b); }
+.cl-finding { margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--cl-border); }
+.cl-finding-kicker {
+  font: 700 0.66rem var(--font-b); letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--cl-amber); margin-bottom: 4px;
+}
+.cl-finding-text { margin: 0; color: var(--cl-body); font: 400 0.92rem/1.5 var(--font-b); }
 
 /* ── Account: Finlingo-mode toggle (rendered inside the Account overlay) ─── */
 .account-mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

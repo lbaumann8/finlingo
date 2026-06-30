@@ -67,6 +67,28 @@
       '</div>';
   }
 
+  // ── Small language helpers (small-group-safe grammar) ───────────────────────
+  function lcFirst(s) {
+    s = String(s == null ? '' : s);
+    return s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+  }
+  function plural(n, word) { return word + ((Number(n) === 1) ? '' : 's'); }
+  function joinWithAnd(parts) {
+    parts = (parts || []).filter(Boolean);
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0];
+    if (parts.length === 2) return parts[0] + ' and ' + parts[1];
+    return parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1];
+  }
+  // Estimated learner completion time (minutes) for an activity unit.
+  function estimateMinutes(unit) {
+    var qs = (unit && unit.questions) || [];
+    var mcq = qs.filter(function (q) { return q.type !== 'teachback'; }).length;
+    var teach = qs.filter(function (q) { return q.type === 'teachback'; }).length;
+    var readMin = (unit && (unit.explanation || unit.scenario)) ? 2 : 0;
+    return Math.max(2, Math.round(mcq * 0.5 + teach * 1.5 + readMin));
+  }
+
   // ── Entry ──────────────────────────────────────────────────────────────────
   var _authPollTimer = null;
   var _authPollTries = 0;
@@ -235,6 +257,7 @@
         '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
         '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
       '</div>' +
+      '<div class="cl-mission-note">Designed for classrooms, nonprofits, and community financial-literacy programs.</div>' +
     '</div>';
   }
 
@@ -246,6 +269,15 @@
       '<button type="button" class="cl-demo-link" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
       '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
     '</div>';
+  }
+
+  // One real-data intelligence line per group card (latest completed assignment).
+  // Demo insights never reach this — it reads only `c.intel` from the aggregate.
+  function intelLine(c) {
+    var intel = c.intel;
+    if (!intel) return '';
+    return '<div class="cl-intel cl-intel-' + esc(intel.state) + '">' +
+      '<span class="cl-intel-dot"></span>' + esc(intel.label) + '</div>';
   }
 
   function groupCard(c) {
@@ -269,6 +301,7 @@
           ? '<span>•</span><span>' + esc(a.title) + '</span><span>•</span><span>' + (c.completed_count || 0) + ' completed</span>'
           : '<span>•</span><span>No assignment yet</span>') +
       '</div>' +
+      intelLine(c) +
       '<div class="cl-card-actions">' +
         '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">View group</button>' +
         '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">Insights</button>' +
@@ -276,7 +309,30 @@
     '</div>';
   }
 
-  // Group detail: summary row, compact join code, status, CTAs, overflow menu.
+  // One plain-language "latest finding" line, derived from the no-AI intel only.
+  function findingSentence(intel) {
+    if (!intel) return '';
+    if (intel.state === 'ontrack') return 'No major gaps detected yet.';
+    if (intel.state === 'waiting') return 'Waiting for the first responses.';
+    var concept = intel.concept || 'this concept';
+    var lead = /^(recognizing|explaining|identifying|applying|defining)\b/i.test(concept)
+      ? 'Learners need support ' : 'Learners need support with ';
+    return lead + lcFirst(concept) + '.';
+  }
+
+  // State-aware primary CTA for the group-detail page.
+  function detailPrimaryCta(c) {
+    var a = c.active_assignment, intel = c.intel, hasResp = (c.completed_count || 0) > 0;
+    if (!a) return { label: 'Create assignment', onclick: "ClassroomUI.openCreateAssignment('" + c.id + "')" };
+    if (!hasResp) return { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" };
+    if (intel && (intel.state === 'attention' || intel.state === 'early')) {
+      return { label: 'Build targeted follow-up', onclick: "ClassroomUI.buildTargetedFollowup('" + c.id + "')" };
+    }
+    return { label: 'Create next activity', onclick: "ClassroomUI.openCreateAssignment('" + c.id + "')" };
+  }
+
+  // Group detail: summary, compact join code, active-assignment status + latest
+  // finding, a state-aware primary CTA, View insights, and the overflow menu.
   function openGroup(id) {
     mount(loading('Opening group…'));
     D().listGroups().then(function (groups) {
@@ -284,11 +340,31 @@
       var c = groupById(id);
       if (!c) { renderLeaderDashboard(); return; }
       var a = c.active_assignment;
+      var intel = c.intel;
       var menu = overflowMenu('grp_' + c.id, [
         { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
         { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
         { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
       ]);
+      var cta = detailPrimaryCta(c);
+      var finding = a && (c.completed_count || 0) > 0 ? findingSentence(intel) : '';
+
+      var activeBlock = a
+        ? '<div class="cl-active-assign">' +
+            '<div class="cl-active-row">' +
+              '<div><div class="cl-active-kicker">Active assignment</div>' +
+                '<div class="cl-active-title">' + esc(a.title) + '</div></div>' +
+              statusPill(a) +
+            '</div>' +
+            '<div class="cl-active-progress">' + (c.completed_count || 0) + ' of ' + (c.learner_count || 0) + ' completed</div>' +
+            (finding
+              ? '<div class="cl-finding"><div class="cl-finding-kicker">Latest finding</div>' +
+                  '<p class="cl-finding-text">' + esc(finding) + '</p></div>'
+              : '') +
+          '</div>'
+        : '<div class="cl-active-assign cl-active-empty"><div class="cl-active-kicker">Active assignment</div>' +
+            '<p class="cl-muted">No active assignment yet. Create one to start collecting responses.</p></div>';
+
       mount(
         '<div class="cl-screen">' +
           back('Classroom', 'renderClassroom()') +
@@ -304,6 +380,7 @@
             summaryItem(a ? statusText(a) : 'None', 'Active assignment') +
             summaryItem(a ? (c.completed_count || 0) : 0, 'Completed') +
           '</div>' +
+          activeBlock +
           '<div class="cl-card cl-code-card cl-code-card-sm">' +
             '<div class="cl-code-inline">' +
               '<div><div class="cl-code-label">Join code</div>' +
@@ -311,13 +388,8 @@
               '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.copyCode(\'' + esc(c.join_code) + '\')">Copy</button>' +
             '</div>' +
           '</div>' +
-          '<div class="cl-assign-line">' +
-            (a
-              ? '<span class="cl-assign-title">' + esc(a.title) + '</span>' + statusPill(a)
-              : '<span class="cl-muted">No active assignment yet.</span>') +
-          '</div>' +
           '<div class="cl-stack cl-mt">' +
-            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">Create assignment</button>' +
+            '<button type="button" class="cl-btn cl-btn-primary" onclick="' + cta.onclick + '">' + esc(cta.label) + '</button>' +
             (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>' : '') +
           '</div>' +
         '</div>'
@@ -603,32 +675,69 @@
     '</div>';
   }
 
+  // Unified preview for both a new assignment and a grounded targeted follow-up.
+  // Follow-ups (ctx.isFollowup) get a "Based on group gap" banner, the AI's
+  // explanation / real-world scenario / chart check, an estimated time, an
+  // editable title, and an Add-question editor — the leader can edit everything
+  // before publishing.
   function assignmentPreview(unit, ctx) {
     CR.pendingUnit = unit; CR.pendingCtx = ctx;
     // Counts recompute on every render, so manually-added questions update the
     // metadata line immediately. Question type is no longer hard-capped at five.
     var mcqCount = unit.questions.filter(function (q) { return q.type === 'mcq'; }).length;
     var teachCount = unit.questions.filter(function (q) { return q.type === 'teachback'; }).length;
+    var isFollow = !!ctx.isFollowup;
+    var backHandler = isFollow
+      ? (ctx.isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + ctx.classroomId + "')")
+      : "ClassroomUI.openCreateAssignment('" + ctx.classroomId + "')";
+
+    var banner = (isFollow && ctx.gapShort)
+      ? '<div class="cl-gap-banner">' +
+          '<div class="cl-gap-banner-kicker">Based on group gap</div>' +
+          '<div class="cl-gap-banner-concept">' + esc(ctx.gapShort) + '</div>' +
+          (ctx.objective ? '<div class="cl-gap-banner-obj"><span>Suggested objective</span>' + esc(ctx.objective) + '</div>' : '') +
+        '</div>'
+      : '';
+
+    var est = estimateMinutes(unit);
+    var meta = '<span>' + esc(unit.topic || '') + '</span>' +
+      (unit.difficulty ? '<span>•</span><span>' + esc(unit.difficulty) + '</span>' : '') +
+      '<span>•</span><span>' + mcqCount + ' ' + plural(mcqCount, 'question') + '</span>' +
+      (teachCount ? '<span>•</span><span>' + teachCount + ' teach-it-back</span>' : '') +
+      '<span>•</span><span>≈ ' + est + ' min</span>';
+
     mount(
       '<div class="cl-screen cl-preview-screen">' +
-        back('Edit', 'ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')') +
-        '<div class="cl-kicker">Assignment preview</div>' +
-        '<h1 class="cl-preview-title">' + esc(unit.title) + '</h1>' +
-        '<div class="cl-card-meta"><span>' + esc(unit.topic) + '</span><span>•</span><span>' + esc(unit.difficulty) + '</span>' +
-          '<span>•</span><span>' + mcqCount + ' question' + (mcqCount === 1 ? '' : 's') + '</span>' +
-          (teachCount ? '<span>•</span><span>' + teachCount + ' teach-it-back</span>' : '') + '</div>' +
+        back(isFollow ? 'Insights' : 'Edit', backHandler) +
+        (ctx.isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
+        banner +
+        '<div class="cl-kicker">' + (isFollow ? 'Targeted follow-up' : 'Assignment preview') + '</div>' +
+        '<h1 class="cl-preview-title" id="clPreviewTitle">' + esc(unit.title) + '</h1>' +
+        '<div class="cl-card-meta">' + meta + '</div>' +
+        (unit.explanation ? '<div class="cl-card cl-explain cl-mt"><p>' + esc(unit.explanation) + '</p></div>' : '') +
+        (unit.scenario ? '<div class="cl-card cl-scenario cl-mt"><span class="cl-scenario-label">Real-world scenario</span><p>' + esc(unit.scenario) + '</p></div>' : '') +
+        (unit.chartPrompt ? '<div class="cl-card cl-chart-note cl-mt"><span>Chart check</span><p>' + esc(unit.chartPrompt) + '</p></div>' : '') +
         '<div class="cl-preview-list cl-mt">' +
           unit.questions.map(previewQ).join('') +
           '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
             '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
             'Add question</button>' +
         '</div>' +
+        (isFollow ? '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.editPreviewTitle()">Edit title</button>' : '') +
         '<div class="cl-preview-actions">' +
-          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openCreateAssignment(\'' + ctx.classroomId + '\')">Edit</button>' +
-          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">Publish assignment</button>' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (isFollow ? 'Back' : 'Edit') + '</button>' +
+          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">' + (isFollow ? 'Publish follow-up' : 'Publish assignment') + '</button>' +
         '</div>' +
       '</div>'
     );
+  }
+
+  // Inline title edit available on the follow-up preview.
+  function editPreviewTitle() {
+    var el = document.getElementById('clPreviewTitle');
+    if (!el || !CR.pendingUnit) return;
+    var next = global.prompt ? global.prompt('Activity title', CR.pendingUnit.title) : CR.pendingUnit.title;
+    if (next && next.trim()) { CR.pendingUnit.title = next.trim().slice(0, 120); el.textContent = CR.pendingUnit.title; }
   }
 
   // ── Manual question editor (adds to the current draft; included on publish) ──
@@ -718,9 +827,12 @@
   function confirmAssignment() {
     var unit = CR.pendingUnit, ctx = CR.pendingCtx;
     if (!unit || !ctx) { renderClassroom(); return; }
-    mount(loading('Publishing assignment…'));
+    // Demo follow-ups are read-only — never write demo data into a real group.
+    if (ctx.isDemo) { demoAssignNotice(); return; }
+    var isFollow = !!ctx.isFollowup;
+    mount(loading(isFollow ? 'Publishing follow-up…' : 'Publishing assignment…'));
     D().createAssignment(ctx.classroomId, unit, ctx.due || null).then(function () {
-      toast('Assignment published', 'success');
+      toast(isFollow ? 'Follow-up published' : 'Assignment published', 'success');
       var title = unit.title;
       CR.pendingUnit = null; CR.pendingCtx = null;
       publishedScreen(ctx.classroomId, title);
@@ -788,29 +900,39 @@
     });
   }
 
+  // Anonymized aggregate → group_insight payload (no names ever included).
+  function insightPayload(content, assignment, agg) {
+    return {
+      topic: content.topic || assignment.topic,
+      objectives: content.objectives || [],
+      responseCount: D().totalGradedResponses(agg),
+      skillStats: agg.skill_stats || [],
+      choiceDistribution: agg.choice_distribution || [],
+      teachbackExcerpts: agg.teachback_excerpts || [],
+      correctExplanations: (content.questions || [])
+        .filter(function (q) { return q.explanation; })
+        .map(function (q) { return q.explanation; })
+    };
+  }
+
   // Shared by live insights and the demo (demo passes isDemo=true + seeded data).
+  // Hierarchy: A summary metrics → B what needs attention → C concept groups →
+  // D Claude intervention brief → grounded actions.
   function renderInsights(groupName, assignment, agg, classroomId, isDemo, joinCode) {
     var content = assignment.content || {};
-    var concepts = D().conceptRows(agg);
     var learners = Number(agg.learners) || 0;
     var completedCount = Number(agg.completed) || 0;
     var totalGraded = D().totalGradedResponses(agg);
     var completion = learners ? Math.round((agg.completed / agg.learners) * 100) : 0;
     var avgAcc = Math.round((agg.avg_accuracy || 0) * 100);
     var meets = D().meetsInsightThreshold(agg);
-    var strongest = concepts.length ? concepts[0] : null;
-    var weakest = concepts.length ? concepts[concepts.length - 1] : null;
 
-    // In demo mode the back control is labelled to make it obvious the user is
-    // leaving sample data and returning to their real classroom home.
     var backBar = isDemo
       ? back('Exit demo', 'ClassroomUI.exitDemo()')
       : back('Classroom', 'renderClassroom()');
-
     var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable group pattern.';
 
-    // Empty state: no learners AND no responses yet — show a light prompt with
-    // the join code instead of four large zero-stat cards.
+    // Empty state: no learners AND no responses yet.
     var hasData = learners > 0 || totalGraded > 0 || completedCount > 0;
     if (!hasData) {
       mount('<div class="cl-screen">' +
@@ -828,74 +950,271 @@
             : '') +
         '</div>' +
         '<div class="cl-threshold cl-mt">' + esc(thresholdMsg) + '</div>' +
+        '<div class="cl-mission-note">Designed for classrooms, nonprofits, and community financial-literacy programs.</div>' +
       '</div>');
       return;
     }
 
+    var groups = D().groupConcepts(agg);
+    var earlyTag = D().isEarlyResults(completedCount)
+      ? '<span class="cl-early-tag" title="Fewer than 3 completed learners">Early results</span>' : '';
+
     var html = '<div class="cl-screen">' +
       backBar +
       (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
-      header('Group insights', groupName) +
+      '<header class="cl-header cl-insights-header"><h1>Group insights</h1>' +
+        '<p>' + esc(groupName) + earlyTag + '</p></header>' +
+      // A. Summary metrics
       '<div class="cl-stat-grid">' +
         statCard(agg.learners || 0, 'Learners') +
         statCard(completion + '%', 'Completion rate') +
         statCard(avgAcc + '%', 'Average accuracy') +
         statCard(agg.completed || 0, 'Completed') +
       '</div>' +
-      '<div class="cl-section-title cl-mt">Concept understanding</div>' +
-      (concepts.length ? concepts.map(conceptRow).join('')
-        : '<p class="cl-muted">No graded responses yet.</p>') +
-      (strongest && weakest && concepts.length ? (
-        '<div class="cl-callouts cl-mt">' +
-          calloutCard('Strongest concept', strongest.skill, 'up') +
-          calloutCard('Needs support', weakest.skill, 'down') +
-        '</div>') : '') +
-      '<div id="clInsightAI" class="cl-mt">' +
-        (meets ? loading('Asking Claude to read the group pattern…')
-          : '<div class="cl-threshold">More responses are needed before Finlingo can identify a reliable group pattern.</div>') +
+      // B + D. Filled once Claude responds.
+      '<div id="clAttention" class="cl-mt">' +
+        (meets ? loading('Claude is reading the group pattern…')
+          : '<div class="cl-threshold">' + esc(thresholdMsg) + '</div>') +
       '</div>' +
+      // C. Concept understanding (no AI required)
+      conceptUnderstandingHtml(groups) +
+      // D. Intervention brief + grounded actions
+      '<div id="clBrief" class="cl-mt"></div>' +
+      '<div class="cl-privacy-note">Based on anonymous group responses.</div>' +
     '</div>';
     mount(html);
 
     if (!meets) return;
 
-    // Claude group insight (anonymized aggregate only).
-    var aiBox = document.getElementById('clInsightAI');
     var insightPromise = isDemo && agg._demoInsight
       ? Promise.resolve(agg._demoInsight)
-      : D().classroomAI('group_insight', {
-          topic: content.topic || assignment.topic,
-          objectives: content.objectives || [],
-          responseCount: D().totalGradedResponses(agg),
-          skillStats: agg.skill_stats || [],
-          choiceDistribution: agg.choice_distribution || [],
-          teachbackExcerpts: agg.teachback_excerpts || [],
-          correctExplanations: (content.questions || [])
-            .filter(function (q) { return q.explanation; })
-            .map(function (q) { return q.explanation; })
-        }).then(function (r) { return r.insight; });
+      : D().classroomAI('group_insight', insightPayload(content, assignment, agg)).then(function (r) { return r.insight; });
 
     insightPromise.then(function (ins) {
-      if (!aiBox) return;
-      CR.lastGap = ins.primaryGap;
-      CR.lastTopic = content.topic || assignment.topic;
-      CR.lastObjectives = content.objectives || [];
+      var brief = buildBrief(agg, content, ins, completedCount);
+      CR.brief = brief;
       CR.insightClassroom = classroomId;
-      var misconception = deriveMisconception(agg, content);
-      aiBox.innerHTML =
-        '<div class="cl-insight-card">' +
-          '<div class="cl-insight-head">Claude’s group insight <span class="cl-conf cl-conf-' + esc(ins.confidence) + '">' + esc(ins.confidence) + ' confidence</span></div>' +
-          '<p class="cl-insight-summary">' + esc(ins.summary) + '</p>' +
-          '<div class="cl-insight-row"><span>Primary gap</span><p>' + esc(ins.primaryGap) + '</p></div>' +
-          (misconception ? '<div class="cl-insight-row"><span>Most common misconception</span><p>' + esc(misconception) + '</p></div>' : '') +
-          '<div class="cl-insight-row"><span>Recommended focus</span><p>' + esc(ins.recommendedFocus) + '</p></div>' +
-          '<div class="cl-insight-note">Based on anonymous group responses.</div>' +
-        '</div>' +
-        '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')">Build follow-up activity</button>';
+      CR.insightIsDemo = !!isDemo;
+      CR.lastGap = ins.primaryGap;
+      CR.lastTopic = brief.topic;
+      CR.lastObjectives = content.objectives || [];
+
+      var att = document.getElementById('clAttention');
+      if (att) att.innerHTML = attentionHtml(brief);
+      var bx = document.getElementById('clBrief');
+      if (bx) bx.innerHTML = briefHtml(brief) + actionsHtml(isDemo) + '<div id="clActionOutput"></div>';
     }).catch(function () {
-      if (aiBox) aiBox.innerHTML = errorBox('Claude could not summarize the group right now.',
-        isDemo ? 'ClassroomUI.openDemo()' : 'ClassroomUI.openInsights(\'' + classroomId + '\')');
+      var att = document.getElementById('clAttention');
+      if (att) att.innerHTML = errorBox('Claude could not summarize the group right now.',
+        isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + classroomId + "')");
     });
+  }
+
+  // ── Normalized intervention brief (prefers AI fields, falls back gracefully) ─
+  function buildBrief(agg, content, ins, completed) {
+    ins = ins || {};
+    var topic = content.topic || '';
+    var weak = D().weakestConcept(agg);
+    var gapConcept = ins.gapConcept || (weak ? D().humanizeSkill(weak.skill) : (topic || 'this concept'));
+    return {
+      topic: topic,
+      completed: Number(completed) || 0,
+      learners: Number(agg.learners) || 0,
+      gapConcept: gapConcept,
+      gapShort: gapConcept,
+      objective: ins.suggestedObjective || ins.recommendedFocus || ('Strengthen understanding of ' + lcFirst(gapConcept) + '.'),
+      knows: ins.whatTheyKnow || ins.summary || '',
+      misconception: ins.primaryMisconception || ins.primaryGap || '',
+      whyItMatters: ins.whyItMatters || '',
+      recommendedMove: ins.recommendedMove || ins.recommendedFocus || '',
+      confidenceLabel: D().confidenceLabel(completed),
+      confidenceTone: D().confidenceTone(completed),
+      evidenceLine: D().gapEvidenceLine(weak, completed),
+      evidenceUsed: deriveEvidenceUsed(agg),
+      detailed: buildDetailed(ins),
+      needsAttention: needsAttentionHeadline(ins, gapConcept, completed),
+      // Facilitator-note source fields (AI-grounded, else concept-grounded fallback).
+      discussionQuestion: ins.discussionQuestion || ('Where does “' + gapConcept + '” hold up, and where does it break down?'),
+      plainExplanation: ins.plainExplanation || ins.whyItMatters || ins.recommendedMove || ('Learners need a clearer model of ' + lcFirst(gapConcept) + '.'),
+      realWorldExample: ins.realWorldExample || ('Think of an everyday situation where ' + lcFirst(gapConcept) + ' changes the outcome.'),
+      followUpCheck: ins.followUpCheck || ('Which statement best captures ' + lcFirst(gapConcept) + '?')
+    };
+  }
+
+  // One-sentence headline; stays measured for tiny groups (no "the group demonstrates").
+  function needsAttentionHeadline(ins, gapConcept, completed) {
+    var c = Number(completed) || 0;
+    var concept = String(gapConcept || '').replace(/\.+$/, '');
+    if (c <= 2 && concept) {
+      var lead = (c <= 1) ? 'One completed response suggests' : 'Early responses suggest';
+      return lead + ' a gap in ' + lcFirst(concept) + '.';
+    }
+    return ins.needsAttention || ins.primaryGap ||
+      (concept ? ('The group needs support with ' + lcFirst(concept) + '.') : 'A shared learning gap is emerging.');
+  }
+
+  // "Evidence used" line for the brief, derived from the anonymized aggregate.
+  function deriveEvidenceUsed(agg) {
+    var dist = agg.choice_distribution || [];
+    var wrong = dist.filter(function (d) { return !d.choice_correct; })
+      .reduce(function (s, d) { return s + (Number(d.n) || 0); }, 0);
+    var teachN = (agg.teachback_excerpts || []).length;
+    var parts = [];
+    if (wrong > 0) parts.push(wrong + ' incorrect multiple-choice ' + plural(wrong, 'response'));
+    if (!parts.length) {
+      var tg = D().totalGradedResponses(agg);
+      if (tg > 0) parts.push(tg + ' graded ' + plural(tg, 'response'));
+    }
+    if (teachN > 0) parts.push('the teach-it-back ' + plural(teachN, 'explanation'));
+    if (!parts.length) return 'Based on the responses collected so far.';
+    return 'Based on ' + joinWithAnd(parts) + '.';
+  }
+
+  // Long-form analysis kept behind a "View detailed analysis" disclosure.
+  function buildDetailed(ins) {
+    var bits = [];
+    if (ins.summary) bits.push(ins.summary);
+    if (ins.primaryGap && ins.primaryGap !== ins.primaryMisconception) bits.push('Primary gap: ' + ins.primaryGap);
+    if (ins.recommendedFocus && ins.recommendedFocus !== ins.recommendedMove) bits.push('Recommended focus: ' + ins.recommendedFocus);
+    return bits.join('\n\n');
+  }
+
+  // ── B. What needs attention (visually dominant) ─────────────────────────────
+  function attentionHtml(brief) {
+    return '<section class="cl-attention">' +
+      '<div class="cl-attention-kicker">What needs attention</div>' +
+      '<h2 class="cl-attention-headline">' + esc(brief.needsAttention) + '</h2>' +
+      '<div class="cl-attention-meta">' +
+        (brief.evidenceLine ? '<span class="cl-attention-evidence">' + esc(brief.evidenceLine) + '</span>' : '') +
+        '<span class="cl-conf cl-conf-' + esc(brief.confidenceTone) + '">' + esc(brief.confidenceLabel) + '</span>' +
+      '</div>' +
+    '</section>';
+  }
+
+  // ── C. Concept understanding (grouped, polished labels, % only when useful) ──
+  function conceptUnderstandingHtml(groups) {
+    if (!groups.rows.length) return '';
+    var chip = function (it, tone) {
+      return '<li class="cl-concept-chip cl-concept-chip-' + tone + '">' +
+        '<span class="cl-concept-dot"></span>' +
+        '<span class="cl-concept-name">' + esc(it.label) + '</span>' +
+        (tone === 'needs' ? '<span class="cl-concept-pct">' + it.pct + '%</span>' : '') +
+      '</li>';
+    };
+    var html = '<div class="cl-section-title cl-mt">Concept understanding</div>';
+    if (groups.understood.length) {
+      html += '<div class="cl-concept-group">' +
+        '<div class="cl-concept-group-label cl-concept-group-good">Understood</div>' +
+        '<ul class="cl-concept-list">' + groups.understood.map(function (it) { return chip(it, 'good'); }).join('') + '</ul></div>';
+    }
+    if (groups.needs.length) {
+      html += '<div class="cl-concept-group">' +
+        '<div class="cl-concept-group-label cl-concept-group-needs">Needs reinforcement</div>' +
+        '<ul class="cl-concept-list">' + groups.needs.map(function (it) { return chip(it, 'needs'); }).join('') + '</ul></div>';
+    }
+    html += '<details class="cl-disclosure"><summary>View all concepts</summary>' +
+      '<div class="cl-disclosure-body">' + groups.rows.map(conceptRow).join('') + '</div></details>';
+    return html;
+  }
+
+  // ── D. Claude intervention brief ────────────────────────────────────────────
+  function briefHtml(brief) {
+    var block = function (label, text) {
+      if (!text) return '';
+      return '<div class="cl-brief-block"><div class="cl-brief-label">' + esc(label) + '</div>' +
+        '<p class="cl-brief-text">' + esc(text) + '</p></div>';
+    };
+    return '<section class="cl-brief">' +
+      '<div class="cl-brief-head"><span class="cl-brief-badge">Claude</span>Intervention brief</div>' +
+      block('What the group knows', brief.knows) +
+      block('Primary misconception', brief.misconception) +
+      block('Why it matters', brief.whyItMatters) +
+      '<div class="cl-brief-block cl-brief-move"><div class="cl-brief-label">Recommended move</div>' +
+        '<p class="cl-brief-text">' + esc(brief.recommendedMove) + '</p></div>' +
+      '<div class="cl-brief-evidence">' + esc(brief.evidenceUsed) + '</div>' +
+      (brief.detailed
+        ? '<details class="cl-disclosure cl-disclosure-tight"><summary>View detailed analysis</summary>' +
+            '<div class="cl-disclosure-body">' +
+              brief.detailed.split('\n\n').map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') +
+            '</div></details>'
+        : '') +
+    '</section>';
+  }
+
+  // ── Grounded actions ────────────────────────────────────────────────────────
+  function actionsHtml(isDemo) {
+    return '<div class="cl-actions-grid cl-mt">' +
+      '<button type="button" class="cl-btn cl-btn-primary cl-action-primary" onclick="ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')">Build targeted follow-up</button>' +
+      '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'discussion\')">Create discussion prompt</button>' +
+      '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'explain\')">Explain this misconception</button>' +
+      '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyNotes()">Copy facilitator notes</button>' +
+    '</div>';
+  }
+
+  function showAction(kind) {
+    var brief = CR.brief; if (!brief) return;
+    var out = document.getElementById('clActionOutput'); if (!out) return;
+    var title, body, copyText;
+    if (kind === 'discussion') {
+      title = 'Discussion prompt';
+      body = '<p class="cl-action-body">' + esc(brief.discussionQuestion) + '</p>';
+      copyText = brief.discussionQuestion;
+    } else {
+      title = 'Explaining the misconception';
+      var paras = [brief.plainExplanation];
+      if (brief.realWorldExample) paras.push('Example: ' + brief.realWorldExample);
+      body = paras.map(function (p) { return '<p class="cl-action-body">' + esc(p) + '</p>'; }).join('');
+      copyText = paras.join('\n\n');
+    }
+    CR.actionCopyText = copyText;
+    out.innerHTML = '<div class="cl-action-card">' +
+      '<div class="cl-action-head">' + esc(title) +
+        '<button type="button" class="cl-action-copy" onclick="ClassroomUI.copyActionText()">Copy</button></div>' +
+      body +
+      '<div class="cl-action-note">Grounded in the detected gap · anonymous group responses.</div>' +
+    '</div>';
+    if (out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function copyActionText() {
+    var t = CR.actionCopyText || '';
+    if (!t) return;
+    if (global.navigator && navigator.clipboard) {
+      navigator.clipboard.writeText(t).then(function () { toast('Copied', 'success'); })
+        .catch(function () { toast('Copy failed', 'error'); });
+    } else { toast('Copied text is ready below', 'info'); }
+  }
+
+  // Concise, copyable facilitator notes built entirely from the grounded brief.
+  function facilitatorNotes(brief) {
+    return [
+      'Objective:', brief.objective, '',
+      'Observed misconception:', brief.misconception || ('Learners need support with ' + lcFirst(brief.gapConcept) + '.'), '',
+      'Explanation:', brief.plainExplanation, '',
+      'Real-world example:', brief.realWorldExample, '',
+      'Discussion question:', brief.discussionQuestion, '',
+      'Follow-up check question:', brief.followUpCheck, '',
+      'Based on anonymous group responses.'
+    ].join('\n');
+  }
+
+  function copyNotes() {
+    var brief = CR.brief; if (!brief) return;
+    var notes = facilitatorNotes(brief);
+    CR.actionCopyText = notes;
+    if (global.navigator && navigator.clipboard) {
+      navigator.clipboard.writeText(notes).then(function () { toast('Facilitator notes copied', 'success'); })
+        .catch(function () { toast('Copy failed — notes are shown below', 'error'); });
+    } else { toast('Facilitator notes are ready below', 'info'); }
+    var out = document.getElementById('clActionOutput');
+    if (out) {
+      out.innerHTML = '<div class="cl-action-card">' +
+        '<div class="cl-action-head">Facilitator notes' +
+          '<button type="button" class="cl-action-copy" onclick="ClassroomUI.copyActionText()">Copy again</button></div>' +
+        '<pre class="cl-notes">' + esc(notes) + '</pre>' +
+      '</div>';
+      if (out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   // Most-chosen WRONG answer across the assignment, mapped to readable text.
@@ -922,27 +1241,31 @@
     return '<div class="cl-stat"><div class="cl-stat-val">' + esc(String(val)) + '</div><div class="cl-stat-label">' + esc(label) + '</div></div>';
   }
   function conceptRow(c) {
+    var label = D().humanizeSkill(c.skill);
     var tone = c.pct >= 67 ? 'good' : (c.pct >= 45 ? 'mid' : 'low');
     return '<div class="cl-concept">' +
-      '<div class="cl-concept-top"><span>' + esc(c.skill) + '</span><strong>' + c.pct + '%</strong></div>' +
+      '<div class="cl-concept-top"><span>' + esc(label) + '</span><strong>' + c.pct + '%</strong></div>' +
       '<div class="cl-bar"><div class="cl-bar-fill cl-bar-' + tone + '" style="width:' + c.pct + '%"></div></div>' +
     '</div>';
   }
-  function calloutCard(label, value, dir) {
-    return '<div class="cl-callout cl-callout-' + dir + '"><span>' + esc(label) + '</span><strong>' + esc(value) + '</strong></div>';
-  }
 
   // ════════════════════════════════════════════════════════════════════════
-  // LEADER: follow-up activity
+  // LEADER: targeted follow-up (grounded in the detected gap)
   // ════════════════════════════════════════════════════════════════════════
   function buildFollowup(isDemo) {
-    var box = document.getElementById('clInsightAI');
-    if (box) box.insertAdjacentHTML('beforeend', '<div id="clFollowLoading" class="cl-mt">' + loading('Claude is building a targeted follow-up…') + '</div>');
+    var brief = CR.brief;
     var demo = isDemo ? D().buildDemo() : null;
+    mount('<div class="cl-screen cl-center cl-generating">' +
+      '<div class="cl-spinner cl-spinner-lg"></div>' +
+      '<h2 class="cl-gen-title">Claude is building a follow-up for ' + esc((brief && brief.gapShort) || 'this gap') + '</h2>' +
+      '<p class="cl-gen-note">Targeting the detected gap — this usually takes a few seconds.</p>' +
+    '</div>');
 
     var p = D().classroomAI('followup_activity', {
-      topic: CR.lastTopic || (demo && demo.followup.topic) || 'this topic',
-      gap: CR.lastGap || (demo && demo.insight.primaryGap) || '',
+      topic: (brief && brief.topic) || CR.lastTopic || (demo && demo.followup.topic) || 'this topic',
+      gap: CR.lastGap || (brief && brief.misconception) || (demo && demo.insight.primaryGap) || '',
+      gapConcept: (brief && brief.gapConcept) || (demo && demo.insight.gapConcept) || '',
+      objective: (brief && brief.objective) || '',
       objectives: CR.lastObjectives || []
     }).then(function (r) { return r.activity; }).catch(function (err) {
       if (isDemo && demo) return demo.followup; // graceful offline fallback for demo
@@ -950,57 +1273,55 @@
     });
 
     p.then(function (activity) {
-      followupPreview(activity, isDemo);
+      openFollowupPreview(activity, isDemo);
     }).catch(function (err) {
-      var l = document.getElementById('clFollowLoading');
-      if (l) l.innerHTML = errorBox((err && err.message) || 'Could not build the follow-up.', '');
+      mount('<div class="cl-screen">' +
+        back('Insights', isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + (CR.insightClassroom || '') + "')") +
+        errorBox((err && err.message) || 'Could not build the follow-up.',
+          'ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')') + '</div>');
     });
   }
 
-  function followupPreview(activity, isDemo) {
-    CR.pendingFollowup = activity;
-    var mcq = activity.questions.filter(function (q) { return q.type === 'mcq'; }).length;
-    var teach = activity.questions.filter(function (q) { return q.type === 'teachback'; }).length;
-    mount(
-      '<div class="cl-screen">' +
-        back('Insights', isDemo ? 'ClassroomUI.openDemo()' : 'ClassroomUI.openInsights(\'' + (CR.insightClassroom || '') + '\')') +
-        (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
-        '<div class="cl-kicker">Recommended follow-up</div>' +
-        '<h1 class="cl-preview-title" id="clFollowTitle">' + esc(activity.title) + '</h1>' +
-        (activity.explanation ? '<div class="cl-card cl-explain"><p>' + esc(activity.explanation) + '</p></div>' : '') +
-        '<div class="cl-card-meta cl-mt"><span>2-minute explanation</span><span>•</span><span>' + mcq + ' questions</span>' +
-          (teach ? '<span>•</span><span>1 teach-it-back prompt</span>' : '') + '</div>' +
-        (activity.chartPrompt ? '<div class="cl-card cl-mt cl-chart-note"><span>Chart check</span><p>' + esc(activity.chartPrompt) + '</p></div>' : '') +
-        '<div class="cl-stack cl-mt">' +
-          (isDemo
-            ? '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.demoAssignNotice()">Assign to group</button>'
-            : '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.assignFollowup()">Assign to group</button>') +
-          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.editFollowupTitle()">Edit title</button>' +
-          '<button type="button" class="cl-btn cl-btn-ghost" onclick="' + (isDemo ? 'ClassroomUI.openDemo()' : 'ClassroomUI.openInsights(\'' + (CR.insightClassroom || '') + '\')') + '">Cancel</button>' +
-        '</div>' +
-      '</div>'
-    );
+  // Route the generated follow-up through the unified editor with a grounding
+  // banner; the leader can edit the title, add questions, and publish.
+  function openFollowupPreview(activity, isDemo) {
+    var brief = CR.brief || {};
+    var ctx = {
+      classroomId: CR.insightClassroom || '',
+      due: null,
+      isFollowup: true,
+      isDemo: !!isDemo,
+      gapShort: activity.gapConcept || brief.gapShort || '',
+      objective: brief.objective || (activity.objectives && activity.objectives[0]) || ''
+    };
+    assignmentPreview(activity, ctx);
   }
 
-  function editFollowupTitle() {
-    var el = document.getElementById('clFollowTitle');
-    if (!el || !CR.pendingFollowup) return;
-    var current = CR.pendingFollowup.title;
-    var next = global.prompt ? global.prompt('Activity title', current) : current;
-    if (next && next.trim()) { CR.pendingFollowup.title = next.trim().slice(0, 120); el.textContent = CR.pendingFollowup.title; }
-  }
-
-  function assignFollowup() {
-    var activity = CR.pendingFollowup, classroomId = CR.insightClassroom;
-    if (!activity || !classroomId) { renderClassroom(); return; }
-    mount(loading('Assigning follow-up…'));
-    D().createAssignment(classroomId, activity, null).then(function () {
-      toast('Follow-up assigned', 'success');
-      openGroup(classroomId);
-    }).catch(function (err) {
-      toast((err && err.message) || 'Could not assign. Please try again.', 'error');
-      followupPreview(activity, false);
-    });
+  // Group-detail "Build targeted follow-up": load the AI insight, then build —
+  // so the follow-up is grounded even when the leader hasn't opened insights.
+  function buildTargetedFollowup(classroomId) {
+    mount(loading('Reading the group pattern…'));
+    D().listGroups().then(function (groups) {
+      setGroups(groups);
+      var c = groupById(classroomId);
+      if (!c || !c.active_assignment) { openInsights(classroomId); return; }
+      var assignment = c.active_assignment;
+      var content = assignment.content || {};
+      return D().aggregate(assignment.id).then(function (agg) {
+        if (!D().meetsInsightThreshold(agg)) { openInsights(classroomId); return; }
+        return D().classroomAI('group_insight', insightPayload(content, assignment, agg)).then(function (r) {
+          var ins = r.insight;
+          var brief = buildBrief(agg, content, ins, Number(agg.completed) || 0);
+          CR.brief = brief;
+          CR.insightClassroom = classroomId;
+          CR.insightIsDemo = false;
+          CR.lastGap = ins.primaryGap;
+          CR.lastTopic = brief.topic;
+          CR.lastObjectives = content.objectives || [];
+          buildFollowup(false);
+        });
+      });
+    }).catch(function () { openInsights(classroomId); });
   }
 
   function demoAssignNotice() {
@@ -1412,10 +1733,13 @@
     backToPreview: backToPreview,
     submitNewQuestion: submitNewQuestion,
     confirmAssignment: confirmAssignment,
+    editPreviewTitle: editPreviewTitle,
     openInsights: openInsights,
+    showAction: showAction,
+    copyActionText: copyActionText,
+    copyNotes: copyNotes,
     buildFollowup: buildFollowup,
-    editFollowupTitle: editFollowupTitle,
-    assignFollowup: assignFollowup,
+    buildTargetedFollowup: buildTargetedFollowup,
     demoAssignNotice: demoAssignNotice,
     openDemo: openDemo,
     exitDemo: exitDemo,
