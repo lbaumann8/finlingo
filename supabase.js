@@ -29,6 +29,26 @@ const SB_URL  = 'https://mxvhrzzjdjwidhgmgnnf.supabase.co';
 const SB_KEY  = 'sb_publishable_pJIQX7EkN10ZFHh6-kaoTA_65EWrSCe';
 const SB_AUTH = `${SB_URL}/auth/v1`;
 
+// Production site the confirmation/OAuth links should return to.
+// This MUST be listed in Supabase → Authentication → URL Configuration
+// (Site URL + Redirect URLs) or Supabase will reject it and fall back.
+const SB_SITE_URL = 'https://learnfinlingo.online';
+
+/**
+ * Where Supabase email links (confirmation, etc.) should send the user.
+ * On localhost we return the local origin so dev testing lands back locally;
+ * everywhere else we use the canonical production URL so we never ship a
+ * localhost redirect to real users. The landing hash is consumed by the
+ * detectOAuthSession() handler in auth.js, which stores the session.
+ */
+function authEmailRedirectTo() {
+  const origin = window.location.origin || '';
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(origin)) {
+    return origin + window.location.pathname;
+  }
+  return SB_SITE_URL;
+}
+
 // ── TOKEN STORAGE KEYS ────────────────────────────────────────
 const TOKEN_KEY         = 'finlingo_access_token';
 const REFRESH_TOKEN_KEY = 'finlingo_refresh_token';
@@ -320,10 +340,15 @@ async function authGetCurrentUser() {
  *   auth.js stores the token and writes DB rows immediately.
  */
 async function authSignUp(email, password) {
+  // Confirmation-link destination. Passed as a query param (GoTrue reads
+  // redirect_to from the URL, not the body) so the email points at production
+  // instead of whatever Site URL default the dashboard happens to hold.
+  const redirectTo = authEmailRedirectTo();
+
   // Step 1: network call only — catches true network failures separately
   let res;
   try {
-    res = await fetch(`${SB_AUTH}/signup`, {
+    res = await fetch(`${SB_AUTH}/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method:  'POST',
       headers: {
         'apikey':        SB_KEY,
@@ -365,6 +390,64 @@ async function authSignUp(email, password) {
   }
 
   return data;
+}
+
+/**
+ * Re-send the signup confirmation email for an address that has signed up
+ * but not yet verified. REST equivalent of supabase.auth.resend({ type:'signup' }).
+ *
+ * GoTrue endpoint: POST /resend with body { type:'signup', email } and the
+ * confirmation destination passed as ?redirect_to=… (same as signup).
+ *
+ * Throws a meaningful Error on failure so the caller can render it inline:
+ *   - 'RESEND_RATE_LIMIT'  → 429 / "security purposes" / "too many" / cooldown
+ *   - 'RESEND_NETWORK'     → fetch() threw before any response
+ *   - otherwise the human-readable message Supabase returned
+ *
+ * Resolves true on success (Supabase returns 200 with an empty/minimal body).
+ */
+async function authResendConfirmation(email) {
+  const redirectTo = authEmailRedirectTo();
+
+  let res;
+  try {
+    res = await fetch(`${SB_AUTH}/resend?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      method:  'POST',
+      headers: {
+        'apikey':        SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type':  'application/json'
+      },
+      body: JSON.stringify({ type: 'signup', email })
+    });
+  } catch (err) {
+    console.error('authResendConfirmation network error:', err);
+    throw new Error('RESEND_NETWORK');
+  }
+
+  const data = await res.json().catch(() => ({}));
+  console.log('authResendConfirmation response:', res.status, {
+    email,
+    ok: res.ok,
+    message: data.error_description || data.error || data.msg || null
+  });
+
+  if (!res.ok) {
+    const rawMsg = (data.error_description || data.error || data.msg || '').toLowerCase();
+    const isRateLimit = res.status === 429
+      || rawMsg.includes('rate limit')
+      || rawMsg.includes('security purposes')
+      || rawMsg.includes('too many')
+      || rawMsg.includes('after');           // "For security purposes… after N seconds"
+    if (isRateLimit) throw new Error('RESEND_RATE_LIMIT');
+
+    throw new Error(
+      data.error_description || data.error || data.msg || `Resend failed (${res.status})`
+    );
+  }
+
+  console.log('✅ authResendConfirmation: confirmation email re-sent to', email);
+  return true;
 }
 
 /**

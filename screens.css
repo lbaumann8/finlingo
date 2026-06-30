@@ -199,6 +199,37 @@
 .auth-success-title { font-family: var(--font-d); font-size: 1.1rem; font-weight: 700; letter-spacing: -0.018em; margin-bottom: 6px; color: var(--text); }
 .auth-success-sub { font-size: 0.84rem; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
 
+/* Subtle secondary "Resend confirmation email" action under the primary button */
+.auth-resend-btn {
+  margin-top: 12px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.auth-resend-btn:hover:not(:disabled) { color: var(--text); background: var(--bg2); }
+.auth-resend-btn:disabled { opacity: 0.55; cursor: default; }
+.auth-resend-btn.is-sent { color: var(--text); }
+
+/* Calm inline status line — replaces any browser alert */
+.auth-resend-msg {
+  display: none;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 320px;
+}
+.auth-resend-msg.show { display: block; }
+.auth-resend-msg.success { color: var(--text); }
+.auth-resend-msg.error { color: var(--red-text, #e5484d); }
+
 
 /* ── PROFILE SCREEN ──────────────────────────────────────────── */
 #profileScreen {

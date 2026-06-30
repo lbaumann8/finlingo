@@ -55,6 +55,15 @@ let _authIntent = {
 // of this file, consumed and cleared by doResetPassword().
 let _recoveryToken = null;
 
+// Email address from the in-progress signup. Captured the moment the
+// "check your email" screen is shown so the Resend button has a reliable
+// source of truth that does not depend on parsing visible DOM text.
+let _pendingSignupEmail = null;
+
+// Active interval for the resend-button cooldown countdown. Cleared whenever
+// the success screen is reset/replaced so timers never leak across screens.
+let _resendCooldownTimer = null;
+
 function openAuthModal(mode = 'signin', { dismissible = true, returnTo = '' } = {}) {
   const authScreen = document.getElementById('authScreen');
   if (!authScreen) return;
@@ -453,6 +462,7 @@ function switchAuthTab(m) {
   // (e.g. user clicks "Go to Sign In" after signup), restore the form.
   document.getElementById('authSuccessScreen').classList.remove('show');
   document.getElementById('authFormWrap').style.display = '';
+  _teardownResendConfirmation();   // stop any resend cooldown timer on the hidden screen
 
   clearAllFieldStates();
   renderAuthForm();
@@ -692,6 +702,8 @@ function setAuthButtonState(btn, busy, label) {
 // Uses the existing #authSuccessScreen element in index.html.
 
 function showVerifyEmailScreen(email) {
+  _pendingSignupEmail = email || _pendingSignupEmail;
+
   const iconEl = document.querySelector('#authSuccessScreen .auth-success-icon svg');
   if (iconEl) {
     iconEl.innerHTML = '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>';
@@ -699,7 +711,7 @@ function showVerifyEmailScreen(email) {
 
   document.getElementById('authSuccessTitle').textContent = 'Check your email';
   document.getElementById('authSuccessSub').textContent   =
-    `We sent a confirmation link to ${email}. Click it to activate your account, then sign in here. If you don't see it within 2 minutes, check your spam or junk folder.`;
+    `We sent a confirmation link to ${email}. Click it to activate your account, then return here to sign in. Check your spam or junk folder if it does not arrive.`;
 
   const btn = document.querySelector('#authSuccessScreen .btn');
   if (btn) {
@@ -713,11 +725,148 @@ function showVerifyEmailScreen(email) {
     };
   }
 
+  _mountResendConfirmation(email);
+
   document.getElementById('authFormWrap').style.display = 'none';
   document.getElementById('authSuccessScreen').classList.add('show');
 }
 
+// ── RESEND CONFIRMATION EMAIL ─────────────────────────────────
+// Builds (once) the subtle secondary "Resend confirmation email" action and
+// its inline status line beneath the primary "Go to Sign In" button, then
+// wires up send → cooldown behaviour. Reuses existing nodes on re-entry.
+
+function _mountResendConfirmation(email) {
+  const screen = document.getElementById('authSuccessScreen');
+  if (!screen) return;
+
+  // Any countdown left over from a previous visit must not keep ticking.
+  if (_resendCooldownTimer) { clearInterval(_resendCooldownTimer); _resendCooldownTimer = null; }
+
+  let resendBtn = document.getElementById('authResendBtn');
+  let msgEl     = document.getElementById('authResendMsg');
+
+  if (!resendBtn) {
+    resendBtn = document.createElement('button');
+    resendBtn.id = 'authResendBtn';
+    resendBtn.type = 'button';
+    resendBtn.className = 'auth-resend-btn';
+    screen.appendChild(resendBtn);
+  }
+  if (!msgEl) {
+    msgEl = document.createElement('div');
+    msgEl.id = 'authResendMsg';
+    msgEl.className = 'auth-resend-msg';
+    screen.appendChild(msgEl);
+  }
+
+  // Reset to the idle state every time the screen opens.
+  resendBtn.disabled  = false;
+  resendBtn.classList.remove('is-sent');
+  resendBtn.textContent = 'Resend confirmation email';
+  msgEl.textContent = '';
+  msgEl.className = 'auth-resend-msg';
+  resendBtn.onclick = () => _handleResendClick(email);
+}
+
+function _setResendMsg(msgEl, text, kind) {
+  if (!msgEl) return;
+  msgEl.textContent = text || '';
+  msgEl.className = 'auth-resend-msg' + (text ? ' show' : '') + (kind ? ' ' + kind : '');
+}
+
+async function _handleResendClick(emailArg) {
+  const resendBtn = document.getElementById('authResendBtn');
+  const msgEl     = document.getElementById('authResendMsg');
+  if (!resendBtn || resendBtn.disabled) return;   // guard against double-clicks
+
+  const email = emailArg || _pendingSignupEmail;
+  if (!email) {
+    _setResendMsg(
+      msgEl,
+      'We lost track of your email. Please return to Create account and sign up again.',
+      'error'
+    );
+    return;
+  }
+
+  // Disable + show pending. Prevents duplicate requests for the whole round-trip.
+  resendBtn.disabled = true;
+  resendBtn.classList.remove('is-sent');
+  resendBtn.textContent = 'Sending…';
+  _setResendMsg(msgEl, '', '');
+
+  try {
+    await authResendConfirmation(email);
+  } catch (err) {
+    // Failure: never claim success. Re-enable so the user can retry.
+    console.error('Resend confirmation failed:', err);
+    resendBtn.disabled = false;
+    resendBtn.textContent = 'Resend confirmation email';
+
+    let friendly;
+    if (err.message === 'RESEND_RATE_LIMIT') {
+      friendly = 'Too many requests right now. Please wait about a minute, then try again.';
+    } else if (err.message === 'RESEND_NETWORK') {
+      friendly = "Couldn't reach our email service. Check your connection and try again.";
+    } else if (/already.*(confirmed|registered)|been confirmed/i.test(err.message)) {
+      friendly = 'This email is already confirmed — you can go ahead and sign in.';
+    } else {
+      friendly = err.message || 'Something went wrong sending the email. Please try again.';
+    }
+    _setResendMsg(msgEl, friendly, 'error');
+    return;
+  }
+
+  // Success: confirm calmly, then start the 60-second cooldown.
+  resendBtn.classList.add('is-sent');
+  resendBtn.textContent = 'Email sent';
+  _setResendMsg(
+    msgEl,
+    `A new confirmation email was sent to ${email}. Check your inbox and spam folder.`,
+    'success'
+  );
+  _startResendCooldown(60);
+}
+
+function _startResendCooldown(seconds) {
+  const resendBtn = document.getElementById('authResendBtn');
+  if (!resendBtn) return;
+
+  if (_resendCooldownTimer) { clearInterval(_resendCooldownTimer); _resendCooldownTimer = null; }
+
+  let remaining = seconds;
+  resendBtn.disabled = true;
+  resendBtn.classList.remove('is-sent');
+  resendBtn.textContent = `Resend in ${remaining}s`;
+
+  _resendCooldownTimer = setInterval(() => {
+    remaining -= 1;
+    // Bail if the screen was torn down mid-countdown.
+    if (!document.getElementById('authResendBtn')) {
+      clearInterval(_resendCooldownTimer); _resendCooldownTimer = null; return;
+    }
+    if (remaining <= 0) {
+      clearInterval(_resendCooldownTimer); _resendCooldownTimer = null;
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend confirmation email';
+      return;
+    }
+    resendBtn.textContent = `Resend in ${remaining}s`;
+  }, 1000);
+}
+
+// Remove the resend action + countdown so it never bleeds into the
+// password-reset or account-created variants of this shared screen.
+function _teardownResendConfirmation() {
+  if (_resendCooldownTimer) { clearInterval(_resendCooldownTimer); _resendCooldownTimer = null; }
+  document.getElementById('authResendBtn')?.remove();
+  document.getElementById('authResendMsg')?.remove();
+}
+
 function resetSuccessScreen() {
+  _teardownResendConfirmation();
+
   const iconEl = document.querySelector('#authSuccessScreen .auth-success-icon svg');
   if (iconEl) iconEl.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
 
@@ -733,6 +882,7 @@ function resetSuccessScreen() {
  * Reuses the same #authSuccessScreen infrastructure as signup confirmation.
  */
 function showForgotSuccessScreen(email) {
+  _teardownResendConfirmation();
   const iconEl = document.querySelector('#authSuccessScreen .auth-success-icon svg');
   if (iconEl) {
     iconEl.innerHTML = '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>';
@@ -866,6 +1016,7 @@ async function doAuth() {
     if (!session.access_token) {
       console.log('✅ STAGE 2 confirmation email sent to:', email);
       if (name) localStorage.setItem('finlingo_pending_name', name);
+      _pendingSignupEmail = email;   // source of truth for the Resend button
       showVerifyEmailScreen(email);
       return;
     }
