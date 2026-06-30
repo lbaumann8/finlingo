@@ -2562,21 +2562,24 @@ function updateHome() {
 let currentRanksTab = 'alltime';
 let liveLeaderboard = [];
 
-/** Fetch the top-20 leaderboard from Supabase. */
+/**
+ * Fetch the top-20 leaderboard from Supabase.
+ * Served by the leaderboard_top() SECURITY DEFINER RPC, which exposes only
+ * safe fields (name, xp, streak, tier, is_you) — never email or another
+ * user's UUID. The progress/users tables themselves are RLS-locked to the
+ * caller's own row, so this RPC is the only way to read the board.
+ */
 async function fetchLeaderboard() {
   try {
-    const rows = await sbGet('progress',
-      '?select=user_id,xp,streak,tier,users(name)&order=xp.desc&limit=20'
-    );
-    liveLeaderboard = rows.map((r, i) => ({
-      name:   r.users?.name || 'User',
-      userId: r.user_id,
+    const rows = await sbRpc('leaderboard_top', { p_limit: 20 });
+    liveLeaderboard = (rows || []).map((r, i) => ({
+      name:   r.name || 'User',
       xp:     r.xp    || 0,
       streak: Math.max(0, Number(r.streak) || 0),
       level:  typeof getLevelFromXP === 'function' ? getLevelFromXP(r.xp || 0) : 1,
       tier:   r.tier   || 'standard',
       color:  AVATAR_COLORS[i % AVATAR_COLORS.length],
-      isYou:  r.user_id === S.user?.id  // compare by UUID, not name
+      isYou:  !!r.is_you  // computed server-side from the caller's JWT
     }));
   } catch (e) {
     liveLeaderboard = [];
@@ -4097,6 +4100,25 @@ function renderPath() {
 // ════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // ── Startup watchdog ─────────────────────────────────────────
+  // Guarantees the user is never stranded on the blank app shell. No `.screen`
+  // is `.active` in the initial HTML, so if the boot sequence below throws,
+  // hangs on a slow network call, or otherwise fails to render a screen, this
+  // forces the sign-in surface so there is always something usable on screen.
+  const _bootWatchdog = setTimeout(() => {
+    if (!document.querySelector('.screen.active')) {
+      console.warn('[boot] watchdog fired — no screen rendered in time, forcing sign-in');
+      try {
+        if (typeof _showAuthBootScreen === 'function') _showAuthBootScreen();
+        else if (typeof _renderBootFallback === 'function') _renderBootFallback();
+      } catch (err) {
+        console.error('[boot] watchdog fallback failed:', err);
+        if (typeof _renderBootFallback === 'function') _renderBootFallback();
+      }
+    }
+  }, 6000);
+  const _clearBootWatchdog = () => clearTimeout(_bootWatchdog);
+
   document.body.classList.toggle(
     'workspace-sidebar-collapsed',
     localStorage.getItem('finlingo_workspace_sidebar') === 'collapsed'
@@ -4149,8 +4171,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Check for password-reset recovery link ────────────────
   const inRecovery = checkAndApplyRecoveryMode();
   if (inRecovery) {
+    _clearBootWatchdog();
     _showAuthBootScreen();
     openAuthModal('reset', { dismissible: false });
+    return;
+  }
+
+  // ── Check for an email-confirmation landing ───────────────
+  // detectAuthLanding() (auth.js) already consumed any returned session and
+  // scrubbed the URL; here we render the matching success / error screen so the
+  // user gets a clear outcome instead of a blank frame.
+  const _landing = window.__finlingoAuthLanding;
+  if (_landing && (_landing.kind === 'confirmed' || _landing.kind === 'error')) {
+    _clearBootWatchdog();
+    try {
+      _showAuthBootScreen();   // activates the auth screen shell
+      if (_landing.kind === 'error') {
+        if (typeof showEmailConfirmError === 'function') showEmailConfirmError(_landing.email);
+      } else if (typeof showEmailConfirmedScreen === 'function') {
+        showEmailConfirmedScreen(_landing.email);
+      }
+    } catch (err) {
+      console.error('[boot] email-confirmation render failed:', err);
+      if (typeof _renderBootFallback === 'function') {
+        _renderBootFallback('Your email was confirmed. Please return to sign in.');
+      }
+    }
     return;
   }
 
@@ -4174,6 +4220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!S.joinedDate) S.joinedDate = new Date().toISOString();
         if (typeof save === 'function') save();
       }
+      _clearBootWatchdog();
       enterApp();
       return;
     }
@@ -4187,18 +4234,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (sessionUser?.id) {
         _hydrateStateFromSessionUser(sessionUser);
         await _syncTierFromSupabase();
+        _clearBootWatchdog();
         enterApp();
         if (typeof _syncProfileAndProgress === 'function') {
           _syncProfileAndProgress(sessionUser.id, sessionUser.email || '').catch(() => {});
         }
       } else {
+        _clearBootWatchdog();
         _showAuthBootScreen();
       }
     } else {
+      _clearBootWatchdog();
       _showAuthBootScreen();
     }
   } catch (err) {
     console.error('[boot] auth/boot fallback triggered:', err);
+    _clearBootWatchdog();
     _showAuthBootScreen();
   }
 });

@@ -261,6 +261,16 @@ async function sbPatch(table, query, body) {
   return res.json();
 }
 
+/** Call a Postgres RPC (e.g. a SECURITY DEFINER function) via PostgREST. */
+async function sbRpc(fn, args = {}) {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST', headers, body: JSON.stringify(args || {})
+  });
+  if (!res.ok) throw new Error(`sbRpc ${fn}: ${res.status}`);
+  return res.json();
+}
+
 /** INSERT or UPDATE. Uses merge-duplicates to prevent 409 conflicts. */
 async function sbUpsert(table, body) {
   const headers = await getAuthHeaders();

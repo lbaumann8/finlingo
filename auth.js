@@ -902,6 +902,88 @@ function showForgotSuccessScreen(email) {
   document.getElementById('authSuccessScreen').classList.add('show');
 }
 
+// ── EMAIL CONFIRMATION RESULT SCREENS ─────────────────────────
+// Rendered on boot (called from app.js) after the user lands back from a
+// Supabase email-confirmation link. Both reuse the shared #authSuccessScreen
+// element so the user always sees a clear surface — never a blank app frame.
+
+/** Success: the account is now confirmed and ready to sign in. */
+function showEmailConfirmedScreen(email) {
+  const target = email || _pendingSignupEmail
+    || (() => { try { return localStorage.getItem(PENDING_SIGNUP_EMAIL_KEY) || ''; } catch (_) { return ''; } })();
+
+  _teardownResendConfirmation();
+
+  const iconEl = document.querySelector('#authSuccessScreen .auth-success-icon svg');
+  if (iconEl) iconEl.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+
+  const titleEl = document.getElementById('authSuccessTitle');
+  const subEl   = document.getElementById('authSuccessSub');
+  if (titleEl) titleEl.textContent = 'Email confirmed';
+  if (subEl)   subEl.textContent   = 'Your email has been confirmed. You can now sign in.';
+
+  const btn = document.querySelector('#authSuccessScreen .btn');
+  if (btn) {
+    btn.innerHTML = `Go to Sign In ${FinLingoIcons.right()}`;
+    btn.onclick = () => {
+      switchAuthTab('signin');
+      if (target) {
+        setTimeout(() => {
+          const emailInput = document.getElementById('authEmail');
+          if (emailInput) {
+            emailInput.value = target;
+            clearFieldError('authEmail');
+            updateAuthSubmitState();
+          }
+          document.getElementById('authPass')?.focus();
+        }, 60);
+      }
+    };
+  }
+
+  // The pending-signup email has served its purpose — clear it so it can't leak
+  // into an unrelated later signup attempt.
+  try { localStorage.removeItem(PENDING_SIGNUP_EMAIL_KEY); } catch (_) {}
+
+  _setTabsVisible(true);
+  document.getElementById('authFormWrap').style.display = 'none';
+  document.getElementById('authSuccessScreen').classList.add('show');
+}
+
+/** Error: the confirmation link was invalid or expired. Offer resend + sign in. */
+function showEmailConfirmError(email) {
+  const target = email
+    || (() => { try { return localStorage.getItem(PENDING_SIGNUP_EMAIL_KEY) || ''; } catch (_) { return ''; } })();
+
+  const iconEl = document.querySelector('#authSuccessScreen .auth-success-icon svg');
+  if (iconEl) {
+    iconEl.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+  }
+
+  const titleEl = document.getElementById('authSuccessTitle');
+  const subEl   = document.getElementById('authSuccessSub');
+  if (titleEl) titleEl.textContent = 'Link expired';
+  if (subEl)   subEl.textContent   =
+    'This confirmation link is invalid or has expired. Request a new one below, or return to sign in.';
+
+  const btn = document.querySelector('#authSuccessScreen .btn');
+  if (btn) {
+    btn.innerHTML = `Return to sign in ${FinLingoIcons.right()}`;
+    btn.onclick = () => switchAuthTab('signin');
+  }
+
+  // Reuse the existing resend-confirmation control when we know the address.
+  if (target) {
+    _mountResendConfirmation(target);
+  } else {
+    _teardownResendConfirmation();
+  }
+
+  _setTabsVisible(true);
+  document.getElementById('authFormWrap').style.display = 'none';
+  document.getElementById('authSuccessScreen').classList.add('show');
+}
+
 function _restoreScreenBehindAccount() {
   const returnContext = _authReturnContext || {};
   const targetScreen = returnContext.screenId && document.getElementById(returnContext.screenId)
@@ -1016,6 +1098,9 @@ async function doAuth() {
     if (!session.access_token) {
       console.log('✅ STAGE 2 confirmation email sent to:', email);
       if (name) localStorage.setItem('finlingo_pending_name', name);
+      // Persist the email so the post-confirmation landing screen (which loads
+      // in a fresh page from the email client) can prefill it for sign-in/resend.
+      try { localStorage.setItem(PENDING_SIGNUP_EMAIL_KEY, email); } catch (_) {}
       _pendingSignupEmail = email;   // source of truth for the Resend button
       showVerifyEmailScreen(email);
       return;
@@ -1388,18 +1473,119 @@ function enterApp() {
   }
 })();
 
-(function detectOAuthSession() {
-  if (!window.location.hash) return;
-  const params = new URLSearchParams(window.location.hash.replace('#', '?'));
-  if (params.get('type') === 'recovery') return;
-  const accessToken = params.get('access_token');
-  if (!accessToken) return;
-  setStoredSession({
-    access_token: accessToken,
-    refresh_token: params.get('refresh_token') || '',
-    expires_in: Number(params.get('expires_in')) || 3600
-  });
-  history.replaceState(null, '', window.location.pathname + window.location.search);
+// ── EMAIL-CONFIRMATION + OAUTH LANDING DETECTION (runs once on load) ──
+//
+// Supabase email-confirmation links (implicit flow) redirect back to the site
+// with the session in the URL hash, e.g.
+//   https://site/#access_token=…&refresh_token=…&expires_in=3600&type=signup
+// An already-used or expired link instead returns an error hash, e.g.
+//   https://site/#error=access_denied&error_code=otp_expired&error_description=…
+// PKCE-style links return ?code=… in the query string.
+//
+// This handler must:
+//   (a) consume + store any returned session (so a refresh keeps the user in),
+//   (b) scrub the tokens/params from the visible URL via history.replaceState,
+//   (c) record WHAT happened on window.__finlingoAuthLanding so the boot
+//       sequence in app.js can render an explicit confirmation success / error
+//       screen instead of silently trying to enter a half-initialised app —
+//       which is what previously stranded users on a blank frame.
+//
+// window.__finlingoAuthLanding =
+//   { kind:'confirmed', email, hasSession }  → email confirmed (signup/email)
+//   { kind:'error', reason, email }          → link expired / invalid
+//   null                                     → nothing to handle / pure OAuth login
+window.__finlingoAuthLanding = null;
+
+const PENDING_SIGNUP_EMAIL_KEY = 'finlingo_pending_signup_email';
+
+// Decode the payload of a Supabase access-token JWT (base64url) so we can
+// recover the user id (`sub`) and email without a network round-trip.
+function _decodeJwtPayload(token) {
+  try {
+    const part = String(token || '').split('.')[1];
+    if (!part) return null;
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch (_) {
+    return null;
+  }
+}
+
+// Strip hash + every auth-related query param, leaving a clean path/URL.
+function _scrubAuthParamsFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    [
+      'access_token', 'refresh_token', 'expires_in', 'expires_at', 'token_type',
+      'type', 'code', 'error', 'error_code', 'error_description',
+      'provider_token', 'provider_refresh_token'
+    ].forEach(key => url.searchParams.delete(key));
+    history.replaceState(null, '', url.pathname + (url.search || ''));
+  } catch (_) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+(function detectAuthLanding() {
+  const hashStr     = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
+  const hashParams  = new URLSearchParams(hashStr);
+  const queryParams = new URLSearchParams(window.location.search || '');
+  const read        = key => hashParams.get(key) || queryParams.get(key);
+
+  // Recovery (password reset) is owned by detectRecoveryToken() — leave it alone.
+  if (read('type') === 'recovery') return;
+
+  const errorCode   = read('error_code') || read('error');
+  const accessToken = read('access_token');
+  const type        = read('type');
+  const code        = read('code');
+  const pendingEmail = (() => {
+    try { return localStorage.getItem(PENDING_SIGNUP_EMAIL_KEY) || ''; } catch (_) { return ''; }
+  })();
+
+  // ── 1. Error landing (expired / already-used / invalid confirmation link) ──
+  if (errorCode) {
+    console.warn('🔗 Email-confirmation landing error:', errorCode, read('error_description') || '');
+    window.__finlingoAuthLanding = { kind: 'error', reason: errorCode, email: pendingEmail };
+    _scrubAuthParamsFromUrl();
+    return;
+  }
+
+  // ── 2. A session was returned in the URL ──
+  if (accessToken) {
+    const payload = _decodeJwtPayload(accessToken);
+    const session = {
+      access_token:  accessToken,
+      refresh_token: read('refresh_token') || '',
+      expires_in:    Number(read('expires_in')) || 3600
+    };
+    // Carrying the user through to setStoredSession lets a later refresh resolve
+    // identity instantly (no /user round-trip) and avoids the blank-shell race.
+    if (payload?.sub) {
+      session.user = { id: payload.sub, email: payload.email || '' };
+    }
+    setStoredSession(session);
+    _scrubAuthParamsFromUrl();
+
+    // Email-confirmation links carry type=signup|email|email_change.
+    // Google OAuth logins carry no `type` — those flow straight into the app via
+    // the normal boot session path (no confirmation screen).
+    if (type === 'signup' || type === 'email' || type === 'email_change') {
+      window.__finlingoAuthLanding = {
+        kind: 'confirmed',
+        hasSession: true,
+        email: payload?.email || pendingEmail
+      };
+    }
+    return;
+  }
+
+  // ── 3. PKCE code with no client-side verifier here → confirmed, sign in ──
+  if (code) {
+    window.__finlingoAuthLanding = { kind: 'confirmed', hasSession: false, email: pendingEmail };
+    _scrubAuthParamsFromUrl();
+    return;
+  }
 })();
 
 // Called by app.js (or wherever you show the auth screen on boot)
