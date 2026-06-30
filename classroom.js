@@ -33,8 +33,25 @@
     root.scrollTop = 0;
     if (typeof after === 'function') after(root);
   }
+  // S is a top-level `let` in a classic script — it lives in the shared global
+  // lexical environment, NOT on `window`. Reference it bare (resolved up the
+  // scope chain), never as `global.S` (which is `undefined`). This was the root
+  // cause of Classroom always showing the signed-out gate.
+  function appState() {
+    return (typeof S !== 'undefined') ? S : null;
+  }
+
+  // Three-way auth result so we can tell "still hydrating" apart from
+  // "definitively signed out". The canonical signed-in signal is S.user.id;
+  // a stored Supabase session token means identity is still resolving on boot.
+  function authStatus() {
+    var s = appState();
+    if (s && s.user && s.user.id) return 'authed';
+    if (typeof getStoredSession === 'function' && getStoredSession()) return 'loading';
+    return 'signedout';
+  }
   function isAuthed() {
-    return !!(global.S && global.S.user && global.S.user.id);
+    return authStatus() === 'authed';
   }
   function back(label, fn) {
     return '<button type="button" class="cl-back" onclick="' + fn + '">' +
@@ -51,13 +68,50 @@
   }
 
   // ── Entry ──────────────────────────────────────────────────────────────────
+  var _authPollTimer = null;
+  var _authPollTries = 0;
+
   function renderClassroom(view) {
     if (!D()) { mount(errorBox('Classroom is still loading. Please retry.', 'renderClassroom()')); return; }
-    if (!isAuthed()) { renderSignedOut(); return; }
+
+    var status = authStatus();
+
+    // A session token exists but identity hasn't hydrated yet (boot race).
+    // Show a brief loading state and re-render once auth resolves — never flash
+    // the signed-out gate at an authenticated user.
+    if (status === 'loading') {
+      mount('<div class="cl-screen">' +
+        header('Classroom', 'Create short financial-literacy activities and understand where your group needs support.') +
+        loading('Loading your account…') + '</div>');
+      _scheduleAuthPoll(view);
+      return;
+    }
+
+    _clearAuthPoll();
+    if (status === 'signedout') { renderSignedOut(); return; }
+
     if (view === 'join') { openJoin(); return; }
-    var leader = global.S && global.S.finlingoMode === 'leader';
+    var s = appState();
+    var leader = s && s.finlingoMode === 'leader';
     if (leader) renderLeaderDashboard();
     else renderLearnerHome();
+  }
+
+  // Bounded retry while the session hydrates on boot (~6s max), then fall
+  // through to whatever authStatus() resolves to (authed or signed-out).
+  function _scheduleAuthPoll(view) {
+    _clearAuthPoll();
+    _authPollTries = 0;
+    _authPollTimer = global.setInterval(function () {
+      _authPollTries++;
+      if (authStatus() !== 'loading' || _authPollTries >= 15) {
+        _clearAuthPoll();
+        if (ROOT()) renderClassroom(view);
+      }
+    }, 400);
+  }
+  function _clearAuthPoll() {
+    if (_authPollTimer) { global.clearInterval(_authPollTimer); _authPollTimer = null; }
   }
 
   function renderSignedOut() {

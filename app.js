@@ -238,7 +238,8 @@ function openFinlingoAccount() {
   const isAuthenticated = _accountIsAuthenticated();
   const name = isAuthenticated ? (S.user?.name || 'User') : 'Guest';
   const email = isAuthenticated ? (S.user?.email || 'No email added') : 'No email added';
-  const color = isAuthenticated ? (S.user?.avatarColor || '#1F2937') : '#20242B';
+  // The profile summary avatar stays neutral — it must not inherit the user's
+  // (possibly green) avatarColor or any mode-dependent styling.
   const status = isAuthenticated ? '' : '<span class="account-status">Guest account</span>';
   root.innerHTML = `
     <section class="account-page" role="dialog" aria-modal="true" aria-labelledby="accountPageTitle">
@@ -249,7 +250,7 @@ function openFinlingoAccount() {
       </header>
       <main class="account-page-body">
         <section class="account-profile">
-          <div class="account-avatar" style="background:${_accountEsc(color)}">${_accountEsc(_accountInitials())}</div>
+          <div class="account-avatar">${_accountEsc(_accountInitials())}</div>
           <div class="account-profile-copy">
             <strong>${_accountEsc(name)}</strong>
             <small>${_accountEsc(email)}</small>
@@ -328,6 +329,12 @@ function setFinlingoMode(mode) {
   S.finlingoMode = mode === 'leader' ? 'leader' : 'personal';
   if (typeof save === 'function') save();
   if (window.NavDrawer && typeof NavDrawer.refresh === 'function') NavDrawer.refresh();
+  // If Classroom is currently the active screen behind the Account overlay,
+  // re-render it so the leader/learner view updates without a reload.
+  if (document.getElementById('classroomScreen')?.classList.contains('active')
+      && typeof renderClassroom === 'function') {
+    renderClassroom();
+  }
   if (typeof openFinlingoAccount === 'function') openFinlingoAccount(); // re-render toggle state
 }
 function openClassroomFromAccount() {

@@ -44,8 +44,10 @@
   }
 
   // ── Footer identity ────────────────────────────────────────
+  // S is a top-level `let` in a classic script (global lexical env, NOT on
+  // `window`) — reference it bare, not as `global.S` (which is `undefined`).
   function _userInitials() {
-    var u = (global.S && global.S.user) || null;
+    var u = (typeof S !== 'undefined' && S && S.user) || null;
     // Signed-out guests always show "GU" — never derive initials from a stored
     // fallback name (e.g. an old "You"), which could resurface "YO".
     var authed = !!(u && (u.id || u.email));
@@ -59,7 +61,7 @@
     return (out || 'U').toUpperCase();
   }
   function _userAvatarColor() {
-    var u = (global.S && global.S.user) || null;
+    var u = (typeof S !== 'undefined' && S && S.user) || null;
     return (u && u.avatarColor) || '#1f2937';
   }
 
@@ -82,7 +84,7 @@
 
   // Classroom appears for program leaders, or for learners who have joined a group.
   function _showClassroom() {
-    var s = global.S || {};
+    var s = (typeof S !== 'undefined' && S) || {};
     if (s.finlingoMode === 'leader') return true;
     return Array.isArray(s.classroomJoinedIds) && s.classroomJoinedIds.length > 0;
   }

@@ -82,13 +82,17 @@
   }
 
   // ── Supabase access ───────────────────────────────────────────────────────
+  // NOTE: S, SB_URL and other app globals are top-level `let`/`const` bindings in
+  // classic scripts, so they live in the shared global lexical environment — they
+  // are NOT properties of `window`. Reference them bare (resolved up the scope
+  // chain), never as `global.S` / `global.SB_URL` (which are `undefined`).
   function currentUserId() {
-    return (global.S && global.S.user && global.S.user.id) || null;
+    return (typeof S !== 'undefined' && S && S.user && S.user.id) || null;
   }
 
   function sbRpc(fn, args) {
     return getAuthHeaders().then(function (headers) {
-      return fetch(global.SB_URL + '/rest/v1/rpc/' + fn, {
+      return fetch(SB_URL + '/rest/v1/rpc/' + fn, {
         method: 'POST', headers: headers, body: JSON.stringify(args || {})
       }).then(function (res) {
         return res.json().catch(function () { return null; }).then(function (data) {
@@ -171,10 +175,10 @@
         throw new Error('Could not join that classroom. Please try again.');
       }
       // Remember locally so the Classroom nav item appears for this learner.
-      var ids = (global.S && global.S.classroomJoinedIds) || [];
-      if (res.classroom && ids.indexOf(res.classroom.id) < 0) {
-        global.S.classroomJoinedIds = ids.concat([res.classroom.id]);
-        if (typeof global.save === 'function') global.save();
+      var ids = (typeof S !== 'undefined' && S && S.classroomJoinedIds) || [];
+      if (res.classroom && typeof S !== 'undefined' && S && ids.indexOf(res.classroom.id) < 0) {
+        S.classroomJoinedIds = ids.concat([res.classroom.id]);
+        if (typeof save === 'function') save();
       }
       return res;
     });

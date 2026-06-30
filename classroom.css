@@ -24,7 +24,11 @@
   --cl-radius-sm: 12px;
 }
 
-.cl-screen { display: block; }
+/* The app shell zeroes `.screen` padding and expects each screen's own content
+   wrapper to provide horizontal padding (see .market-learning-shell etc.). The
+   large bottom value clears the fixed mobile bottom-nav; the desktop shell
+   (min-width:900px) overrides this to a tighter value in refine.css. */
+.cl-screen { display: block; padding: 24px 20px 120px; }
 .cl-center { text-align: center; }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
@@ -214,5 +218,13 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .account-mode-opt strong { color: var(--cl-title); font: 600 0.88rem var(--font-b); }
 .account-mode-opt small { color: var(--cl-muted); font: 400 0.74rem var(--font-b); }
-.account-mode-opt.is-active { border-color: var(--cl-green); background: rgba(43,189,106,0.10); }
-.account-mode-opt.is-active strong { color: #ffffff; }
+/* Selected = neutral white fill (no green), black text on a subtle light border. */
+.account-mode-opt.is-active { border-color: rgba(0,0,0,0.12); background: #ffffff; }
+.account-mode-opt.is-active strong { color: #0a0a0a; }
+.account-mode-opt.is-active small { color: #5b6470; }
+/* Clearly visible keyboard focus on both states. */
+.account-mode-opt:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+.account-mode-opt.is-active:focus-visible { outline-color: #0a0a0a; }

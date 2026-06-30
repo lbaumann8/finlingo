@@ -3514,7 +3514,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-learn-shell,
   .market-learning-shell,
-  .simple-page-shell {
+  .simple-page-shell,
+  .cl-screen {
     display: block !important;
     width: 100% !important;
     max-width: none !important;
