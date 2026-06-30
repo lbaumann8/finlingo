@@ -345,6 +345,60 @@
     });
   }
 
+  // Live Classroom uses owner/member-checked RPCs. No caller reads raw live
+  // response rows; the leader receives distributions and learning-state counts.
+  function liveCreate(assignmentId) {
+    return sbRpc('classroom_live_create', { p_assignment: assignmentId }).then(liveResult);
+  }
+  function liveFind(classroomId) {
+    return sbRpc('classroom_live_find', { p_classroom: classroomId }).then(liveResult);
+  }
+  function liveJoin(sessionId) {
+    return sbRpc('classroom_live_join', { p_session: sessionId }).then(liveResult);
+  }
+  function liveControl(sessionId, action, payload) {
+    return sbRpc('classroom_live_control', {
+      p_session: sessionId, p_action: action, p_payload: payload || {}
+    }).then(liveResult);
+  }
+  function liveLeaderSnapshot(sessionId) {
+    return sbRpc('classroom_live_leader_snapshot', { p_session: sessionId }).then(liveResult);
+  }
+  function liveLearnerSnapshot(sessionId) {
+    return sbRpc('classroom_live_learner_snapshot', { p_session: sessionId }).then(liveResult);
+  }
+  function liveSubmit(sessionId, response, confidence) {
+    return sbRpc('classroom_live_submit', {
+      p_session: sessionId, p_response: response || {}, p_confidence: confidence || null
+    }).then(liveResult);
+  }
+  function liveAsk(sessionId, question) {
+    return sbRpc('classroom_live_ask', { p_session: sessionId, p_question: question }).then(liveResult);
+  }
+  function liveQuestionAction(sessionId, questionId, action) {
+    return sbRpc('classroom_live_question_action', {
+      p_session: sessionId, p_question: questionId, p_action: action
+    }).then(liveResult);
+  }
+  function liveResult(res) {
+    if (!res || !res.ok) {
+      var reason = res && res.error;
+      var messages = {
+        forbidden: 'You do not have access to this live session.',
+        not_a_member: 'Join this group before entering its live session.',
+        session_not_found: 'There is no active live session.',
+        assignment_not_found: 'That published assignment is no longer available.',
+        responses_closed: 'Responses are closed for this question.',
+        already_answered: 'Your answer is already submitted.',
+        invalid_transition: 'That session action is not available right now.'
+      };
+      var err = new Error(messages[reason] || 'The live session could not be updated.');
+      err.code = reason || 'live_error';
+      throw err;
+    }
+    return res;
+  }
+
   // ── Insight thresholds + derivations (shared by live + demo) ──────────────
   var INSIGHT_MIN_LEARNERS = 3;
   var INSIGHT_MIN_RESPONSES = 5;
@@ -380,18 +434,47 @@
   function humanizeSkill(raw) {
     var s = String(raw == null ? '' : raw).trim();
     if (!s) return 'This concept';
-    var spaced = s.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
-    var tokens = spaced.split(' ');
-    var last = tokens[tokens.length - 1].toLowerCase();
+    var spaced = s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+    var tokens = spaced.split(' ').filter(Boolean);
+    tokens = tokens.filter(function (word, i) {
+      return i === 0 || word.toLowerCase() !== tokens[i - 1].toLowerCase();
+    });
+    var verbs = ['recognizing', 'recognize', 'identifying', 'identify', 'understanding', 'understand'];
+    while (tokens.length > 1 && verbs.indexOf(tokens[0].toLowerCase()) >= 0) tokens.shift();
+    var last = (tokens[tokens.length - 1] || '').toLowerCase();
     var out;
     if ((last === 'explain' || last === 'explanation') && tokens.length > 1) {
       out = 'Explaining ' + tokens.slice(0, -1).join(' ').toLowerCase();
-    } else if (last === 'limits' && tokens.length > 1) {
-      out = 'Recognizing ' + tokens.slice(0, -1).join(' ').toLowerCase() + ' limits';
+    } else if ((last === 'limits' || last === 'benefits') && tokens.length > 1) {
+      out = last.charAt(0).toUpperCase() + last.slice(1) + ' of ' + tokens.slice(0, -1).join(' ').toLowerCase();
     } else {
-      out = spaced;
+      out = tokens.join(' ').toLowerCase();
+      out = out.charAt(0).toUpperCase() + out.slice(1);
     }
-    return out.charAt(0).toUpperCase() + out.slice(1);
+    return out.replace(/\b([a-z]+)(?:\s+\1)\b/gi, '$1');
+  }
+
+  // Normalize model text before it reaches any renderer. This removes markdown
+  // tokens and decorative correctness emoji while preserving short paragraphs
+  // and simple list structure as plain text.
+  function normalizeGeneratedText(value, limit) {
+    var out = String(value == null ? '' : value)
+      .replace(/```[\s\S]*?```/g, function (m) { return m.replace(/```(?:\w+)?/g, ''); })
+      .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1')
+      .replace(/(^|\W)[*_]([^*_\n]+)[*_](?=\W|$)/g, '$1$2')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[✅☑✔❌✕❎]/g, '')
+      .replace(/^\s*[-*+]\s+/gm, '• ')
+      .replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    return limit ? out.slice(0, limit) : out;
+  }
+
+  function confidenceLearningState(correct, confidence) {
+    if (correct === true && confidence === 'know') return 'understood';
+    if (correct === true) return 'fragile';
+    if (correct === false && confidence === 'know') return 'misconception';
+    return 'gap';
   }
 
   // ── Small-group confidence (based on completed-learner count) ─────────────
@@ -549,7 +632,7 @@
       objectives: ['Explain the inverse relationship between bond prices and yields.'],
       explanation: 'Imagine you own a bond paying 5%. If new bonds start paying only 3%, your 5% bond is suddenly more attractive — so buyers will pay more for it. Its price rises even though its coupon never changed. That’s the whole idea: when yields fall, the price of existing bonds rises, and vice-versa.',
       scenario: 'A community member bought a bond last year paying 5%. This year, new bonds of the same type pay only 3%. A friend says “rates dropped, so your bond must be worth less now.” Use what you know about price and yield to decide whether the friend is right.',
-      chartPrompt: 'Which line shows a bond’s price as yields fall over time — the one sloping up or down?',
+      chartPrompt: 'Existing 5% bond: price rises. New 3% bond: lower income. Lesson: when comparable market yields fall, an existing higher-coupon bond becomes more valuable.',
       questions: [
         { id: 'q1', type: 'mcq', skill: 'Bond prices and yields',
           prompt: 'New bonds now pay less than the one you hold. Your older bond’s price should…',
@@ -611,10 +694,21 @@
     submitResponse: submitResponse,
     completeAttempt: completeAttempt,
     aggregate: aggregate,
+    liveCreate: liveCreate,
+    liveFind: liveFind,
+    liveJoin: liveJoin,
+    liveControl: liveControl,
+    liveLeaderSnapshot: liveLeaderSnapshot,
+    liveLearnerSnapshot: liveLearnerSnapshot,
+    liveSubmit: liveSubmit,
+    liveAsk: liveAsk,
+    liveQuestionAction: liveQuestionAction,
     totalGradedResponses: totalGradedResponses,
     meetsInsightThreshold: meetsInsightThreshold,
     conceptRows: conceptRows,
     humanizeSkill: humanizeSkill,
+    normalizeGeneratedText: normalizeGeneratedText,
+    confidenceLearningState: confidenceLearningState,
     confidenceLabel: confidenceLabel,
     confidenceTone: confidenceTone,
     isEarlyResults: isEarlyResults,

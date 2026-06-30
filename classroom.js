@@ -23,12 +23,36 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function stateIcon(kind) {
+    var path = kind === 'check' ? '<polyline points="5 12 10 17 19 7"/>' : '<path d="M7 7l10 10M17 7L7 17"/>';
+    return '<svg class="cl-state-icon" viewBox="0 0 24 24" aria-hidden="true">' + path + '</svg>';
+  }
+  function cleanText(s) {
+    return D() && D().normalizeGeneratedText ? D().normalizeGeneratedText(s) : String(s == null ? '' : s);
+  }
+  function modelText(s) { return esc(cleanText(s)); }
+  function richText(s) {
+    var lines = cleanText(s).split(/\n+/).filter(function (line) { return line.trim(); });
+    var html = '', bullets = [];
+    function flush() {
+      if (!bullets.length) return;
+      html += '<ul class="cl-rich-list">' + bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>';
+      bullets = [];
+    }
+    lines.forEach(function (line) {
+      if (/^•\s*/.test(line)) bullets.push(line.replace(/^•\s*/, ''));
+      else { flush(); html += '<p>' + esc(line) + '</p>'; }
+    });
+    flush();
+    return html;
+  }
   function toast(msg, kind) {
     if (typeof global.showToast === 'function') global.showToast(msg, kind || 'info');
   }
   function mount(html, after) {
     var root = ROOT();
     if (!root) return;
+    if (CR.livePoll) { global.clearTimeout(CR.livePoll); CR.livePoll = null; }
     root.innerHTML = html;
     root.scrollTop = 0;
     if (typeof after === 'function') after(root);
@@ -291,15 +315,12 @@
       '<div class="cl-card-head">' +
         '<div class="cl-card-head-main">' +
           '<strong>' + esc(c.name) + '</strong>' +
-          '<span class="cl-code-chip">' + esc(c.join_code) + '</span>' +
         '</div>' +
         menu +
       '</div>' +
       '<div class="cl-card-meta">' +
         '<span>' + (c.learner_count || 0) + ' learner' + ((c.learner_count === 1) ? '' : 's') + '</span>' +
-        (a
-          ? '<span>•</span><span>' + esc(a.title) + '</span><span>•</span><span>' + (c.completed_count || 0) + ' completed</span>'
-          : '<span>•</span><span>No assignment yet</span>') +
+        '<span>·</span><span>' + (c.completed_count || 0) + ' completed</span>' +
       '</div>' +
       intelLine(c) +
       '<div class="cl-card-actions">' +
@@ -325,10 +346,7 @@
     var a = c.active_assignment, intel = c.intel, hasResp = (c.completed_count || 0) > 0;
     if (!a) return { label: 'Create assignment', onclick: "ClassroomUI.openCreateAssignment('" + c.id + "')" };
     if (!hasResp) return { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" };
-    if (intel && (intel.state === 'attention' || intel.state === 'early')) {
-      return { label: 'Build targeted follow-up', onclick: "ClassroomUI.buildTargetedFollowup('" + c.id + "')" };
-    }
-    return { label: 'Create next activity', onclick: "ClassroomUI.openCreateAssignment('" + c.id + "')" };
+    return { label: 'Build targeted follow-up', onclick: "ClassroomUI.buildTargetedFollowup('" + c.id + "')" };
   }
 
   // Group detail: summary, compact join code, active-assignment status + latest
@@ -349,6 +367,11 @@
       var cta = detailPrimaryCta(c);
       var finding = a && (c.completed_count || 0) > 0 ? findingSentence(intel) : '';
 
+      var recommendation = a && (c.completed_count || 0) > 0
+        ? '<section class="cl-next-action"><div class="cl-next-kicker">Claude recommends</div>' +
+            '<p>' + esc(finding || 'Review the latest anonymous group pattern before choosing the next activity.') + '</p>' +
+            '<div class="cl-next-label">Suggested next step</div><strong>3-question follow-up · approximately 4 minutes</strong></section>'
+        : '';
       var activeBlock = a
         ? '<div class="cl-active-assign">' +
             '<div class="cl-active-row">' +
@@ -381,6 +404,7 @@
             summaryItem(a ? (c.completed_count || 0) : 0, 'Completed') +
           '</div>' +
           activeBlock +
+          recommendation +
           '<div class="cl-card cl-code-card cl-code-card-sm">' +
             '<div class="cl-code-inline">' +
               '<div><div class="cl-code-label">Join code</div>' +
@@ -390,7 +414,9 @@
           '</div>' +
           '<div class="cl-stack cl-mt">' +
             '<button type="button" class="cl-btn cl-btn-primary" onclick="' + cta.onclick + '">' + esc(cta.label) + '</button>' +
+            (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.startLiveSession(\'' + c.id + '\',\'' + a.id + '\')">Start live session</button>' : '') +
             (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>' : '') +
+            '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openEditGroup(\'' + c.id + '\')">Manage group</button>' +
           '</div>' +
         '</div>'
       );
@@ -434,7 +460,7 @@
     var btn = document.getElementById('clEditBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
     D().updateGroup(id, { name: name, description: desc, audience: audience }).then(function () {
-      toast('Group updated', 'success');
+      toast('Group updated', 'info');
       return D().listGroups().then(function (groups) { setGroups(groups); openGroup(id); });
     }).catch(function (err) {
       if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
@@ -469,7 +495,7 @@
     D().deleteGroup(id).then(function () {
       if (typeof global.closeAppModal === 'function') global.closeAppModal();
       CR.groups = (CR.groups || []).filter(function (g) { return g.id !== id; });
-      toast('Group deleted', 'success');
+      toast('Group deleted', 'info');
       if (global.NavDrawer && NavDrawer.refresh) NavDrawer.refresh();
       renderLeaderDashboard();
     }).catch(function (err) {
@@ -486,7 +512,7 @@
 
   function copyCode(code) {
     if (global.navigator && navigator.clipboard) {
-      navigator.clipboard.writeText(code).then(function () { toast('Join code copied', 'success'); })
+      navigator.clipboard.writeText(code).then(function () { toast('Join code copied', 'info'); })
         .catch(function () { toast('Copy failed — code is ' + code, 'error'); });
     } else { toast('Join code: ' + code, 'info'); }
   }
@@ -531,9 +557,9 @@
   function groupCreatedScreen(c) {
     mount(
       '<div class="cl-screen cl-center">' +
-        '<div class="cl-success-badge">✓</div>' +
+        '<div class="cl-success-badge">' + stateIcon('check') + '</div>' +
         '<h1 class="cl-success-title">Your group is ready</h1>' +
-        '<p class="cl-success-sub">' + esc(c.name) + '</p>' +
+        (c.name ? '<p class="cl-success-sub">' + esc(c.name) + '</p>' : '') +
         '<div class="cl-card cl-code-card">' +
           '<div class="cl-code-label">Join code</div>' +
           '<div class="cl-code-big">' + esc(c.join_code) + '</div>' +
@@ -663,16 +689,38 @@
     var typeLabel = q.type === 'teachback' ? 'Teach it back' : 'Multiple choice';
     // Concept/category first (high-contrast light), then a muted separator and
     // the question type (muted). Never green for the category label.
-    return '<div class="cl-preview-q">' +
+    return '<button type="button" class="cl-preview-q" onclick="ClassroomUI.editQuestion(' + i + ')" aria-label="Edit question ' + (i + 1) + '">' +
       '<span class="cl-q-num">' + (i + 1) + '</span>' +
       '<div class="cl-q-body">' +
         '<div class="cl-q-tags">' +
-          (q.skill ? '<span class="cl-q-cat">' + esc(q.skill) + '</span><span class="cl-q-sep">·</span>' : '') +
+          (q.skill ? '<span class="cl-q-cat">' + esc(D().humanizeSkill(q.skill)) + '</span><span class="cl-q-sep">·</span>' : '') +
           '<span class="cl-q-type">' + typeLabel + '</span>' +
         '</div>' +
-        '<div class="cl-q-prompt">' + esc(q.prompt) + '</div>' +
+        '<div class="cl-q-prompt">' + modelText(q.prompt) + '</div>' +
       '</div>' +
-    '</div>';
+    '</button>';
+  }
+
+  function expandableCopy(label, value, cls) {
+    var text = cleanText(value);
+    if (!text) return '';
+    var words = text.split(/\s+/).length;
+    var inner = richText(text);
+    if (words <= 80) return '<section class="cl-copy-section ' + (cls || '') + '"><div class="cl-copy-label">' + esc(label) + '</div>' + inner + '</section>';
+    var preview = text.split(/\s+/).slice(0, 55).join(' ') + '…';
+    return '<section class="cl-copy-section ' + (cls || '') + '"><div class="cl-copy-label">' + esc(label) + '</div>' +
+      '<p>' + esc(preview) + '</p><details class="cl-disclosure"><summary>Show more</summary><div class="cl-disclosure-body">' + inner + '</div></details></section>';
+  }
+
+  function compareOutcomes(value) {
+    var text = cleanText(value).replace(/\b(?:bar )?chart\b/gi, 'comparison')
+      .replace(/which line shows/gi, 'Consider what happens to').replace(/the one sloping up or down/gi, 'whether the value rises or falls');
+    if (!text) return '';
+    var rows = text.split(/\.\s+/).map(function (part) { var i = part.indexOf(':'); return i > 0 ? [part.slice(0, i), part.slice(i + 1)] : null; }).filter(Boolean);
+    var content = rows.length >= 2 ? rows.slice(0, 4).map(function (row) {
+      return '<div class="cl-compare-row"><span>' + esc(row[0]) + '</span><strong>' + esc(row[1].replace(/\.$/, '')) + '</strong></div>';
+    }).join('') : richText(text);
+    return '<section class="cl-copy-section cl-compare"><div class="cl-copy-label">Compare the outcomes</div>' + content + '</section>';
   }
 
   // Unified preview for both a new assignment and a grounded targeted follow-up.
@@ -681,6 +729,17 @@
   // editable title, and an Add-question editor — the leader can edit everything
   // before publishing.
   function assignmentPreview(unit, ctx) {
+    unit.title = cleanText(unit.title);
+    unit.topic = cleanText(unit.topic);
+    unit.explanation = cleanText(unit.explanation || '');
+    unit.example = cleanText(unit.example || '');
+    unit.scenario = cleanText(unit.scenario || '');
+    unit.chartPrompt = cleanText(unit.chartPrompt || '');
+    (unit.questions || []).forEach(function (q) {
+      q.skill = D().humanizeSkill(q.skill || ''); q.prompt = cleanText(q.prompt);
+      q.explanation = cleanText(q.explanation || '');
+      if (q.choices) q.choices = q.choices.map(cleanText);
+    });
     CR.pendingUnit = unit; CR.pendingCtx = ctx;
     // Counts recompute on every render, so manually-added questions update the
     // metadata line immediately. Question type is no longer hard-capped at five.
@@ -706,6 +765,41 @@
       (teachCount ? '<span>•</span><span>' + teachCount + ' teach-it-back</span>' : '') +
       '<span>•</span><span>≈ ' + est + ' min</span>';
 
+    var followTabs = '';
+    var followContent = '';
+    if (isFollow) {
+      var brief = CR.brief || {};
+      followTabs = '<div class="cl-segments" role="tablist">' +
+        '<button class="is-active" data-follow-tab="activity" onclick="ClassroomUI.switchFollowupTab(\'activity\')">Activity</button>' +
+        '<button data-follow-tab="facilitator" onclick="ClassroomUI.switchFollowupTab(\'facilitator\')">Facilitator</button>' +
+        '<button data-follow-tab="settings" onclick="ClassroomUI.switchFollowupTab(\'settings\')">Settings</button></div>';
+      followContent = '<div class="cl-follow-panel" data-follow-panel="activity">' +
+          expandableCopy('Key idea', unit.explanation, 'cl-key-idea') +
+          expandableCopy('Example', unit.example || brief.realWorldExample || '', '') +
+          expandableCopy('Scenario', unit.scenario, '') + compareOutcomes(unit.chartPrompt) +
+        '</div>' +
+        '<div class="cl-follow-panel" data-follow-panel="facilitator" hidden>' +
+          expandableCopy('Learning objective', ctx.objective || '', '') +
+          expandableCopy('Observed misconception', brief.misconception || CR.lastGap || '', '') +
+          expandableCopy('Suggested explanation', brief.plainExplanation || unit.explanation, '') +
+          expandableCopy('Discussion prompt', brief.discussionQuestion || '', '') +
+          expandableCopy('Follow-up check question', brief.followUpCheck || '', '') +
+        '</div>' +
+        '<div class="cl-follow-panel" data-follow-panel="settings" hidden>' +
+          '<div class="cl-setting-row"><span>Difficulty</span><strong>' + esc(unit.difficulty || 'beginner') + '</strong></div>' +
+          '<div class="cl-setting-row"><span>Estimated time</span><strong>' + est + ' minutes</strong></div>' +
+          '<button type="button" class="cl-setting-row cl-setting-button" onclick="ClassroomUI.toggleDraftTeachback()"><span>Teach-it-back</span><strong>' + (teachCount ? 'On' : 'Off') + '</strong></button>' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.editPreviewTitle()">Edit title</button>' +
+          '<button type="button" class="cl-btn cl-btn-line cl-mt" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">Add question</button>' +
+          '<button type="button" class="cl-btn cl-btn-line cl-mt" onclick="ClassroomUI.regenerateDraft()">Regenerate activity</button>' +
+        '</div>' +
+        '<div class="cl-draft-tools"><span>Claude draft tools</span>' +
+          '<button onclick="ClassroomUI.transformDraft(\'shorten\')">Shorten</button>' +
+          '<button onclick="ClassroomUI.transformDraft(\'easier\')">Make easier</button>' +
+          '<button onclick="ClassroomUI.transformDraft(\'harder\')">More challenging</button>' +
+          '<button onclick="ClassroomUI.regenerateDraft()">Regenerate questions</button></div>';
+    }
+
     mount(
       '<div class="cl-screen cl-preview-screen">' +
         back(isFollow ? 'Insights' : 'Edit', backHandler) +
@@ -714,22 +808,77 @@
         '<div class="cl-kicker">' + (isFollow ? 'Targeted follow-up' : 'Assignment preview') + '</div>' +
         '<h1 class="cl-preview-title" id="clPreviewTitle">' + esc(unit.title) + '</h1>' +
         '<div class="cl-card-meta">' + meta + '</div>' +
-        (unit.explanation ? '<div class="cl-card cl-explain cl-mt"><p>' + esc(unit.explanation) + '</p></div>' : '') +
-        (unit.scenario ? '<div class="cl-card cl-scenario cl-mt"><span class="cl-scenario-label">Real-world scenario</span><p>' + esc(unit.scenario) + '</p></div>' : '') +
-        (unit.chartPrompt ? '<div class="cl-card cl-chart-note cl-mt"><span>Chart check</span><p>' + esc(unit.chartPrompt) + '</p></div>' : '') +
+        followTabs +
+        (isFollow ? followContent : '') +
+        (!isFollow && unit.explanation ? '<div class="cl-card cl-explain cl-mt">' + richText(unit.explanation) + '</div>' : '') +
+        (!isFollow && unit.scenario ? '<div class="cl-card cl-scenario cl-mt"><span class="cl-scenario-label">Real-world scenario</span>' + richText(unit.scenario) + '</div>' : '') +
+        (!isFollow ? compareOutcomes(unit.chartPrompt) : '') +
         '<div class="cl-preview-list cl-mt">' +
           unit.questions.map(previewQ).join('') +
           '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
             '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
             'Add question</button>' +
         '</div>' +
-        (isFollow ? '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.editPreviewTitle()">Edit title</button>' : '') +
         '<div class="cl-preview-actions">' +
           '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (isFollow ? 'Back' : 'Edit') + '</button>' +
           '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">' + (isFollow ? 'Publish follow-up' : 'Publish assignment') + '</button>' +
         '</div>' +
       '</div>'
     );
+  }
+
+  function switchFollowupTab(tab) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-follow-tab]'), function (b) {
+      b.classList.toggle('is-active', b.getAttribute('data-follow-tab') === tab);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-follow-panel]'), function (p) {
+      p.hidden = p.getAttribute('data-follow-panel') !== tab;
+    });
+  }
+
+  function editQuestion(index) {
+    var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[index];
+    if (!q || !global.prompt) return;
+    var next = global.prompt('Question text', q.prompt);
+    if (next && next.trim()) { q.prompt = cleanText(next).slice(0, 400); assignmentPreview(CR.pendingUnit, CR.pendingCtx); }
+  }
+
+  function transformDraft(kind) {
+    var unit = CR.pendingUnit;
+    if (!unit) return;
+    if (kind === 'shorten') {
+      ['explanation', 'example', 'scenario'].forEach(function (key) {
+        var limit = key === 'explanation' ? 60 : (key === 'example' ? 80 : 100);
+        var words = cleanText(unit[key] || '').split(/\s+/);
+        if (words.length > limit) unit[key] = words.slice(0, limit).join(' ').replace(/[,:;]$/, '') + '.';
+      });
+    } else {
+      unit.difficulty = kind === 'easier' ? 'beginner' : 'intermediate';
+    }
+    toast('Draft updated', 'info');
+    assignmentPreview(unit, CR.pendingCtx);
+  }
+
+  function toggleDraftTeachback() {
+    var unit = CR.pendingUnit; if (!unit) return;
+    var has = unit.questions.some(function (q) { return q.type === 'teachback'; });
+    if (has) unit.questions = unit.questions.filter(function (q) { return q.type !== 'teachback'; });
+    else unit.questions.push({ id: 'qteach' + Date.now(), type: 'teachback', skill: unit.topic + ' explain',
+      prompt: 'Explain the main idea in one or two sentences.', objective: (unit.objectives || [])[0] || unit.topic, explanation: '' });
+    unit.teachItBack = !has; toast('Draft updated', 'info'); assignmentPreview(unit, CR.pendingCtx);
+  }
+
+  function regenerateDraft() {
+    var ctx = CR.pendingCtx, brief = CR.brief || {};
+    if (!ctx || !ctx.isFollowup) return;
+    var savedUnit = CR.pendingUnit;
+    mount(loading('Regenerating the draft…'));
+    D().classroomAI('followup_activity', {
+      topic: brief.topic || (savedUnit && savedUnit.topic) || 'this topic',
+      gap: brief.misconception || CR.lastGap || '', gapConcept: brief.gapConcept || '',
+      objective: brief.objective || ctx.objective || '', objectives: CR.lastObjectives || []
+    }).then(function (res) { assignmentPreview(res.activity, ctx); toast('Draft updated', 'info'); })
+      .catch(function (err) { CR.pendingUnit = savedUnit; assignmentPreview(savedUnit, ctx); toast((err && err.message) || 'Could not regenerate the draft.', 'error'); });
   }
 
   // Inline title edit available on the follow-up preview.
@@ -820,7 +969,7 @@
     }
     unit.questions.push(q);
     unit.teachItBack = unit.questions.some(function (qq) { return qq.type === 'teachback'; });
-    toast('Question added', 'success');
+    toast('Question added', 'info');
     assignmentPreview(unit, CR.pendingCtx);
   }
 
@@ -832,7 +981,6 @@
     var isFollow = !!ctx.isFollowup;
     mount(loading(isFollow ? 'Publishing follow-up…' : 'Publishing assignment…'));
     D().createAssignment(ctx.classroomId, unit, ctx.due || null).then(function () {
-      toast(isFollow ? 'Follow-up published' : 'Assignment published', 'success');
       var title = unit.title;
       CR.pendingUnit = null; CR.pendingCtx = null;
       publishedScreen(ctx.classroomId, title);
@@ -850,7 +998,7 @@
         '<div class="cl-screen">' +
           back('Classroom', 'renderClassroom()') +
           '<div class="cl-banner cl-banner-success">' +
-            '<div class="cl-banner-icon">✓</div>' +
+            '<div class="cl-banner-icon">' + stateIcon('check') + '</div>' +
             '<div class="cl-banner-text">' +
               '<strong>Assignment published</strong>' +
               '<span>Learners can now complete ' + esc(title) + '.</span>' +
@@ -1015,29 +1163,29 @@
     ins = ins || {};
     var topic = content.topic || '';
     var weak = D().weakestConcept(agg);
-    var gapConcept = ins.gapConcept || (weak ? D().humanizeSkill(weak.skill) : (topic || 'this concept'));
+    var gapConcept = D().humanizeSkill(ins.gapConcept || (weak ? weak.skill : (topic || 'this concept')));
     return {
       topic: topic,
       completed: Number(completed) || 0,
       learners: Number(agg.learners) || 0,
       gapConcept: gapConcept,
       gapShort: gapConcept,
-      objective: ins.suggestedObjective || ins.recommendedFocus || ('Strengthen understanding of ' + lcFirst(gapConcept) + '.'),
-      knows: ins.whatTheyKnow || ins.summary || '',
-      misconception: ins.primaryMisconception || ins.primaryGap || '',
-      whyItMatters: ins.whyItMatters || '',
-      recommendedMove: ins.recommendedMove || ins.recommendedFocus || '',
+      objective: cleanText(ins.suggestedObjective || ins.recommendedFocus || ('Strengthen understanding of ' + lcFirst(gapConcept) + '.')),
+      knows: cleanText(ins.whatTheyKnow || ins.summary || ''),
+      misconception: cleanText(ins.primaryMisconception || ins.primaryGap || ''),
+      whyItMatters: cleanText(ins.whyItMatters || ''),
+      recommendedMove: cleanText(ins.recommendedMove || ins.recommendedFocus || ''),
       confidenceLabel: D().confidenceLabel(completed),
       confidenceTone: D().confidenceTone(completed),
       evidenceLine: D().gapEvidenceLine(weak, completed),
       evidenceUsed: deriveEvidenceUsed(agg),
       detailed: buildDetailed(ins),
-      needsAttention: needsAttentionHeadline(ins, gapConcept, completed),
+      needsAttention: cleanText(needsAttentionHeadline(ins, gapConcept, completed)),
       // Facilitator-note source fields (AI-grounded, else concept-grounded fallback).
-      discussionQuestion: ins.discussionQuestion || ('Where does “' + gapConcept + '” hold up, and where does it break down?'),
-      plainExplanation: ins.plainExplanation || ins.whyItMatters || ins.recommendedMove || ('Learners need a clearer model of ' + lcFirst(gapConcept) + '.'),
-      realWorldExample: ins.realWorldExample || ('Think of an everyday situation where ' + lcFirst(gapConcept) + ' changes the outcome.'),
-      followUpCheck: ins.followUpCheck || ('Which statement best captures ' + lcFirst(gapConcept) + '?')
+      discussionQuestion: cleanText(ins.discussionQuestion || ('Where does “' + gapConcept + '” hold up, and where does it break down?')),
+      plainExplanation: cleanText(ins.plainExplanation || ins.whyItMatters || ins.recommendedMove || ('Learners need a clearer model of ' + lcFirst(gapConcept) + '.')),
+      realWorldExample: cleanText(ins.realWorldExample || ('Think of an everyday situation where ' + lcFirst(gapConcept) + ' changes the outcome.')),
+      followUpCheck: cleanText(ins.followUpCheck || ('Which statement best captures ' + lcFirst(gapConcept) + '?'))
     };
   }
 
@@ -1101,7 +1249,7 @@
         (tone === 'needs' ? '<span class="cl-concept-pct">' + it.pct + '%</span>' : '') +
       '</li>';
     };
-    var html = '<div class="cl-section-title cl-mt">Concept understanding</div>';
+    var html = '<details class="cl-disclosure cl-concepts-disclosure cl-mt"><summary>View all concepts</summary><div class="cl-disclosure-body">';
     if (groups.understood.length) {
       html += '<div class="cl-concept-group">' +
         '<div class="cl-concept-group-label cl-concept-group-good">Understood</div>' +
@@ -1112,8 +1260,7 @@
         '<div class="cl-concept-group-label cl-concept-group-needs">Needs reinforcement</div>' +
         '<ul class="cl-concept-list">' + groups.needs.map(function (it) { return chip(it, 'needs'); }).join('') + '</ul></div>';
     }
-    html += '<details class="cl-disclosure"><summary>View all concepts</summary>' +
-      '<div class="cl-disclosure-body">' + groups.rows.map(conceptRow).join('') + '</div></details>';
+    html += groups.rows.map(conceptRow).join('') + '</div></details>';
     return html;
   }
 
@@ -1122,22 +1269,16 @@
     var block = function (label, text) {
       if (!text) return '';
       return '<div class="cl-brief-block"><div class="cl-brief-label">' + esc(label) + '</div>' +
-        '<p class="cl-brief-text">' + esc(text) + '</p></div>';
+        '<div class="cl-brief-text">' + richText(text) + '</div></div>';
     };
     return '<section class="cl-brief">' +
-      '<div class="cl-brief-head"><span class="cl-brief-badge">Claude</span>Intervention brief</div>' +
-      block('What the group knows', brief.knows) +
-      block('Primary misconception', brief.misconception) +
-      block('Why it matters', brief.whyItMatters) +
+      '<div class="cl-brief-head"><span class="cl-brief-badge">Claude</span>Recommendation</div>' +
       '<div class="cl-brief-block cl-brief-move"><div class="cl-brief-label">Recommended move</div>' +
-        '<p class="cl-brief-text">' + esc(brief.recommendedMove) + '</p></div>' +
-      '<div class="cl-brief-evidence">' + esc(brief.evidenceUsed) + '</div>' +
-      (brief.detailed
-        ? '<details class="cl-disclosure cl-disclosure-tight"><summary>View detailed analysis</summary>' +
-            '<div class="cl-disclosure-body">' +
-              brief.detailed.split('\n\n').map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') +
-            '</div></details>'
-        : '') +
+        '<div class="cl-brief-text">' + richText(brief.recommendedMove) + '</div></div>' +
+      '<details class="cl-disclosure cl-disclosure-tight"><summary>See Claude’s reasoning</summary><div class="cl-disclosure-body">' +
+        block('What the group knows', brief.knows) + block('Primary misconception', brief.misconception) + block('Why it matters', brief.whyItMatters) +
+        (brief.detailed ? brief.detailed.split('\n\n').map(function (p) { return '<p>' + modelText(p) + '</p>'; }).join('') : '') + '</div></details>' +
+      '<details class="cl-disclosure cl-disclosure-tight"><summary>View evidence</summary><div class="cl-disclosure-body"><p>' + esc(brief.evidenceUsed) + '</p></div></details>' +
     '</section>';
   }
 
@@ -1145,6 +1286,7 @@
   function actionsHtml(isDemo) {
     return '<div class="cl-actions-grid cl-mt">' +
       '<button type="button" class="cl-btn cl-btn-primary cl-action-primary" onclick="ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')">Build targeted follow-up</button>' +
+      (isDemo ? '<button type="button" class="cl-btn cl-btn-line cl-action-primary" onclick="ClassroomUI.startDemoLive()">Explore demo live session</button>' : '') +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'discussion\')">Create discussion prompt</button>' +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'explain\')">Explain this misconception</button>' +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyNotes()">Copy facilitator notes</button>' +
@@ -1180,7 +1322,7 @@
     var t = CR.actionCopyText || '';
     if (!t) return;
     if (global.navigator && navigator.clipboard) {
-      navigator.clipboard.writeText(t).then(function () { toast('Copied', 'success'); })
+      navigator.clipboard.writeText(t).then(function () { toast('Copied', 'info'); })
         .catch(function () { toast('Copy failed', 'error'); });
     } else { toast('Copied text is ready below', 'info'); }
   }
@@ -1203,7 +1345,7 @@
     var notes = facilitatorNotes(brief);
     CR.actionCopyText = notes;
     if (global.navigator && navigator.clipboard) {
-      navigator.clipboard.writeText(notes).then(function () { toast('Facilitator notes copied', 'success'); })
+      navigator.clipboard.writeText(notes).then(function () { toast('Facilitator notes copied', 'info'); })
         .catch(function () { toast('Copy failed — notes are shown below', 'error'); });
     } else { toast('Facilitator notes are ready below', 'info'); }
     var out = document.getElementById('clActionOutput');
@@ -1321,11 +1463,403 @@
           buildFollowup(false);
         });
       });
-    }).catch(function () { openInsights(classroomId); });
+    }).catch(function (err) { toast((err && err.message) || 'Could not build the follow-up.', 'error'); openInsights(classroomId); });
   }
 
   function demoAssignNotice() {
     toast('In a live group this would publish the follow-up. (Demo data is read-only.)', 'info');
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // LIVE CLASSROOM — untimed, leader-paced, anonymous
+  // ════════════════════════════════════════════════════════════════════════
+  function startLiveSession(classroomId, assignmentId) {
+    mount(loading('Preparing the live session…'));
+    D().liveCreate(assignmentId).then(function (res) {
+      CR.live = { id: res.session.id, classroomId: classroomId, leader: true, demo: false };
+      openLeaderLive();
+    }).catch(function (err) {
+      mount('<div class="cl-screen">' + back('Group', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
+        errorBox((err && err.message) || 'Could not start the live session.', 'ClassroomUI.startLiveSession(\'' + classroomId + '\',\'' + assignmentId + '\')') + '</div>');
+    });
+  }
+
+  function scheduleLive(fn) {
+    CR.livePoll = global.setTimeout(function () {
+      if (ROOT() && CR.live) fn();
+    }, 3000);
+  }
+
+  function openLeaderLive() {
+    if (!CR.live) return;
+    if (CR.live.demo) { renderDemoLeaderLive(); return; }
+    D().liveLeaderSnapshot(CR.live.id).then(function (snap) {
+      renderLeaderLive(snap);
+    }).catch(function (err) {
+      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.openLeaderLive()') + '</div>');
+    });
+  }
+
+  function liveStateLabel(state) {
+    return { lobby: 'Lobby', question_open: 'Question open', results: 'Results and review', paused: 'Paused', complete: 'Complete' }[state] || state;
+  }
+
+  function livePrivacy() {
+    return '<div class="cl-live-privacy">Untimed, anonymous participation designed for classrooms and community learning.<br>Leaders see group-level patterns, not individual responses. No speed rankings or public leaderboard.</div>';
+  }
+
+  function renderLeaderLive(snap) {
+    var s = snap.session, q = s.current_question || {}, n = Number(snap.participant_count) || 0;
+    var code = CR.live.demo ? 'MONEY24' : ((groupById(CR.live.classroomId) || {}).join_code || '');
+    var top = '<div class="cl-screen cl-live-screen">' + back('Group', CR.live.demo ? 'ClassroomUI.openDemo()' : 'ClassroomUI.openGroup(\'' + CR.live.classroomId + '\')') +
+      (CR.live.demo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
+      '<div class="cl-live-head"><div><div class="cl-kicker">Live classroom</div><h1>' + esc(liveStateLabel(s.state)) + '</h1></div>' +
+      '<span class="cl-live-state cl-live-state-' + esc(s.state) + '">' + esc(liveStateLabel(s.state)) + '</span></div>';
+    var body = '';
+    if (s.state === 'lobby') {
+      body = '<section class="cl-live-lobby"><p class="cl-live-lead">Learners can join with the existing group code.</p>' +
+        (code ? '<div class="cl-live-code"><span>Join code</span><strong>' + esc(code) + '</strong></div>' : '') +
+        '<div class="cl-live-count"><strong>' + n + '</strong><span>' + plural(n, 'learner') + ' joined</span></div>' +
+        '<div class="cl-stack"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'start\')"' + (n < 1 && !CR.live.demo ? ' disabled' : '') + '>Start session</button>' +
+        (code ? '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy join code</button>' : '') + '</div></section>' + livePrivacy();
+    } else if (s.state === 'question_open') {
+      var answered = Number(snap.answered_count) || 0;
+      body = liveQuestionHeader(s, q) +
+        '<div class="cl-live-response-counts"><div><strong>' + answered + '</strong><span>Answered</span></div><div><strong>' + Math.max(0, n - answered) + '</strong><span>Still waiting</span></div></div>' +
+        '<div class="cl-stack"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'close\')">Close responses</button>' +
+        '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.liveControl(\'pause\')">Pause</button></div>' + learnerQuestionsHtml(snap) + liveUtilityControls();
+    } else if (s.state === 'results') {
+      body = liveQuestionHeader(s, q) + liveResultsHtml(snap, q) +
+        '<div id="clLiveIntervention">' + liveInterventionFallback(snap) + '</div>' +
+        '<div class="cl-live-actions"><button onclick="ClassroomUI.showLiveMove(\'explain\')">Explain simply</button><button onclick="ClassroomUI.showLiveMove(\'example\')">Show example</button>' +
+        '<button onclick="ClassroomUI.showLiveMove(\'followup\')">Ask follow-up</button></div><div id="clLiveMove"></div>' +
+        '<div class="cl-stack cl-mt"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'continue\')">Continue</button>' +
+        '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.openAskRoom()">Ask the room</button></div>' + learnerQuestionsHtml(snap) + liveUtilityControls();
+      requestLiveIntervention(snap, q);
+    } else if (s.state === 'paused') {
+      body = '<div class="cl-live-pause"><h2>Session paused</h2><p>Learners will stay on a waiting screen until you resume.</p>' +
+        '<button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'resume\')">Resume question</button></div>' + liveUtilityControls();
+    } else {
+      body = liveRecapHtml(snap);
+    }
+    mount(top + body + '</div>');
+    if ((snap.anonymous_questions || []).length) requestQuestionCluster(snap);
+    if (s.state !== 'complete' && !CR.live.demo) scheduleLive(openLeaderLive);
+  }
+
+  function liveQuestionHeader(s, q) {
+    var total = Number(s.question_order && s.question_order.length) || 0;
+    return '<section class="cl-live-question"><div class="cl-live-qmeta">Question ' + (Number(s.current_question_index) + 1) + (total ? ' of ' + total : '') +
+      (q.skill ? ' · ' + esc(D().humanizeSkill(q.skill)) : '') + '</div><h2>' + modelText(q.prompt || 'Question') + '</h2></section>';
+  }
+
+  function liveResultsHtml(snap, q) {
+    var n = Number(snap.answered_count) || 0, correct = 0;
+    (snap.answer_distribution || []).forEach(function (r) { correct += Number(r.correct) || 0; });
+    var accuracy = n ? Math.round(correct / n * 100) : 0;
+    var choices = q.choices || [];
+    var dist = {};
+    (snap.answer_distribution || []).forEach(function (r) { dist[String(r.choice)] = Number(r.n) || 0; });
+    var bars = choices.length ? choices.map(function (choice, i) {
+      var count = dist[String(i)] || 0, pct = n ? Math.round(count / n * 100) : 0;
+      return '<div class="cl-dist-row"><div><span>' + 'ABCD'[i] + '</span><strong>' + modelText(choice) + '</strong><em>' + count + '</em></div>' +
+        '<div class="cl-dist-track"><i class="' + (i === q.answerIndex ? 'is-correct' : '') + '" style="width:' + pct + '%"></i></div></div>';
+    }).join('') : '<p class="cl-muted">' + n + ' anonymous ' + plural(n, 'response') + ' submitted.</p>';
+    var conf = snap.confidence_distribution || {};
+    return '<section class="cl-live-results"><div class="cl-live-metrics"><div><strong>' + n + '</strong><span>Answered</span></div>' +
+      (choices.length && q.type !== 'confidence' ? '<div><strong>' + accuracy + '%</strong><span>Accuracy</span></div>' : '') + '</div>' + bars +
+      '<div class="cl-confidence-summary"><span>Confidence</span><b>' + (Number(conf.know) || 0) + ' know this</b><b>' + (Number(conf.unsure) || 0) + ' unsure</b><b>' + (Number(conf.guessing) || 0) + ' guessing</b></div></section>';
+  }
+
+  function patternFromStates(snap) {
+    var st = snap.learning_states || {}, n = Number(snap.answered_count) || 0;
+    if (!n) return { observation: 'No responses were submitted before the question closed.', move: 'Check that everyone can access the session before continuing.' };
+    if ((Number(st.misconception) || 0) >= Math.max(2, Math.ceil(n * 0.3))) return { observation: (n === 1 ? 'One response' : (n === 2 ? 'Two responses' : 'Several responses')) + ' selected an incorrect answer with high confidence. This may indicate a specific misconception.', move: 'Contrast the incorrect mental model with the correct one using one concrete example.' };
+    if ((Number(st.fragile) || 0) >= Math.ceil(n * 0.3)) return { observation: 'Many answers were correct, but confidence was low. Understanding may still be fragile.', move: 'Reinforce the idea briefly before moving on.' };
+    if ((Number(st.gap) || 0) > (Number(st.understood) || 0)) return { observation: 'Responses are mixed and confidence is low.', move: 'Use a simpler example, then check the same idea again.' };
+    return { observation: 'Most submitted answers were correct and confident.', move: 'Confirm the key idea in one sentence, then continue.' };
+  }
+
+  function liveInterventionFallback(snap) {
+    if (CR.live && CR.live.demo) {
+      var demo = demoIntervention();
+      return '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + esc(demo.observation) + '</p>' +
+        '<div class="cl-copy-label">Suggested move</div><strong>' + esc(demo.suggestedMove) + '</strong></section>';
+    }
+    var p = patternFromStates(snap);
+    return '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + esc(p.observation) + '</p>' +
+      '<div class="cl-copy-label">Suggested move</div><strong>' + esc(p.move) + '</strong></section>';
+  }
+
+  function requestLiveIntervention(snap, q) {
+    if (CR.live.demo) { CR.liveIntervention = demoIntervention(); return; }
+    var key = q.id || String(snap.session.current_question_index);
+    CR.liveAI = CR.liveAI || {};
+    if (CR.liveAI[key]) { CR.liveIntervention = CR.liveAI[key]; return; }
+    D().classroomAI('live_intervention', { prompt: q.prompt, responseCount: snap.answered_count,
+      answerDistribution: snap.answer_distribution, confidenceDistribution: snap.confidence_distribution,
+      learningStates: snap.learning_states }).then(function (res) {
+        CR.liveAI[key] = res.intervention; CR.liveIntervention = res.intervention;
+        var el = document.getElementById('clLiveIntervention');
+        if (el) el.innerHTML = '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + modelText(res.intervention.observation) +
+          '</p><div class="cl-copy-label">Suggested move</div><strong>' + modelText(res.intervention.suggestedMove) + '</strong></section>';
+      }).catch(function () {
+        var el = document.getElementById('clLiveIntervention');
+        if (el) el.insertAdjacentHTML('beforeend', '<p class="cl-action-note">Claude is unavailable. Showing a deterministic aggregate-based suggestion.</p>');
+      });
+  }
+
+  function demoIntervention() {
+    return { observation: 'Six learners chose the correct answer but reported low confidence.',
+      suggestedMove: 'Briefly contrast company-specific risk with market-wide risk before continuing.',
+      simpleExplanation: 'Diversification spreads company-specific risk across holdings, but it cannot remove risks that affect the whole market.',
+      example: 'If one company fails, a diversified portfolio has other holdings. In a broad recession, many holdings can still fall together.',
+      followUpQuestion: 'Which risk can diversification reduce most directly?',
+      followUpChoices: ['Company-specific risk', 'All market risk', 'Inflation in every case', 'Interest-rate changes'], followUpAnswerIndex: 0 };
+  }
+
+  function showLiveMove(kind) {
+    var i = CR.liveIntervention || demoIntervention(), out = document.getElementById('clLiveMove');
+    if (!out) return;
+    if (kind === 'followup') { openAskRoom(i); return; }
+    var title = kind === 'example' ? 'Example' : 'Simple explanation';
+    out.innerHTML = '<div class="cl-action-card"><div class="cl-action-head">' + title + '</div><p class="cl-action-body">' + modelText(kind === 'example' ? i.example : i.simpleExplanation) + '</p></div>';
+  }
+
+  function learnerQuestionsHtml(snap) {
+    var qs = snap.anonymous_questions || [];
+    if (!qs.length) return '';
+    var normalized = qs.map(function (q) { return typeof q === 'string' ? { id: '', question: q } : q; });
+    var combined = normalized.length > 1 ? 'Several learners are asking: ' + cleanText(normalized[0].question) : cleanText(normalized[0].question);
+    return '<details class="cl-disclosure cl-live-questions"><summary>Anonymous learner questions (' + qs.length + ')</summary><div class="cl-disclosure-body">' +
+      '<div class="cl-question-cluster" id="clQuestionCluster"><span>' + qs.length + ' related ' + plural(qs.length, 'question') + '</span><strong>Combined question</strong><p>' + modelText(combined) + '</p></div>' +
+      normalized.slice(0, 6).map(function (q) { return '<div class="cl-anon-question"><p>' + modelText(q.question) + '</p><div>' +
+        (q.id ? '<button onclick="ClassroomUI.liveQuestionAction(\'' + q.id + '\',\'answer\')">Answer now</button><button onclick="ClassroomUI.liveQuestionAction(\'' + q.id + '\',\'recap\')">Save for recap</button>' : '') +
+        '<button onclick="ClassroomUI.questionToFollowup(\'' + esc(q.id || '') + '\')">Turn into follow-up</button></div></div>'; }).join('') +
+      '<p class="cl-action-note">Questions are grouped without learner identities.</p></div></details>';
+  }
+
+  function requestQuestionCluster(snap) {
+    var qs = (snap.anonymous_questions || []).map(function (q) { return typeof q === 'string' ? q : q.question; }).filter(Boolean);
+    var el = document.getElementById('clQuestionCluster'); if (!el || !qs.length) return;
+    if (CR.live.demo) {
+      el.innerHTML = '<span>' + qs.length + ' learners asked about market-wide declines</span><strong>Claude combined question</strong><p>Why doesn’t diversification fully protect investors during a recession?</p>';
+      return;
+    }
+    var cacheKey = qs.join('|'); CR.questionClusters = CR.questionClusters || {};
+    if (CR.questionClusters[cacheKey]) { renderQuestionCluster(el, qs.length, CR.questionClusters[cacheKey]); return; }
+    D().classroomAI('question_cluster', { questions: qs }).then(function (res) {
+      CR.questionClusters[cacheKey] = res.cluster;
+      var current = document.getElementById('clQuestionCluster'); if (current) renderQuestionCluster(current, qs.length, res.cluster);
+    }).catch(function () {
+      var current = document.getElementById('clQuestionCluster');
+      if (current) current.insertAdjacentHTML('beforeend', '<small>Claude could not combine these questions right now.</small>');
+    });
+  }
+  function renderQuestionCluster(el, count, cluster) {
+    el.innerHTML = '<span>' + count + ' related ' + plural(count, 'question') + ' · ' + modelText(cluster.theme) + '</span><strong>Claude combined question</strong><p>' + modelText(cluster.combinedQuestion) + '</p>';
+  }
+
+  function liveQuestionAction(id, action) {
+    if (CR.live.demo) { toast(action === 'recap' ? 'Question saved for recap' : 'Question marked answered', 'info'); return; }
+    D().liveQuestionAction(CR.live.id, id, action).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
+  }
+  function questionToFollowup() {
+    openAskRoom({ followUpQuestion: 'Why doesn’t diversification fully protect a portfolio during a broad market decline?' });
+  }
+
+  function liveUtilityControls() {
+    return '<div class="cl-live-utilities"><button onclick="ClassroomUI.openAskRoom()">Ask the room</button><button class="is-danger" onclick="ClassroomUI.liveControl(\'end\')">End session</button></div>';
+  }
+
+  function liveControl(action) {
+    if (!CR.live) return;
+    if (CR.live.demo) { demoLiveControl(action); return; }
+    D().liveControl(CR.live.id, action, {}).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
+  }
+
+  function openAskRoom(seed) {
+    seed = seed || CR.liveIntervention || {};
+    mount('<div class="cl-screen">' + back('Live session', 'ClassroomUI.openLeaderLive()') + header('Ask the room', 'Insert an untimed question into this session only.') +
+      '<form class="cl-form" onsubmit="return false">' +
+        field('Question type', '<select class="cl-input" id="clLiveAskType" onchange="ClassroomUI.updateAskRoomFields()"><option value="mcq">Multiple choice</option><option value="agree">Agree / disagree</option><option value="confidence">Confidence check</option><option value="short">Short response</option></select>') +
+        field('Question', '<textarea class="cl-input" id="clLiveAskPrompt" rows="3" maxlength="400">' + esc(seed.followUpQuestion || '') + '</textarea>') +
+        '<div id="clLiveAskChoices">' + [0,1,2,3].map(function (i) { return '<div class="cl-opt-row"><input type="radio" name="clLiveCorrect" value="' + i + '"' + (i === Number(seed.followUpAnswerIndex || 0) ? ' checked' : '') + '><input class="cl-input" id="clLiveChoice' + i + '" value="' + esc((seed.followUpChoices || [])[i] || '') + '" placeholder="Option ' + 'ABCD'[i] + '"></div>'; }).join('') + '</div>' +
+        '<div class="cl-draft-tools"><span>Claude actions</span><button type="button" onclick="ClassroomUI.generateAskRoom(\'followup\')">Generate follow-up</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'simple\')">Make simpler</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'example\')">Ask for an example</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'check\')">Check understanding</button></div>' +
+        '<button class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.submitAskRoom()">Open question</button></form></div>');
+  }
+
+  function updateAskRoomFields() {
+    var type = (document.getElementById('clLiveAskType') || {}).value, box = document.getElementById('clLiveAskChoices');
+    if (!box) return;
+    box.hidden = type === 'short' || type === 'confidence';
+    if (type === 'agree') {
+      document.getElementById('clLiveChoice0').value = 'Agree'; document.getElementById('clLiveChoice1').value = 'Disagree';
+      document.getElementById('clLiveChoice2').value = ''; document.getElementById('clLiveChoice3').value = '';
+    }
+  }
+
+  function generateAskRoom(kind) {
+    var prompt = document.getElementById('clLiveAskPrompt'); if (!prompt) return;
+    var i = CR.liveIntervention || demoIntervention();
+    if (kind === 'example') prompt.value = 'Give an example that shows ' + lcFirst((CR.liveQuestion && CR.liveQuestion.skill) || 'the main idea') + '.';
+    else if (kind === 'simple') prompt.value = 'Which explanation states the idea most simply?';
+    else if (kind === 'check') prompt.value = 'How confident are you that you could explain this idea to someone else?';
+    else prompt.value = i.followUpQuestion || 'Which statement best captures the key idea?';
+    toast('Draft updated', 'info');
+  }
+
+  function submitAskRoom() {
+    var type = (document.getElementById('clLiveAskType') || {}).value || 'mcq';
+    var prompt = ((document.getElementById('clLiveAskPrompt') || {}).value || '').trim();
+    if (!prompt) { toast('Add a question first', 'error'); return; }
+    var q = { type: type === 'short' ? 'teachback' : type, prompt: cleanText(prompt), skill: 'Live check' };
+    if (type === 'mcq' || type === 'agree') {
+      q.choices = [0,1,2,3].map(function (i) { return ((document.getElementById('clLiveChoice' + i) || {}).value || '').trim(); }).filter(Boolean);
+      var marked = document.querySelector('input[name="clLiveCorrect"]:checked'); q.answerIndex = marked ? Number(marked.value) : 0;
+      if (q.choices.length < 2 || q.answerIndex >= q.choices.length) { toast('Add at least two choices and mark a valid answer', 'error'); return; }
+    } else if (type === 'confidence') { q.choices = ['I can explain it', 'I need one more example', 'I am still unsure']; q.answerIndex = 0; }
+    if (CR.live.demo) { CR.live.demoQuestion = q; CR.live.phase = 'question_open'; renderDemoLeaderLive(); return; }
+    D().liveControl(CR.live.id, 'ask_room', q).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
+  }
+
+  function liveRecapHtml(snap) {
+    var overall = snap.overall_learning_states || snap.learning_states || {};
+    var overallN = Object.keys(overall).reduce(function (sum, key) { return sum + (Number(overall[key]) || 0); }, 0);
+    var recapSnap = Object.assign({}, snap, { learning_states: overall, answered_count: overallN || snap.answered_count });
+    var p = patternFromStates(recapSnap), st = recapSnap.learning_states || {}, qs = snap.anonymous_questions || [];
+    return '<section class="cl-live-recap"><div class="cl-kicker">Session recap</div><h1>What the room showed</h1>' +
+      '<div class="cl-recap-section"><span>What landed</span><p>' + ((Number(st.understood) || 0) ? (st.understood + ' correct, confident ' + plural(st.understood, 'response') + ' on the final check.') : 'Review the full insights after more responses are collected.') + '</p></div>' +
+      '<div class="cl-recap-section is-attention"><span>What needs reinforcement</span><p>' + esc(p.observation) + '</p></div>' +
+      '<div class="cl-recap-section"><span>Questions learners asked</span><p>' + (qs.length ? qs.length + ' anonymous ' + plural(qs.length, 'question') + ' saved for review.' : 'No anonymous questions were submitted.') + '</p></div>' +
+      '<div class="cl-recap-section"><span>Recommended next step</span><p>One targeted activity · approximately 4 minutes</p></div>' +
+      '<div class="cl-recap-section"><span>Facilitator note</span><p>' + esc(p.move) + '</p></div>' +
+      '<div class="cl-stack cl-mt"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.buildLiveNextActivity()">Build next activity</button>' +
+      '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.copyLiveRecap()">Copy recap</button>' +
+      (!CR.live.demo ? '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + CR.live.classroomId + '\')">View full insights</button>' : '') +
+      '<button class="cl-btn cl-btn-ghost" onclick="ClassroomUI.exitLive()">End session</button></div></section>';
+  }
+
+  function copyLiveRecap() {
+    var text = (ROOT() && ROOT().innerText) || 'Session recap';
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('Recap copied', 'info'); });
+  }
+  function buildLiveNextActivity() {
+    if (CR.live.demo) { demoAssignNotice(); return; }
+    var id = CR.live.classroomId; CR.live = null; buildTargetedFollowup(id);
+  }
+  function exitLive() { CR.live = null; renderClassroom(); }
+
+  function joinLiveForClassroom(classroomId) {
+    mount(loading('Looking for a live session…'));
+    D().liveFind(classroomId).then(function (found) {
+      if (!found.session_id) throw new Error('There is no active live session for this group.');
+      return D().liveJoin(found.session_id).then(function () {
+        CR.live = { id: found.session_id, classroomId: classroomId, leader: false, demo: false };
+        openLearnerLive();
+      });
+    }).catch(function (err) {
+      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.joinLiveForClassroom(\'' + classroomId + '\')') + '</div>');
+    });
+  }
+
+  function openLearnerLive() {
+    if (!CR.live) return;
+    D().liveLearnerSnapshot(CR.live.id).then(renderLearnerLive).catch(function (err) {
+      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.openLearnerLive()') + '</div>');
+    });
+  }
+
+  function renderLearnerLive(snap) {
+    var s = snap.session, q = s.current_question || {};
+    var top = '<div class="cl-screen cl-live-screen">' + back('Classroom', 'ClassroomUI.exitLive()') +
+      '<div class="cl-live-head"><div><div class="cl-kicker">Live classroom</div><h1>' + esc(liveStateLabel(s.state)) + '</h1></div><span class="cl-live-state">Untimed</span></div>';
+    var body;
+    if (s.state === 'lobby') body = '<div class="cl-live-wait"><div class="cl-spinner"></div><h2>You’re in</h2><p>Waiting for the leader to start. ' + snap.participant_count + ' ' + plural(snap.participant_count, 'learner') + ' joined.</p></div>';
+    else if (s.state === 'paused') body = '<div class="cl-live-wait"><h2>Session paused</h2><p>The leader will continue when the room is ready.</p></div>';
+    else if (s.state === 'question_open' && snap.answered) body = learnerWaitingBlock();
+    else if (s.state === 'question_open') body = learnerLiveQuestion(s, q);
+    else if (s.state === 'results') body = '<section class="cl-live-question"><div class="cl-live-qmeta">Group review</div><h2>' + modelText(q.prompt) + '</h2>' +
+      (q.explanation ? '<div class="cl-live-explanation">' + richText(q.explanation) + '</div>' : '<p class="cl-muted">Reviewing the anonymous group results with your leader.</p>') + '</section>' + learnerWaitingBlock('Waiting for the next question…');
+    else body = '<div class="cl-live-wait"><h2>Session complete</h2><p>Thanks for contributing. Your leader saw group-level patterns, not individual responses.</p><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.exitLive()">Done</button></div>';
+    mount(top + body + (s.state !== 'complete' ? learnerAskControl() : '') + '</div>');
+    if (s.state !== 'complete') scheduleLive(openLearnerLive);
+  }
+
+  function learnerLiveQuestion(s, q) {
+    CR.liveQuestion = q; CR.liveSelected = null; CR.liveConfidence = null;
+    var hasChoices = q.type !== 'teachback' && q.type !== 'short';
+    var needsConfidence = q.type === 'mcq' || q.type === 'agree';
+    var input = hasChoices ? '<div class="cl-live-choices">' + (q.choices || []).map(function (choice, i) {
+      return '<button type="button" data-live-choice="' + i + '" onclick="ClassroomUI.selectLiveChoice(' + i + ',this)"><span>' + 'ABCD'[i] + '</span>' + modelText(choice) + '</button>';
+    }).join('') + '</div>' + (needsConfidence ? '<div class="cl-confidence"><div class="cl-copy-label">How confident are you?</div>' +
+      '<button onclick="ClassroomUI.selectLiveConfidence(\'know\',this)">I know this</button><button onclick="ClassroomUI.selectLiveConfidence(\'unsure\',this)">I’m unsure</button><button onclick="ClassroomUI.selectLiveConfidence(\'guessing\',this)">I’m guessing</button></div>' :
+      '') : '<textarea class="cl-input" id="clLiveText" rows="5" maxlength="600" placeholder="Explain in one or two sentences…"></textarea>';
+    return '<section class="cl-live-question"><div class="cl-live-qmeta">Question ' + (Number(s.current_question_index) + 1) + ' of ' + s.question_count + '</div>' +
+      '<h2>' + modelText(q.prompt) + '</h2>' + input + '<button class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.submitLiveAnswer()">Submit</button></section>';
+  }
+
+  function selectLiveChoice(i, el) {
+    CR.liveSelected = i;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-live-choice]'), function (b) { b.classList.toggle('is-selected', b === el); });
+  }
+  function selectLiveConfidence(value, el) {
+    CR.liveConfidence = value;
+    Array.prototype.forEach.call(document.querySelectorAll('.cl-confidence button'), function (b) { b.classList.toggle('is-selected', b === el); });
+  }
+  function submitLiveAnswer() {
+    var q = CR.liveQuestion || {}, hasChoices = q.type !== 'teachback' && q.type !== 'short';
+    var needsConfidence = q.type === 'mcq' || q.type === 'agree', response;
+    if (hasChoices) {
+      if (CR.liveSelected == null) { toast('Select an answer', 'error'); return; }
+      if (needsConfidence && !CR.liveConfidence) { toast('Select your confidence', 'error'); return; }
+      response = { selectedIndex: CR.liveSelected };
+    } else {
+      var text = ((document.getElementById('clLiveText') || {}).value || '').trim();
+      if (!text) { toast('Add a short response', 'error'); return; } response = { text: cleanText(text) };
+    }
+    D().liveSubmit(CR.live.id, response, needsConfidence ? CR.liveConfidence : null).then(openLearnerLive).catch(function (err) { toast(err.message, 'error'); });
+  }
+
+  function learnerWaitingBlock(copy) {
+    return '<div class="cl-live-wait"><div class="cl-spinner"></div><h2>Answer submitted</h2><p>' + esc(copy || 'Waiting for the leader to close responses. You cannot advance independently.') + '</p></div>';
+  }
+  function learnerAskControl() {
+    return '<details class="cl-disclosure cl-learner-ask"><summary>Ask anonymously</summary><div class="cl-disclosure-body"><textarea class="cl-input" id="clAnonQuestion" maxlength="400" rows="2" placeholder="Ask a short question…"></textarea>' +
+      '<button class="cl-btn cl-btn-line cl-mt" onclick="ClassroomUI.submitAnonymousQuestion()">Send anonymously</button></div></details>';
+  }
+  function submitAnonymousQuestion() {
+    var el = document.getElementById('clAnonQuestion'), text = (el && el.value || '').trim(); if (!text) return;
+    D().liveAsk(CR.live.id, text).then(function () { if (el) el.value = ''; toast('Question sent anonymously', 'info'); }).catch(function (err) { toast(err.message, 'error'); });
+  }
+
+  // Demo live state is isolated in memory and never calls ClassroomData's RPCs.
+  function startDemoLive() {
+    var demo = D().buildDemo();
+    CR.live = { id: 'demo-live', classroomId: 'demo', leader: true, demo: true, phase: 'lobby', index: -1, assignment: demo.assignment };
+    CR.liveIntervention = demoIntervention(); renderDemoLeaderLive();
+  }
+  function demoSnapshot() {
+    var l = CR.live, questions = l.assignment.content.questions, idx = Math.max(0, l.index), q = l.demoQuestion || questions[idx];
+    var results = l.phase === 'results' || l.phase === 'complete';
+    return { session: { id: l.id, state: l.phase, current_question_index: idx, question_order: questions, current_question: q },
+      participant_count: l.phase === 'lobby' ? 12 : 18, answered_count: results ? 16 : (l.phase === 'question_open' ? 11 : 0),
+      answer_distribution: results ? [{ choice: '0', n: 3, correct: 0 },{ choice: '1', n: 10, correct: 10 },{ choice: '2', n: 2, correct: 0 },{ choice: '3', n: 1, correct: 0 }] : [],
+      confidence_distribution: results ? { know: 6, unsure: 7, guessing: 3 } : {},
+      learning_states: results ? { understood: 4, fragile: 6, misconception: 2, gap: 4 } : {},
+      overall_learning_states: results ? { understood: 9, fragile: 12, misconception: 5, gap: 7 } : {},
+      anonymous_questions: results ? [{ id: 'demo-q1', question: 'Why doesn’t diversification protect against a market crash?' }, { id: 'demo-q2', question: 'Can every investment fall at the same time?' }] : [] };
+  }
+  function renderDemoLeaderLive() { renderLeaderLive(demoSnapshot()); }
+  function demoLiveControl(action) {
+    var l = CR.live;
+    if (action === 'start') { l.phase = 'question_open'; l.index = 0; }
+    else if (action === 'close') l.phase = 'results';
+    else if (action === 'continue') { if (l.index >= 0) l.phase = 'complete'; else { l.index++; l.phase = 'question_open'; } }
+    else if (action === 'pause') l.phase = 'paused';
+    else if (action === 'resume') l.phase = 'question_open';
+    else if (action === 'end') l.phase = 'complete';
+    renderDemoLeaderLive();
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -1363,7 +1897,8 @@
         var c = m.classrooms || {};
         return '<div class="cl-card"><div class="cl-card-head"><strong>' + esc(c.name || 'Classroom') + '</strong></div>' +
           (c.description ? '<p class="cl-muted">' + esc(c.description) + '</p>' : '') +
-          '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignment(\'' + c.id + '\')">Open</button></div></div>';
+          '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignment(\'' + c.id + '\')">Assignment</button>' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.joinLiveForClassroom(\'' + c.id + '\')">Join live</button></div></div>';
       }).join('') +
       '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openJoin()">Join another classroom</button>';
     }).catch(function () {
@@ -1412,7 +1947,7 @@
       var qCount = content ? (content.questions || []).length : 0;
       mount(
         '<div class="cl-screen cl-center">' +
-          '<div class="cl-success-badge">✓</div>' +
+          '<div class="cl-success-badge">' + stateIcon('check') + '</div>' +
           '<h1 class="cl-success-title">You joined ' + esc(classroom.name) + '</h1>' +
           (assignment ? (
             '<div class="cl-card cl-mt">' +
@@ -1481,7 +2016,7 @@
       body = '<div class="ml-choices" id="clChoices">' + q.choices.map(function (choice, i) {
         return '<button type="button" class="ml-choice" data-i="' + i + '">' +
           '<span class="ml-choice-letter">' + 'ABCD'[i] + '</span>' +
-          '<span class="ml-choice-text">' + esc(choice) + '</span>' +
+          '<span class="ml-choice-text">' + modelText(choice) + '</span>' +
           '<span class="ml-choice-mark"></span></button>';
       }).join('') + '</div>';
     }
@@ -1489,13 +2024,13 @@
     mount(
       '<div class="cl-screen cl-player">' +
         '<div class="cl-player-top">' +
-          '<button type="button" class="cl-back-x" onclick="ClassroomUI.exitPlayer()" aria-label="Exit">✕</button>' +
+          '<button type="button" class="cl-back-x" onclick="ClassroomUI.exitPlayer()" aria-label="Exit">' + stateIcon('cross') + '</button>' +
           '<div class="cl-bar cl-bar-slim"><div class="cl-bar-fill cl-bar-white" style="width:' + pct + '%"></div></div>' +
           '<span class="cl-qcount">' + (p.idx + 1) + '/' + p.questions.length + '</span>' +
         '</div>' +
         '<div class="ml-check">' +
-          '<span class="ml-check-kicker">' + esc(q.skill || (q.type === 'teachback' ? 'Teach it back' : 'Quick check')) + '</span>' +
-          '<h2 class="ml-question">' + esc(q.prompt) + '</h2>' +
+          '<span class="ml-check-kicker">' + esc(D().humanizeSkill(q.skill || (q.type === 'teachback' ? 'Teach it back' : 'Quick check'))) + '</span>' +
+          '<h2 class="ml-question">' + modelText(q.prompt) + '</h2>' +
           body +
           '<div class="ml-feedback-slot" id="clFeedback"></div>' +
         '</div>' +
@@ -1568,12 +2103,12 @@
         var i = parseInt(b.getAttribute('data-i'), 10);
         b.classList.remove('is-selected');
         var mark = b.querySelector('.ml-choice-mark');
-        if (i === q.answerIndex) { b.classList.add('is-correct'); mark.textContent = '✓'; }
+        if (i === q.answerIndex) { b.classList.add('is-correct'); mark.innerHTML = stateIcon('check'); }
         else if (i === p.selected) {
           b.classList.add('is-wrong');
           // Red ✕ (matches the red card/feedback) — not the default green check.
           mark.classList.add('is-wrong');
-          mark.textContent = '✕';
+          mark.innerHTML = stateIcon('cross');
         }
         b.disabled = true;
       });
@@ -1581,7 +2116,7 @@
     var fb = document.getElementById('clFeedback');
     if (fb) fb.innerHTML = '<div class="ml-feedback ' + (correct ? 'ok' : 'no') + '">' +
       '<strong>' + (correct ? 'Correct.' : 'Not quite.') + '</strong>' +
-      (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '') + '</div>';
+      (q.explanation ? richText(q.explanation) : '') + '</div>';
     var sub = document.getElementById('clSubmit');
     if (sub) sub.textContent = (p.idx + 1 >= p.questions.length) ? 'Finish' : 'Next question';
   }
@@ -1595,8 +2130,8 @@
     var fb = document.getElementById('clFeedback');
     if (fb) fb.innerHTML = '<div class="ml-feedback ' + (ok ? 'ok' : 'no') + '">' +
       '<strong>' + (ev.understood === null ? 'Saved.' : (ok ? 'Nice explanation.' : 'Good start.')) + '</strong>' +
-      '<p>' + esc(ev.feedback || '') + '</p>' +
-      (ev.missing ? '<p class="cl-muted">Consider: ' + esc(ev.missing) + '</p>' : '') + '</div>';
+      '<p>' + modelText(ev.feedback || '') + '</p>' +
+      (ev.missing ? '<p class="cl-muted">Consider: ' + modelText(ev.missing) + '</p>' : '') + '</div>';
     var sub = document.getElementById('clSubmit');
     if (sub) { sub.disabled = false; sub.textContent = (p.idx + 1 >= p.questions.length) ? 'Finish' : 'Next question'; }
   }
@@ -1605,18 +2140,17 @@
     var p = CR.player;
     // Best-effort persistence; never block the learner UI on the network.
     D().submitResponse(p.attempt.id, p.classroomId, q, responseData, isCorrect, evaluation)
-      .catch(function () { /* swallow — offline tolerance; attempt summary still saved */ });
+      .catch(function () { p.persistFailed = true; toast('This response could not be saved. Check your connection.', 'error'); });
   }
 
   function finishAssignment() {
     var p = CR.player;
     var summary = buildLearnerSummary(p);
     mount(loading('Saving your results…'));
-    D().completeAttempt(p.attempt.id, p.score, p.graded).then(function () {}).catch(function () {})
-      .then(function () {
+    D().completeAttempt(p.attempt.id, p.score, p.graded).then(function () {
         mount(
           '<div class="cl-screen cl-center">' +
-            '<div class="cl-success-badge">✓</div>' +
+            '<div class="cl-success-badge">' + stateIcon('check') + '</div>' +
             '<h1 class="cl-success-title">Assignment complete</h1>' +
             '<p class="cl-success-sub">You scored ' + p.score + ' of ' + p.graded + '</p>' +
             '<div class="cl-bar cl-mt"><div class="cl-bar-fill cl-bar-white" style="width:' + (p.graded ? Math.round(p.score / p.graded * 100) : 0) + '%"></div></div>' +
@@ -1626,8 +2160,13 @@
           '</div>'
         );
         CR.player = null;
+      }).catch(function (err) {
+        mount('<div class="cl-screen">' + errorBox((err && err.message) || 'Could not save your completed assignment.', 'ClassroomUI.retryFinishAssignment()') +
+          '<p class="cl-muted cl-mt">Your results are still open in this session.</p></div>');
       });
   }
+
+  function retryFinishAssignment() { if (CR.player) finishAssignment(); else renderClassroom(); }
 
   // Derive a private, response-specific learning summary from the just-completed
   // attempt only. Objective concepts come from correct/incorrect MCQ data;
@@ -1638,7 +2177,7 @@
     var bySkill = {};
     results.forEach(function (r) {
       if (r.type !== 'mcq') return;
-      var key = r.skill || 'This concept';
+      var key = D().humanizeSkill(r.skill || 'This concept');
       var s = bySkill[key] || (bySkill[key] = { skill: key, correct: 0, total: 0, correctExpl: '', missExpl: '' });
       s.total++;
       if (r.correct) { s.correct++; if (!s.correctExpl && r.explanation) s.correctExpl = r.explanation; }
@@ -1678,22 +2217,22 @@
     if (summary.know.length) {
       html += '<div class="cl-ls-section"><div class="cl-ls-label">What you know</div>' +
         summary.know.map(function (it) {
-          return '<div class="cl-ls-item cl-ls-item-know"><div class="cl-ls-title">' + esc(it.title) + '</div>' +
-            '<div class="cl-ls-desc">' + esc(it.desc) + '</div></div>';
+          return '<div class="cl-ls-item cl-ls-item-know"><div class="cl-ls-title">' + esc(D().humanizeSkill(it.title)) + '</div>' +
+            '<div class="cl-ls-desc">' + modelText(it.desc) + '</div></div>';
         }).join('') + '</div>';
     }
     if (summary.review.length) {
       html += '<div class="cl-ls-section"><div class="cl-ls-label">Review next</div>' +
         summary.review.map(function (it) {
-          return '<div class="cl-ls-item cl-ls-item-review"><div class="cl-ls-title">' + esc(it.title) + '</div>' +
-            '<div class="cl-ls-desc">' + esc(it.desc) + '</div></div>';
+          return '<div class="cl-ls-item cl-ls-item-review"><div class="cl-ls-title">' + esc(D().humanizeSkill(it.title)) + '</div>' +
+            '<div class="cl-ls-desc">' + modelText(it.desc) + '</div></div>';
         }).join('') + '</div>';
     }
     if (summary.teach) {
       html += '<div class="cl-ls-section"><div class="cl-ls-label">Teach-it-back feedback</div>' +
         '<div class="cl-ls-item cl-ls-item-teach">' +
-          '<div class="cl-ls-desc">' + esc(summary.teach.good) + '</div>' +
-          (summary.teach.improve ? '<div class="cl-ls-desc">To sharpen it: ' + esc(summary.teach.improve) + '</div>' : '') +
+          '<div class="cl-ls-desc">' + modelText(summary.teach.good) + '</div>' +
+          (summary.teach.improve ? '<div class="cl-ls-desc">To sharpen it: ' + modelText(summary.teach.improve) + '</div>' : '') +
         '</div></div>';
     }
     return html + '</div>';
@@ -1734,6 +2273,11 @@
     submitNewQuestion: submitNewQuestion,
     confirmAssignment: confirmAssignment,
     editPreviewTitle: editPreviewTitle,
+    editQuestion: editQuestion,
+    switchFollowupTab: switchFollowupTab,
+    transformDraft: transformDraft,
+    toggleDraftTeachback: toggleDraftTeachback,
+    regenerateDraft: regenerateDraft,
     openInsights: openInsights,
     showAction: showAction,
     copyActionText: copyActionText,
@@ -1743,10 +2287,31 @@
     demoAssignNotice: demoAssignNotice,
     openDemo: openDemo,
     exitDemo: exitDemo,
+    startLiveSession: startLiveSession,
+    openLeaderLive: openLeaderLive,
+    liveControl: liveControl,
+    showLiveMove: showLiveMove,
+    liveQuestionAction: liveQuestionAction,
+    questionToFollowup: questionToFollowup,
+    openAskRoom: openAskRoom,
+    updateAskRoomFields: updateAskRoomFields,
+    generateAskRoom: generateAskRoom,
+    submitAskRoom: submitAskRoom,
+    copyLiveRecap: copyLiveRecap,
+    buildLiveNextActivity: buildLiveNextActivity,
+    exitLive: exitLive,
+    joinLiveForClassroom: joinLiveForClassroom,
+    openLearnerLive: openLearnerLive,
+    selectLiveChoice: selectLiveChoice,
+    selectLiveConfidence: selectLiveConfidence,
+    submitLiveAnswer: submitLiveAnswer,
+    submitAnonymousQuestion: submitAnonymousQuestion,
+    startDemoLive: startDemoLive,
     openJoin: openJoin,
     submitJoin: submitJoin,
     openLearnerAssignment: openLearnerAssignment,
     submitAnswer: submitAnswer,
+    retryFinishAssignment: retryFinishAssignment,
     exitPlayer: exitPlayer
   };
 

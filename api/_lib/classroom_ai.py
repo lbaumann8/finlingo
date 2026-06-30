@@ -1,11 +1,13 @@
 """Server-side Claude actions for Finlingo Classroom.
 
-Four modes, all behind a single endpoint (`api/classroom-ai.py`):
+Six modes, all behind a single endpoint (`api/classroom-ai.py`):
 
   * generate_assignment  — build a 5-question concept challenge
   * evaluate_teachback   — grade one "explain it in your own words" answer
   * group_insight        — summarize an ANONYMIZED/aggregated group result
   * followup_activity    — propose a short remediation activity for a gap
+  * live_intervention    — turn anonymous live aggregates into a teaching move
+  * question_cluster     — combine anonymous learner questions into one theme
 
 The Anthropic key is read server-side only (never shipped to the browser).
 Every model call uses tool-use so the output is structured, then we validate /
@@ -17,6 +19,7 @@ anonymized teach-it-back excerpts. No student names reach this module or Claude.
 
 import json
 import os
+import re
 import socket
 import sys
 import urllib.error
@@ -147,7 +150,25 @@ def _clean_str(value, fallback="", limit=600):
     if not isinstance(value, str):
         return fallback
     out = value.strip()
+    # Model copy is rendered as plain/structured UI, never raw Markdown.
+    out = re.sub(r"```(?:\w+)?", "", out)
+    out = re.sub(r"^\s{0,3}#{1,6}\s*", "", out, flags=re.MULTILINE)
+    out = re.sub(r"\*\*([^*]+)\*\*|__([^_]+)__", lambda m: m.group(1) or m.group(2), out)
+    out = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)|(?<!_)_([^_\n]+)_(?!_)", lambda m: m.group(1) or m.group(2), out)
+    out = re.sub(r"`([^`]+)`", r"\1", out)
+    out = re.sub(r"[✅☑✔❌✕❎]", "", out)
+    out = re.sub(r"^\s*[-*+]\s+", "• ", out, flags=re.MULTILINE)
+    out = re.sub(r"[ \t]+", " ", out)
+    out = re.sub(r"\n{3,}", "\n\n", out).strip()
     return out[:limit] if out else fallback
+
+
+def _word_limited(value, fallback, words, chars):
+    text = _clean_str(value, fallback, chars)
+    pieces = text.split()
+    if len(pieces) <= words:
+        return text
+    return " ".join(pieces[:words]).rstrip(" ,;:") + "."
 
 
 def _slug(value, fallback="skill"):
@@ -454,6 +475,7 @@ _FOLLOWUP_SCHEMA = {
     "properties": {
         "title": {"type": "string"},
         "explanation": {"type": "string"},
+        "example": {"type": "string"},
         "scenario": {"type": "string"},
         "chartPrompt": {"type": "string"},
         "questions": {
@@ -496,13 +518,16 @@ def followup_activity(payload):
         "generic overview of the topic. Every part must carry the detected gap "
         "concept into the next screen. Return:\n"
         "- a focused `title` that names the gap concept,\n"
-        "- a tight `explanation` (a 2-minute plain-English read of the misunderstood idea),\n"
-        "- a `scenario`: one short, concrete real-world situation (2-3 sentences) that "
+        "- a tight `explanation`: one paragraph of 35-60 words,\n"
+        "- an `example`: one concrete example of 40-80 words,\n"
+        "- a `scenario`: one concrete real-world situation of 60-100 words that "
         "makes the misconception tangible,\n"
-        "- an optional `chartPrompt` describing a simple chart-based check if one helps,\n"
+        "- an optional `chartPrompt` titled Compare the outcomes that states concrete "
+        "values in plain text; never claim a chart or graphic was rendered,\n"
         "- exactly 3 multiple-choice `questions` (each with skill, prompt, 4 choices, "
         "answerIndex 0-3, explanation) that directly probe the gap,\n"
-        "- a `teachBackPrompt`, and a `teachBackObjective`."
+        "- a `teachBackPrompt`, and a `teachBackObjective`. No Markdown, emojis, "
+        "headings, repeated ideas, or long preamble."
     )
     data = _call_claude("build_followup", _FOLLOWUP_SCHEMA, prompt, max_tokens=2200, timeout=55)
 
@@ -540,14 +565,90 @@ def followup_activity(payload):
         "difficulty": "beginner",
         "objectives": ([objective] if objective else objectives) or [gap],
         "teachItBack": True,
-        "explanation": _clean_str(data.get("explanation"), "", 1200),
-        "scenario": _clean_str(data.get("scenario"), "", 600),
+        "explanation": _word_limited(data.get("explanation"), "", 60, 700),
+        "example": _word_limited(data.get("example"), "", 80, 800),
+        "scenario": _word_limited(data.get("scenario"), "", 100, 900),
         "chartPrompt": _clean_str(data.get("chartPrompt"), "", 400),
         "questions": questions,
         "gapConcept": gap_concept,
         "source": "claude-followup",
     }
     return {"ok": True, "activity": activity}
+
+
+# ── Mode: live_intervention ─────────────────────────────────────────────────
+
+_LIVE_INTERVENTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "observation": {"type": "string"},
+        "suggestedMove": {"type": "string"},
+        "simpleExplanation": {"type": "string"},
+        "example": {"type": "string"},
+        "followUpQuestion": {"type": "string"},
+        "followUpChoices": {"type": "array", "items": {"type": "string"}},
+        "followUpAnswerIndex": {"type": "integer"},
+    },
+    "required": ["observation", "suggestedMove", "simpleExplanation", "example", "followUpQuestion"],
+}
+
+
+def live_intervention(payload):
+    prompt_text = _clean_str(payload.get("prompt"), "the current question", 400)
+    sample = max(0, int(payload.get("responseCount") or 0))
+    distribution = payload.get("answerDistribution") or []
+    confidence = payload.get("confidenceDistribution") or {}
+    states = payload.get("learningStates") or {}
+    prompt = (
+        "Create a concise teaching intervention from anonymous live-classroom aggregates. "
+        "Never infer traits about individuals and do not overclaim from a small sample.\n\n"
+        f"Question: {prompt_text}\nResponses: {sample}\n"
+        f"Answer distribution: {json.dumps(distribution)[:1000]}\n"
+        f"Confidence distribution: {json.dumps(confidence)[:600]}\n"
+        f"Learning-state counts: {json.dumps(states)[:600]}\n\n"
+        "Return one short observation, one concrete suggested teaching move, a plain "
+        "explanation, one example, and one multiple-choice follow-up question. Use no "
+        "Markdown or emojis. Keep each prose field under 45 words."
+    )
+    data = _call_claude("live_intervention", _LIVE_INTERVENTION_SCHEMA, prompt, max_tokens=800, timeout=45)
+    choices = [_clean_str(c, limit=160) for c in (data.get("followUpChoices") or []) if isinstance(c, str)][:4]
+    try:
+        answer_index = int(data.get("followUpAnswerIndex", 0))
+    except (TypeError, ValueError):
+        answer_index = 0
+    return {"ok": True, "intervention": {
+        "observation": _word_limited(data.get("observation"), "Responses show a mixed pattern.", 45, 360),
+        "suggestedMove": _word_limited(data.get("suggestedMove"), "Pause for one concrete example before continuing.", 45, 360),
+        "simpleExplanation": _word_limited(data.get("simpleExplanation"), "", 55, 440),
+        "example": _word_limited(data.get("example"), "", 55, 440),
+        "followUpQuestion": _clean_str(data.get("followUpQuestion"), "Check the same idea with a new example.", 280),
+        "followUpChoices": choices,
+        "followUpAnswerIndex": max(0, min(answer_index, max(0, len(choices) - 1))),
+    }}
+
+
+_QUESTION_CLUSTER_SCHEMA = {
+    "type": "object",
+    "properties": {"theme": {"type": "string"}, "combinedQuestion": {"type": "string"}},
+    "required": ["theme", "combinedQuestion"],
+}
+
+
+def question_cluster(payload):
+    questions = [_clean_str(q, limit=400) for q in (payload.get("questions") or []) if isinstance(q, str) and q.strip()][:20]
+    if not questions:
+        return {"ok": True, "cluster": {"theme": "Learner questions", "combinedQuestion": ""}}
+    prompt = (
+        "Combine these anonymous classroom questions into one representative question. "
+        "Return a 2-5 word theme and one concise combined question. Do not add claims, "
+        "identify learners, use Markdown, or answer the question.\n\n"
+        + json.dumps(questions)
+    )
+    data = _call_claude("question_cluster", _QUESTION_CLUSTER_SCHEMA, prompt, max_tokens=300, timeout=35)
+    return {"ok": True, "cluster": {
+        "theme": _clean_str(data.get("theme"), "Learner questions", 80),
+        "combinedQuestion": _clean_str(data.get("combinedQuestion"), questions[0], 400),
+    }}
 
 
 # ── Dispatch ────────────────────────────────────────────────────────────────
@@ -557,6 +658,8 @@ _MODES = {
     "evaluate_teachback": evaluate_teachback,
     "group_insight": group_insight,
     "followup_activity": followup_activity,
+    "live_intervention": live_intervention,
+    "question_cluster": question_cluster,
 }
 
 
