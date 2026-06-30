@@ -234,12 +234,7 @@
     var s = (a && a.status) || 'active';
     if (s === 'draft') return 'Draft';
     if (s === 'closed') return 'Closed';
-    return 'Published';
-  }
-  function statusPill(a) {
-    var s = (a && a.status) || 'active';
-    var key = s === 'draft' ? 'draft' : (s === 'closed' ? 'closed' : 'pub');
-    return '<span class="cl-status cl-status-' + key + '">' + statusText(a) + '</span>';
+    return '';
   }
   function summaryItem(val, label) {
     return '<div class="cl-summary-item"><div class="cl-summary-val">' + esc(String(val)) +
@@ -317,7 +312,9 @@
       { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
       { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
     ]);
-    return '<div class="cl-card cl-group-card">' +
+    return '<div class="cl-card cl-group-card cl-click-card" role="button" tabindex="0" ' +
+      'onclick="ClassroomUI.cardOpen(event,\'group\',\'' + c.id + '\')" ' +
+      'onkeydown="ClassroomUI.cardKey(event,\'group\',\'' + c.id + '\')">' +
       '<div class="cl-card-head">' +
         '<div class="cl-card-head-main">' +
           '<strong>' + esc(c.name) + '</strong>' +
@@ -329,10 +326,7 @@
         '<span>·</span><span>' + (c.assignment_count || 0) + ' assignment' + ((c.assignment_count === 1) ? '' : 's') + '</span>' +
       '</div>' +
       latestLine(c) +
-      intelLine(c) +
-      '<div class="cl-card-actions">' +
-        '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">Open group</button>' +
-      '</div>' +
+      '<div class="cl-card-link">Open group <span aria-hidden="true">→</span></div>' +
     '</div>';
   }
 
@@ -361,24 +355,23 @@
     var avg = Math.round((Number(a.avg_accuracy) || 0) * 100);
     var hasResults = completed > 0;
     var isDraft = (a.status || 'active') === 'draft';
+    var target = isDraft ? 'draft' : (hasResults ? 'results' : 'assignment');
     var menu = overflowMenu('asg_' + a.id, [
       { label: 'View assignment', onclick: "ClassroomUI.openAssignmentPreview('" + c.id + "','" + a.id + "')" },
       { label: 'Duplicate', onclick: "ClassroomUI.duplicateAssignment('" + c.id + "','" + a.id + "')" }
     ]);
-    return '<div class="cl-card cl-assignment-card">' +
+    return '<div class="cl-card cl-assignment-card cl-click-card" role="button" tabindex="0" ' +
+      'onclick="ClassroomUI.cardOpen(event,\'' + target + '\',\'' + c.id + '\',\'' + a.id + '\')" ' +
+      'onkeydown="ClassroomUI.cardKey(event,\'' + target + '\',\'' + c.id + '\',\'' + a.id + '\')">' +
       '<div class="cl-card-head">' +
-        '<div class="cl-card-head-main"><strong>' + esc(a.title || 'Untitled assignment') + '</strong>' + statusPill(a) + '</div>' +
+        '<div class="cl-card-head-main"><strong>' + esc(a.title || 'Untitled assignment') + '</strong></div>' +
         menu +
       '</div>' +
       '<div class="cl-card-meta"><span>' + assignmentProgress(a, c.learner_count) + '</span>' +
         (hasResults ? '<span>·</span><span>Average score: ' + avg + '%</span>' : '') + '</div>' +
       '<div class="cl-finding cl-assignment-finding"><div class="cl-finding-kicker">' + (hasResults ? 'Latest finding' : 'Status') + '</div>' +
         '<p class="cl-finding-text">' + esc(assignmentFinding(a)) + '</p></div>' +
-      '<div class="cl-card-actions">' +
-        '<button type="button" class="cl-btn ' + (hasResults ? 'cl-btn-primary' : 'cl-btn-line') + '" onclick="' +
-          (isDraft ? "ClassroomUI.openDraftAssignment('" + c.id + "','" + a.id + "')" : (hasResults ? "ClassroomUI.openInsights('" + c.id + "','" + a.id + "')" : "ClassroomUI.openAssignmentPreview('" + c.id + "','" + a.id + "')")) + '">' +
-          (isDraft ? 'Continue draft' : (hasResults ? 'View results' : 'View assignment')) + '</button>' +
-      '</div>' +
+      '<div class="cl-card-link">' + (isDraft ? 'Continue draft' : (hasResults ? 'View results' : 'View assignment')) + ' <span aria-hidden="true">→</span></div>' +
     '</div>';
   }
 
@@ -387,7 +380,36 @@
     if (!assignments.length) {
       return '<div class="cl-empty cl-mt"><p>No assignments yet.</p></div>';
     }
-    return assignments.map(function (a) { return assignmentCard(a, c); }).join('');
+    var groups = [
+      { label: 'Published assignments', items: assignments.filter(function (a) { return (a.status || 'active') === 'active'; }) },
+      { label: 'Drafts', items: assignments.filter(function (a) { return a.status === 'draft'; }) },
+      { label: 'Closed', items: assignments.filter(function (a) { return a.status === 'closed'; }) }
+    ];
+    return groups.filter(function (g) { return g.items.length; }).map(function (g) {
+      return '<div class="cl-assignment-section">' +
+        '<div class="cl-assignment-section-title">' + esc(g.label) + '</div>' +
+        g.items.map(function (a) { return assignmentCard(a, c); }).join('') +
+      '</div>';
+    }).join('');
+  }
+
+  function shouldIgnoreCardEvent(ev) {
+    var t = ev && ev.target;
+    return !!(t && t.closest && t.closest('button,a,input,textarea,select,label,.cl-menu'));
+  }
+  function cardOpen(ev, kind, id, assignmentId) {
+    if (shouldIgnoreCardEvent(ev)) return;
+    if (kind === 'group') openGroup(id);
+    else if (kind === 'results') openInsights(id, assignmentId);
+    else if (kind === 'draft') openDraftAssignment(id, assignmentId);
+    else if (kind === 'learnerAssignments') openLearnerAssignments(id);
+    else if (kind === 'learnerStart') openLearnerAssignment(id, assignmentId);
+    else openAssignmentPreview(id, assignmentId);
+  }
+  function cardKey(ev, kind, id, assignmentId) {
+    if (!ev || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+    ev.preventDefault();
+    cardOpen(ev, kind, id, assignmentId);
   }
 
   function openAssignmentPreview(classroomId, assignmentId) {
@@ -1374,7 +1396,7 @@
       backBar +
       (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
       '<header class="cl-header cl-insights-header"><h1>' + esc(assignment.title || 'Assignment results') + '</h1>' +
-        '<p>' + esc(groupName) + ' · ' + esc(statusText(assignment)) + earlyTag + '</p></header>' +
+        '<p>' + esc(groupName) + (statusText(assignment) ? ' · ' + esc(statusText(assignment)) : '') + earlyTag + '</p></header>' +
       // A. Summary metrics
       '<div class="cl-stat-grid">' +
         statCard(agg.learners || 0, 'Learners') +
@@ -1779,9 +1801,10 @@
       }
       box.innerHTML = rows.map(function (m) {
         var c = m.classrooms || {};
-        return '<div class="cl-card"><div class="cl-card-head"><strong>' + esc(c.name || 'Classroom') + '</strong></div>' +
+        return '<div class="cl-card cl-click-card" role="button" tabindex="0" onclick="ClassroomUI.cardOpen(event,\'learnerAssignments\',\'' + c.id + '\')" onkeydown="ClassroomUI.cardKey(event,\'learnerAssignments\',\'' + c.id + '\')">' +
+          '<div class="cl-card-head"><strong>' + esc(c.name || 'Classroom') + '</strong></div>' +
           (c.description ? '<p class="cl-muted">' + esc(c.description) + '</p>' : '') +
-          '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignments(\'' + c.id + '\')">Assignments</button></div></div>';
+          '<div class="cl-card-link">Assignments <span aria-hidden="true">→</span></div></div>';
       }).join('') +
       '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openJoin()">Join another classroom</button>';
     }).catch(function () {
@@ -1862,9 +1885,10 @@
         header('Assignments', 'Choose an activity to complete.') +
         assignments.map(function (a) {
           var qCount = ((a.content || {}).questions || []).length;
-          return '<div class="cl-card cl-assignment-card"><div class="cl-card-head"><strong>' + esc(a.title || 'Assignment') + '</strong></div>' +
-            '<div class="cl-card-meta"><span>' + qCount + ' questions</span><span>·</span><span>' + esc(statusText(a)) + '</span></div>' +
-            '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignment(\'' + classroomId + '\',\'' + a.id + '\')">Start</button></div></div>';
+          return '<div class="cl-card cl-assignment-card cl-click-card" role="button" tabindex="0" onclick="ClassroomUI.cardOpen(event,\'learnerStart\',\'' + classroomId + '\',\'' + a.id + '\')" onkeydown="ClassroomUI.cardKey(event,\'learnerStart\',\'' + classroomId + '\',\'' + a.id + '\')">' +
+            '<div class="cl-card-head"><strong>' + esc(a.title || 'Assignment') + '</strong></div>' +
+            '<div class="cl-card-meta"><span>' + qCount + ' questions</span>' + (statusText(a) ? '<span>·</span><span>' + esc(statusText(a)) + '</span>' : '') + '</div>' +
+            '<div class="cl-card-link">Start <span aria-hidden="true">→</span></div></div>';
         }).join('') + '</div>');
     }).catch(function (err) {
       mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
@@ -2163,6 +2187,8 @@
   global.ClassroomUI = {
     openCreateGroup: openCreateGroup,
     submitCreateGroup: submitCreateGroup,
+    cardOpen: cardOpen,
+    cardKey: cardKey,
     openGroup: openGroup,
     openAssignmentPreview: openAssignmentPreview,
     openDraftAssignment: openDraftAssignment,

@@ -123,13 +123,9 @@
 .cl-code-inline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cl-code-mid { margin-top: 3px; font: 800 1.35rem var(--font-m, monospace); letter-spacing: 0.12em; color: #fff; text-transform: uppercase; }
 
-/* ── Active-assignment line + status pill ────────────────────────────────── */
+/* ── Assignment title line ───────────────────────────────────────────────── */
 .cl-assign-line { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin: 4px 0 2px; }
 .cl-assign-title { color: var(--cl-title); font: 600 0.96rem var(--font-b); }
-.cl-status { font: 700 0.64rem var(--font-b); letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
-.cl-status-pub { color: var(--cl-green-bright); background: rgba(43,189,106,0.14); }
-.cl-status-draft { color: #b9bec6; background: rgba(255,255,255,0.07); }
-.cl-status-closed { color: var(--cl-muted); background: rgba(255,255,255,0.05); border: 1px solid var(--cl-border); }
 
 /* ── Back link ──────────────────────────────────────────────────────────── */
 .cl-back {
@@ -408,7 +404,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-attention-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .cl-attention-evidence { color: var(--cl-muted); font: 400 0.84rem var(--font-b); }
 
-/* Confidence labels (Early signal / Developing pattern / Strong pattern) */
+/* Confidence labels used only inside assignment results. */
 .cl-conf-early { color: var(--cl-eyebrow); background: rgba(255,255,255,0.06); }
 .cl-conf-developing { color: var(--cl-amber); background: rgba(216,162,58,0.14); }
 .cl-conf-strong { color: var(--cl-title); background: rgba(255,255,255,0.08); border: 1px solid var(--cl-border-strong); }
@@ -612,8 +608,26 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   margin-top: 10px; color: var(--cl-body); font: 500 .86rem/1.45 var(--font-b);
 }
 .cl-latest-line span { color: var(--cl-muted); font-weight: 700; }
+.cl-click-card {
+  cursor: pointer; padding: 14px; transition: border-color .12s ease, background .12s ease, transform .06s ease;
+}
+.cl-click-card:hover { border-color: var(--cl-border-strong); background: #171b1f; }
+.cl-click-card:focus-visible {
+  outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px;
+}
+.cl-click-card:active { transform: translateY(1px); }
+.cl-card-link {
+  margin-top: 12px; color: var(--cl-eyebrow); font: 700 .84rem var(--font-b);
+}
+.cl-card-link span { color: var(--cl-muted); }
 .cl-assignment-card .cl-card-head-main { align-items: flex-start; }
 .cl-assignment-finding { padding-top: 10px; margin-top: 10px; }
+.cl-assignment-card .cl-finding-kicker { color: var(--cl-muted); }
+.cl-assignment-section { margin-top: 12px; }
+.cl-assignment-section-title {
+  margin: 12px 0 8px; color: var(--cl-muted);
+  font: 800 .68rem var(--font-b); letter-spacing: .08em; text-transform: uppercase;
+}
 
 .cl-btn small {
   display: block; margin-top: 3px; color: inherit; opacity: .72;
