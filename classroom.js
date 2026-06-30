@@ -1,7 +1,7 @@
 // ============================================================================
 // classroom.js
 // Finlingo Classroom UI — leader dashboard, create-group, assignment creation,
-// learner join + 5-question player, anonymous group insights, follow-up
+// learner join + assignment player, anonymous assignment results, follow-up
 // generation, and a fully client-side demo classroom.
 //
 // Renders into #classroomRoot. Entry: renderClassroom(view).
@@ -52,7 +52,6 @@
   function mount(html, after) {
     var root = ROOT();
     if (!root) return;
-    if (CR.livePoll) { global.clearTimeout(CR.livePoll); CR.livePoll = null; }
     root.innerHTML = html;
     root.scrollTop = 0;
     if (typeof after === 'function') after(root);
@@ -275,11 +274,11 @@
   function leaderEmptyState() {
     return '<div class="cl-empty">' +
       '<h2>Create your first group</h2>' +
-      '<p>Assign a short Finlingo activity and see anonymous group-level learning gaps.</p>' +
+          '<p>Assign a short Finlingo activity and see anonymous assignment-level learning gaps.</p>' +
       '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateGroup()">Create group</button>' +
       '<div class="cl-demo-entry">' +
         '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
-        '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
+        '<span class="cl-demo-entry-copy">See how anonymous assignment results work with sample data.</span>' +
       '</div>' +
       '<div class="cl-mission-note">Designed for classrooms, nonprofits, and community financial-literacy programs.</div>' +
     '</div>';
@@ -291,21 +290,28 @@
   function demoEntry() {
     return '<div class="cl-demo-entry cl-demo-entry-link cl-mt">' +
       '<button type="button" class="cl-demo-link" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
-      '<span class="cl-demo-entry-copy">See how anonymous group insights work with sample data.</span>' +
+      '<span class="cl-demo-entry-copy">See how anonymous assignment results work with sample data.</span>' +
     '</div>';
   }
 
   // One real-data intelligence line per group card (latest completed assignment).
   // Demo insights never reach this — it reads only `c.intel` from the aggregate.
-  function intelLine(c) {
-    var intel = c.intel;
+  function intelLine(item) {
+    var intel = item && item.intel;
     if (!intel) return '';
     return '<div class="cl-intel cl-intel-' + esc(intel.state) + '">' +
       '<span class="cl-intel-dot"></span>' + esc(intel.label) + '</div>';
   }
 
+  function latestLine(c) {
+    var a = c.latest_assignment;
+    if (!a) return '<div class="cl-latest-line">No assignments yet</div>';
+    var completed = Number(a.completed_count) || 0;
+    return '<div class="cl-latest-line"><span>Latest:</span> ' + esc(a.title || 'Untitled assignment') +
+      ' · ' + completed + ' completed</div>';
+  }
+
   function groupCard(c) {
-    var a = c.active_assignment;
     var menu = overflowMenu('card_' + c.id, [
       { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
       { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
@@ -320,12 +326,12 @@
       '</div>' +
       '<div class="cl-card-meta">' +
         '<span>' + (c.learner_count || 0) + ' learner' + ((c.learner_count === 1) ? '' : 's') + '</span>' +
-        '<span>·</span><span>' + (c.completed_count || 0) + ' completed</span>' +
+        '<span>·</span><span>' + (c.assignment_count || 0) + ' assignment' + ((c.assignment_count === 1) ? '' : 's') + '</span>' +
       '</div>' +
+      latestLine(c) +
       intelLine(c) +
       '<div class="cl-card-actions">' +
-        '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">View group</button>' +
-        '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">Insights</button>' +
+        '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + c.id + '\')">Open group</button>' +
       '</div>' +
     '</div>';
   }
@@ -341,52 +347,113 @@
     return lead + lcFirst(concept) + '.';
   }
 
-  // State-aware primary CTA for the group-detail page.
-  function detailPrimaryCta(c) {
-    var a = c.active_assignment, intel = c.intel, hasResp = (c.completed_count || 0) > 0;
-    if (!a) return { label: 'Create assignment', onclick: "ClassroomUI.openCreateAssignment('" + c.id + "')" };
-    if (!hasResp) return { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" };
-    return { label: 'Build targeted follow-up', onclick: "ClassroomUI.buildTargetedFollowup('" + c.id + "')" };
+  function assignmentProgress(a, learners) {
+    return (Number(a.completed_count) || 0) + ' of ' + (Number(learners) || 0) + ' completed';
   }
 
-  // Group detail: summary, compact join code, active-assignment status + latest
-  // finding, a state-aware primary CTA, View insights, and the overflow menu.
+  function assignmentFinding(a) {
+    if (!a || !(Number(a.completed_count) || 0)) return 'Waiting for responses';
+    return findingSentence(a.intel) || 'No major gaps detected yet.';
+  }
+
+  function assignmentCard(a, c) {
+    var completed = Number(a.completed_count) || 0;
+    var avg = Math.round((Number(a.avg_accuracy) || 0) * 100);
+    var hasResults = completed > 0;
+    var isDraft = (a.status || 'active') === 'draft';
+    var menu = overflowMenu('asg_' + a.id, [
+      { label: 'View assignment', onclick: "ClassroomUI.openAssignmentPreview('" + c.id + "','" + a.id + "')" },
+      { label: 'Duplicate', onclick: "ClassroomUI.duplicateAssignment('" + c.id + "','" + a.id + "')" }
+    ]);
+    return '<div class="cl-card cl-assignment-card">' +
+      '<div class="cl-card-head">' +
+        '<div class="cl-card-head-main"><strong>' + esc(a.title || 'Untitled assignment') + '</strong>' + statusPill(a) + '</div>' +
+        menu +
+      '</div>' +
+      '<div class="cl-card-meta"><span>' + assignmentProgress(a, c.learner_count) + '</span>' +
+        (hasResults ? '<span>·</span><span>Average score: ' + avg + '%</span>' : '') + '</div>' +
+      '<div class="cl-finding cl-assignment-finding"><div class="cl-finding-kicker">' + (hasResults ? 'Latest finding' : 'Status') + '</div>' +
+        '<p class="cl-finding-text">' + esc(assignmentFinding(a)) + '</p></div>' +
+      '<div class="cl-card-actions">' +
+        '<button type="button" class="cl-btn ' + (hasResults ? 'cl-btn-primary' : 'cl-btn-line') + '" onclick="' +
+          (isDraft ? "ClassroomUI.openDraftAssignment('" + c.id + "','" + a.id + "')" : (hasResults ? "ClassroomUI.openInsights('" + c.id + "','" + a.id + "')" : "ClassroomUI.openAssignmentPreview('" + c.id + "','" + a.id + "')")) + '">' +
+          (isDraft ? 'Continue draft' : (hasResults ? 'View results' : 'View assignment')) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function assignmentsList(c) {
+    var assignments = c.assignments || [];
+    if (!assignments.length) {
+      return '<div class="cl-empty cl-mt"><p>No assignments yet.</p></div>';
+    }
+    return assignments.map(function (a) { return assignmentCard(a, c); }).join('');
+  }
+
+  function openAssignmentPreview(classroomId, assignmentId) {
+    mount(loading('Opening assignment…'));
+    D().getAssignment(assignmentId).then(function (a) {
+      if (!a) { openGroup(classroomId); return; }
+      var unit = Object.assign({}, a.content || {}, {
+        title: a.title || ((a.content || {}).title) || 'Assignment',
+        topic: a.topic || ((a.content || {}).topic) || '',
+        difficulty: a.difficulty || ((a.content || {}).difficulty) || 'beginner'
+      });
+      CR.pendingUnit = unit;
+      CR.pendingCtx = { classroomId: classroomId, sourceAssignmentId: assignmentId, readonly: true };
+      assignmentPreview(unit, CR.pendingCtx);
+    }).catch(function () { openGroup(classroomId); });
+  }
+
+  function duplicateAssignment(classroomId, assignmentId) {
+    mount(loading('Preparing duplicate…'));
+    D().getAssignment(assignmentId).then(function (a) {
+      if (!a) { openGroup(classroomId); return; }
+      var unit = Object.assign({}, a.content || {});
+      unit.title = 'Copy of ' + (a.title || unit.title || 'Assignment');
+      unit.questions = ((a.content || {}).questions || []).map(function (q) {
+        var copy = Object.assign({}, q);
+        copy.selected = true;
+        return copy;
+      });
+      candidateSelection(unit, { classroomId: classroomId, mode: 'preset', title: unit.title, due: null });
+    }).catch(function () { openGroup(classroomId); });
+  }
+
+  function openDraftAssignment(classroomId, assignmentId) {
+    mount(loading('Opening draft…'));
+    D().getAssignment(assignmentId).then(function (a) {
+      if (!a) { openGroup(classroomId); return; }
+      var unit = Object.assign({}, a.content || {});
+      unit.title = a.title || unit.title || 'Draft assignment';
+      unit.questions = ((a.content || {}).questions || []).map(function (q) {
+        var copy = Object.assign({}, q);
+        copy.selected = true;
+        return copy;
+      });
+      candidateSelection(unit, {
+        classroomId: classroomId,
+        mode: unit.source === 'claude-followup' ? 'claude' : 'preset',
+        draftAssignmentId: assignmentId,
+        sourceAssignmentId: unit.sourceAssignmentId || '',
+        isFollowup: unit.source === 'claude-followup',
+        gapShort: unit.gapConcept || '',
+        objective: (unit.objectives || [])[0] || ''
+      });
+    }).catch(function () { openGroup(classroomId); });
+  }
+
+  // Group detail: group identity, summary, compact join code, then assignment list.
   function openGroup(id) {
     mount(loading('Opening group…'));
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(id);
       if (!c) { renderLeaderDashboard(); return; }
-      var a = c.active_assignment;
-      var intel = c.intel;
       var menu = overflowMenu('grp_' + c.id, [
         { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
-        { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
         { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
       ]);
-      var cta = detailPrimaryCta(c);
-      var finding = a && (c.completed_count || 0) > 0 ? findingSentence(intel) : '';
-
-      var recommendation = a && (c.completed_count || 0) > 0
-        ? '<section class="cl-next-action"><div class="cl-next-kicker">Claude recommends</div>' +
-            '<p>' + esc(finding || 'Review the latest anonymous group pattern before choosing the next activity.') + '</p>' +
-            '<div class="cl-next-label">Suggested next step</div><strong>3-question follow-up · approximately 4 minutes</strong></section>'
-        : '';
-      var activeBlock = a
-        ? '<div class="cl-active-assign">' +
-            '<div class="cl-active-row">' +
-              '<div><div class="cl-active-kicker">Active assignment</div>' +
-                '<div class="cl-active-title">' + esc(a.title) + '</div></div>' +
-              statusPill(a) +
-            '</div>' +
-            '<div class="cl-active-progress">' + (c.completed_count || 0) + ' of ' + (c.learner_count || 0) + ' completed</div>' +
-            (finding
-              ? '<div class="cl-finding"><div class="cl-finding-kicker">Latest finding</div>' +
-                  '<p class="cl-finding-text">' + esc(finding) + '</p></div>'
-              : '') +
-          '</div>'
-        : '<div class="cl-active-assign cl-active-empty"><div class="cl-active-kicker">Active assignment</div>' +
-            '<p class="cl-muted">No active assignment yet. Create one to start collecting responses.</p></div>';
 
       mount(
         '<div class="cl-screen">' +
@@ -400,11 +467,9 @@
           '</div>' +
           '<div class="cl-summary">' +
             summaryItem(c.learner_count || 0, 'Learners') +
-            summaryItem(a ? statusText(a) : 'None', 'Active assignment') +
-            summaryItem(a ? (c.completed_count || 0) : 0, 'Completed') +
+            summaryItem(c.assignment_count || 0, 'Assignments') +
+            summaryItem(c.completed_count || 0, 'Completed') +
           '</div>' +
-          activeBlock +
-          recommendation +
           '<div class="cl-card cl-code-card cl-code-card-sm">' +
             '<div class="cl-code-inline">' +
               '<div><div class="cl-code-label">Join code</div>' +
@@ -412,12 +477,9 @@
               '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.copyCode(\'' + esc(c.join_code) + '\')">Copy</button>' +
             '</div>' +
           '</div>' +
-          '<div class="cl-stack cl-mt">' +
-            '<button type="button" class="cl-btn cl-btn-primary" onclick="' + cta.onclick + '">' + esc(cta.label) + '</button>' +
-            (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.startLiveSession(\'' + c.id + '\',\'' + a.id + '\')">Start live session</button>' : '') +
-            (a ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + c.id + '\')">View insights</button>' : '') +
-            '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openEditGroup(\'' + c.id + '\')">Manage group</button>' +
-          '</div>' +
+          '<div class="cl-section-title cl-mt">Assignments</div>' +
+          assignmentsList(c) +
+          '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">+ Create assignment</button>' +
         '</div>'
       );
     }).catch(function () { renderLeaderDashboard(); });
@@ -585,12 +647,14 @@
     mount(
       '<div class="cl-screen">' +
         back('Group', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
-        header('Create assignment', 'A five-question concept challenge.') +
+        header('Create assignment', 'Build a reviewed activity before publishing.') +
         '<form class="cl-form cl-form-spaced" onsubmit="return false;">' +
           '<div class="cl-form-group">' +
             field('Topic', '<select class="cl-input" id="clAsgTopic">' + topics + '</select>') +
             field('Assignment title', '<input class="cl-input" id="clAsgTitle" type="text" maxlength="120" value="' + esc(suggested) + '" placeholder="' + esc(suggested) + '">') +
             field('Difficulty', '<select class="cl-input" id="clAsgDiff">' + diffs + '</select>') +
+            field('Learning objective', '<textarea class="cl-input" id="clAsgObjective" rows="2" maxlength="220" placeholder="What should learners be able to do after this assignment?"></textarea>') +
+            field('Number of candidates', '<input class="cl-input" id="clAsgCount" type="number" min="6" max="10" value="8">') +
             field('Due date (optional)', '<input class="cl-input" id="clAsgDue" type="date">') +
           '</div>' +
           '<div class="cl-form-group">' +
@@ -601,10 +665,10 @@
             '<input type="hidden" id="clAsgTeach" value="1">' +
           '</div>' +
           '<div class="cl-form-group">' +
-            '<div class="cl-section-title">Question source</div>' +
+            '<div class="cl-section-title">Creation path</div>' +
             '<div class="cl-stack">' +
-              '<button type="button" class="cl-btn cl-btn-line" id="clPresetBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'preset\')">Use preset questions</button>' +
-              '<button type="button" class="cl-btn cl-btn-primary" id="clGenBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'claude\')">Generate with Claude</button>' +
+              '<button type="button" class="cl-btn cl-btn-line" id="clPresetBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'preset\')"><span>Use a curated set</span><small>Reviewed questions ready to customize.</small></button>' +
+              '<button type="button" class="cl-btn cl-btn-primary" id="clGenBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'claude\')"><span>Generate with Claude</span><small>Create a custom activity for this topic and group.</small></button>' +
             '</div>' +
           '</div>' +
         '</form>' +
@@ -639,7 +703,7 @@
   function generatingScreen() {
     return '<div class="cl-screen cl-center cl-generating">' +
       '<div class="cl-spinner cl-spinner-lg"></div>' +
-      '<h2 class="cl-gen-title">Claude is building your five-question activity</h2>' +
+      '<h2 class="cl-gen-title">Claude is building candidate questions</h2>' +
       '<ul class="cl-gen-steps">' +
         '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Creating concept coverage</li>' +
         '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Checking answer quality</li>' +
@@ -655,34 +719,219 @@
     var diff = (document.getElementById('clAsgDiff') || {}).value || 'beginner';
     var due = (document.getElementById('clAsgDue') || {}).value || '';
     var teach = (document.getElementById('clAsgTeach') || {}).value === '1';
-    var ctx = { classroomId: classroomId, title: title, due: due };
+    var candidateCount = Number((document.getElementById('clAsgCount') || {}).value) || 8;
+    candidateCount = Math.max(6, Math.min(10, candidateCount));
+    var objective = ((document.getElementById('clAsgObjective') || {}).value || '').trim();
+    var ctx = { classroomId: classroomId, title: title, due: due, mode: mode, objective: objective };
 
     if (mode === 'preset') {
       var unit = D().presetUnitFor(topic, diff);
-      if (!unit) { toast('No preset for that topic — try Generate with Claude.', 'error'); return; }
+      if (!unit) { toast('No curated set for that topic — try Generate with Claude.', 'error'); return; }
       if (!teach) unit.questions = unit.questions.filter(function (q) { return q.type !== 'teachback'; });
       unit.teachItBack = unit.questions.some(function (q) { return q.type === 'teachback'; });
       if (title.trim()) unit.title = title.trim();
-      assignmentPreview(unit, ctx);
+      candidateSelection(unit, ctx);
       return;
     }
     // Claude
     mount(generatingScreen());
     D().classroomAI('generate_assignment', {
-      topic: topic, difficulty: diff, teachItBack: teach
+      topic: topic, difficulty: diff, teachItBack: teach, count: candidateCount, objective: objective
     }).then(function (res) {
       var unit = res.assignment;
       if (title.trim()) unit.title = title.trim();
-      assignmentPreview(unit, ctx);
+      candidateSelection(unit, ctx);
     }).catch(function (err) {
       mount(
         '<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
         errorBox((err && err.message) || 'Claude could not build the assignment.',
           'ClassroomUI.openCreateAssignment(\'' + classroomId + '\')') +
-        '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Use a preset instead</button>' +
+        '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Use a curated set instead</button>' +
         '</div>'
       );
     });
+  }
+
+  function candidateMeta(q) {
+    var skill = String(q.skill || '').toLowerCase();
+    if (q.type === 'teachback') return 'teachback';
+    if (/scenario|case|real/.test(skill + ' ' + q.prompt)) return 'scenario';
+    if (/misconception|limits|risk|wrong|cannot/.test(skill + ' ' + q.prompt)) return 'misconception';
+    if (/apply|application|practical/.test(skill + ' ' + q.prompt)) return 'application';
+    return 'fundamentals';
+  }
+
+  function ensureCandidateState(unit) {
+    unit.questions = (unit.questions || []).slice(0, 10).map(function (q, i) {
+      if (q.selected == null) q.selected = i < 5 || q.type === 'teachback';
+      q._cat = q._cat || candidateMeta(q);
+      return q;
+    });
+    return unit;
+  }
+
+  function candidateSelection(unit, ctx) {
+    if (!unit) unit = CR.pendingUnit;
+    if (!ctx) ctx = CR.pendingCtx;
+    if (!unit || !ctx) return;
+    CR.inQuestionSelection = true;
+    CR.pendingUnit = ensureCandidateState(unit);
+    CR.pendingCtx = ctx;
+    CR.candidateUnit = CR.pendingUnit;
+    CR.questionFilter = CR.questionFilter || 'all';
+    var qs = CR.pendingUnit.questions || [];
+    var selected = qs.filter(function (q) { return q.selected !== false; });
+    var filters = [
+      ['all', 'All'],
+      ['fundamentals', 'Fundamentals'],
+      ['application', 'Application'],
+      ['misconception', 'Misconception check'],
+      ['scenario', 'Scenario'],
+      ['teachback', 'Teach it back']
+    ].map(function (f) {
+      return '<button type="button" class="' + (CR.questionFilter === f[0] ? 'is-active' : '') +
+        '" onclick="ClassroomUI.setQuestionFilter(\'' + f[0] + '\')">' + esc(f[1]) + '</button>';
+    }).join('');
+    var visible = qs.map(function (q, i) { return { q: q, i: i }; }).filter(function (item) {
+      return CR.questionFilter === 'all' || item.q._cat === CR.questionFilter;
+    });
+    mount(
+      '<div class="cl-screen cl-question-select">' +
+        back('Create assignment', "ClassroomUI.openCreateAssignment('" + ctx.classroomId + "')") +
+        (ctx.gapShort ? '<div class="cl-gap-banner"><div class="cl-gap-banner-kicker">Based on assignment gap</div><div class="cl-gap-banner-concept">' + esc(ctx.gapShort) + '</div></div>' : '') +
+        header('Choose questions', 'Select the questions you want to publish.') +
+        '<div class="cl-filter-row">' + filters + '</div>' +
+        '<div class="cl-candidate-list">' + visible.map(function (item) { return candidateCard(item.q, item.i, ctx); }).join('') + '</div>' +
+        '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add a question</button>' +
+        '<div class="cl-bottom-bar"><strong>' + selected.length + ' selected</strong>' +
+          '<button type="button" class="cl-btn cl-btn-primary cl-btn-compact" onclick="ClassroomUI.previewSelectedQuestions()">Preview assignment</button></div>' +
+      '</div>'
+    );
+  }
+
+  function candidateCard(q, i, ctx) {
+    var typeLabel = q.type === 'teachback' ? 'Teach it back' : 'Multiple choice';
+    var checked = q.selected !== false ? ' checked' : '';
+    var claudeTools = ctx.mode === 'claude'
+      ? '<div class="cl-candidate-tools">' +
+          '<button onclick="ClassroomUI.regenerateQuestion(' + i + ')">Regenerate</button>' +
+          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'easier\')">Make easier</button>' +
+          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'harder\')">Make harder</button>' +
+          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'practical\')">Make more practical</button>' +
+          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'scenario\')">Change to scenario</button>' +
+        '</div>' : '';
+    return '<div class="cl-candidate-card' + (q.loading ? ' is-loading' : '') + '">' +
+      '<label class="cl-candidate-check"><input type="checkbox"' + checked + ' onchange="ClassroomUI.toggleCandidate(' + i + ')">' +
+        '<span><strong>' + esc(D().humanizeSkill(q.skill || 'Question')) + '</strong><small>' +
+          esc(humanCategory(q._cat)) + ' · ' + esc(typeLabel) + '</small></span></label>' +
+      '<p>' + modelText(q.loading ? 'Updating this question…' : q.prompt) + '</p>' +
+      '<div class="cl-candidate-actions">' +
+        '<button onclick="ClassroomUI.moveCandidate(' + i + ',-1)">Move up</button>' +
+        '<button onclick="ClassroomUI.moveCandidate(' + i + ',1)">Move down</button>' +
+        '<button onclick="ClassroomUI.editQuestion(' + i + ',true)">Edit</button>' +
+        '<button onclick="ClassroomUI.deleteCandidate(' + i + ')">Delete</button>' +
+      '</div>' + claudeTools +
+    '</div>';
+  }
+
+  function humanCategory(cat) {
+    return {
+      fundamentals: 'Fundamentals',
+      application: 'Application',
+      misconception: 'Misconception check',
+      scenario: 'Scenario',
+      teachback: 'Teach it back'
+    }[cat] || 'Fundamentals';
+  }
+
+  function setQuestionFilter(filter) {
+    CR.questionFilter = filter || 'all';
+    if (CR.pendingUnit && CR.pendingCtx) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+  }
+  function toggleCandidate(i) {
+    var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[i];
+    if (!q) return;
+    q.selected = q.selected === false;
+    candidateSelection(CR.pendingUnit, CR.pendingCtx);
+  }
+  function deleteCandidate(i) {
+    if (!CR.pendingUnit) return;
+    CR.pendingUnit.questions.splice(i, 1);
+    candidateSelection(CR.pendingUnit, CR.pendingCtx);
+  }
+  function moveCandidate(i, dir) {
+    var qs = CR.pendingUnit && CR.pendingUnit.questions;
+    if (!qs) return;
+    var j = i + dir;
+    if (j < 0 || j >= qs.length) return;
+    var tmp = qs[i]; qs[i] = qs[j]; qs[j] = tmp;
+    candidateSelection(CR.pendingUnit, CR.pendingCtx);
+  }
+  function adjustQuestion(i, kind) {
+    var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[i];
+    if (!q) return;
+    if (kind === 'scenario') {
+      q._cat = 'scenario';
+      if (!/^Scenario:/i.test(q.prompt)) q.prompt = 'Scenario: ' + q.prompt;
+    } else if (kind === 'practical') {
+      q._cat = 'application';
+      q.prompt = q.prompt.replace(/\?$/, '') + ' in a real financial decision?';
+    } else {
+      q.skill = D().humanizeSkill(q.skill || '') + (kind === 'easier' ? ' basics' : ' application');
+    }
+    toast('Draft updated', 'info');
+    candidateSelection(CR.pendingUnit, CR.pendingCtx);
+  }
+  function regenerateQuestion(i) {
+    var unit = CR.pendingUnit, ctx = CR.pendingCtx;
+    var q = unit && unit.questions && unit.questions[i];
+    if (!q || !ctx || ctx.mode !== 'claude') return;
+    var selected = q.selected !== false;
+    q.loading = true;
+    candidateSelection(unit, ctx);
+    D().classroomAI('generate_assignment', {
+      topic: unit.topic, difficulty: unit.difficulty || 'beginner', teachItBack: q.type === 'teachback', count: q.type === 'teachback' ? 1 : 6,
+      objective: ctx.objective || ''
+    }).then(function (res) {
+      var replacement = ((res.assignment || {}).questions || []).filter(function (qq) { return q.type === 'teachback' ? qq.type === 'teachback' : qq.type !== 'teachback'; })[0];
+      if (replacement) {
+        replacement.selected = selected;
+        replacement._cat = candidateMeta(replacement);
+        unit.questions[i] = replacement;
+      } else q.loading = false;
+      candidateSelection(unit, ctx);
+    }).catch(function (err) {
+      q.loading = false;
+      toast((err && err.message) || 'Could not regenerate that question.', 'error');
+      candidateSelection(unit, ctx);
+    });
+  }
+  function previewSelectedQuestions() {
+    var unit = CR.pendingUnit, ctx = CR.pendingCtx;
+    if (!unit || !ctx) return;
+    var selected = (unit.questions || []).filter(function (q) { return q.selected !== false; });
+    var teachCount = selected.filter(function (q) { return q.type === 'teachback'; }).length;
+    if (selected.length < 3) { toast('Select at least 3 questions', 'error'); return; }
+    if (selected.length > 10) { toast('Use 10 questions or fewer', 'error'); return; }
+    if (teachCount > 1) { toast('Use one teach-it-back question by default', 'error'); return; }
+    var cleanUnit = Object.assign({}, unit, {
+      questions: selected.map(function (q, i) {
+        var copy = Object.assign({}, q);
+        delete copy.selected; delete copy.loading; delete copy._cat;
+        copy.id = copy.id || ('q' + (i + 1));
+        return copy;
+      }),
+      teachItBack: teachCount > 0
+    });
+    CR.candidateUnit = unit;
+    assignmentPreview(cleanUnit, ctx);
+  }
+
+  function backToQuestionSelection() {
+    if (CR.candidateUnit && CR.pendingCtx) candidateSelection(CR.candidateUnit, CR.pendingCtx);
+    else if (CR.pendingUnit && CR.pendingCtx) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+    else renderClassroom();
   }
 
   function previewQ(q, i) {
@@ -729,6 +978,7 @@
   // editable title, and an Add-question editor — the leader can edit everything
   // before publishing.
   function assignmentPreview(unit, ctx) {
+    CR.inQuestionSelection = false;
     unit.title = cleanText(unit.title);
     unit.topic = cleanText(unit.topic);
     unit.explanation = cleanText(unit.explanation || '');
@@ -746,9 +996,9 @@
     var mcqCount = unit.questions.filter(function (q) { return q.type === 'mcq'; }).length;
     var teachCount = unit.questions.filter(function (q) { return q.type === 'teachback'; }).length;
     var isFollow = !!ctx.isFollowup;
-    var backHandler = isFollow
-      ? (ctx.isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + ctx.classroomId + "')")
-      : "ClassroomUI.openCreateAssignment('" + ctx.classroomId + "')";
+    var backHandler = ctx.readonly ? "ClassroomUI.openGroup('" + ctx.classroomId + "')" : (isFollow
+      ? (ctx.isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + ctx.classroomId + "','" + (ctx.sourceAssignmentId || CR.insightAssignment || '') + "')")
+      : "ClassroomUI.backToQuestionSelection()");
 
     var banner = (isFollow && ctx.gapShort)
       ? '<div class="cl-gap-banner">' +
@@ -808,11 +1058,13 @@
         '<div class="cl-kicker">' + (isFollow ? 'Targeted follow-up' : 'Assignment preview') + '</div>' +
         '<h1 class="cl-preview-title" id="clPreviewTitle">' + esc(unit.title) + '</h1>' +
         '<div class="cl-card-meta">' + meta + '</div>' +
-        followTabs +
-        (isFollow ? followContent : '') +
-        (!isFollow && unit.explanation ? '<div class="cl-card cl-explain cl-mt">' + richText(unit.explanation) + '</div>' : '') +
-        (!isFollow && unit.scenario ? '<div class="cl-card cl-scenario cl-mt"><span class="cl-scenario-label">Real-world scenario</span>' + richText(unit.scenario) + '</div>' : '') +
-        (!isFollow ? compareOutcomes(unit.chartPrompt) : '') +
+        '<div class="cl-preview-facts">' +
+          '<div><span>Topic</span><strong>' + esc(unit.topic || 'Assignment') + '</strong></div>' +
+          '<div><span>Difficulty</span><strong>' + esc(unit.difficulty || 'beginner') + '</strong></div>' +
+          '<div><span>Estimated time</span><strong>' + est + ' min</strong></div>' +
+          '<div><span>Questions</span><strong>' + unit.questions.length + '</strong></div>' +
+          '<div><span>Teach-it-back</span><strong>' + (teachCount ? 'Included' : 'Not included') + '</strong></div>' +
+        '</div>' +
         '<div class="cl-preview-list cl-mt">' +
           unit.questions.map(previewQ).join('') +
           '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
@@ -820,8 +1072,8 @@
             'Add question</button>' +
         '</div>' +
         '<div class="cl-preview-actions">' +
-          '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (isFollow ? 'Back' : 'Edit') + '</button>' +
-          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">' + (isFollow ? 'Publish follow-up' : 'Publish assignment') + '</button>' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (ctx.readonly ? 'Back to group' : (isFollow ? 'Back' : 'Back to question selection')) + '</button>' +
+          (ctx.readonly ? '' : '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">' + (isFollow ? 'Publish follow-up' : 'Publish assignment') + '</button>') +
         '</div>' +
       '</div>'
     );
@@ -836,11 +1088,15 @@
     });
   }
 
-  function editQuestion(index) {
+  function editQuestion(index, fromSelection) {
     var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[index];
     if (!q || !global.prompt) return;
     var next = global.prompt('Question text', q.prompt);
-    if (next && next.trim()) { q.prompt = cleanText(next).slice(0, 400); assignmentPreview(CR.pendingUnit, CR.pendingCtx); }
+    if (next && next.trim()) {
+      q.prompt = cleanText(next).slice(0, 400);
+      if (fromSelection || CR.inQuestionSelection) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+      else assignmentPreview(CR.pendingUnit, CR.pendingCtx);
+    }
   }
 
   function transformDraft(kind) {
@@ -934,7 +1190,8 @@
   }
 
   function backToPreview() {
-    if (CR.pendingUnit && CR.pendingCtx) assignmentPreview(CR.pendingUnit, CR.pendingCtx);
+    if (CR.pendingUnit && CR.pendingCtx && CR.inQuestionSelection) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+    else if (CR.pendingUnit && CR.pendingCtx) assignmentPreview(CR.pendingUnit, CR.pendingCtx);
     else renderClassroom();
   }
 
@@ -970,7 +1227,8 @@
     unit.questions.push(q);
     unit.teachItBack = unit.questions.some(function (qq) { return qq.type === 'teachback'; });
     toast('Question added', 'info');
-    assignmentPreview(unit, CR.pendingCtx);
+    if (CR.inQuestionSelection) candidateSelection(unit, CR.pendingCtx);
+    else assignmentPreview(unit, CR.pendingCtx);
   }
 
   function confirmAssignment() {
@@ -980,7 +1238,10 @@
     if (ctx.isDemo) { demoAssignNotice(); return; }
     var isFollow = !!ctx.isFollowup;
     mount(loading(isFollow ? 'Publishing follow-up…' : 'Publishing assignment…'));
-    D().createAssignment(ctx.classroomId, unit, ctx.due || null).then(function () {
+    var savePromise = ctx.draftAssignmentId
+      ? D().updateAssignment(ctx.draftAssignmentId, unit, ctx.due || null, 'active')
+      : D().createAssignment(ctx.classroomId, unit, ctx.due || null, 'active');
+    savePromise.then(function () {
       var title = unit.title;
       CR.pendingUnit = null; CR.pendingCtx = null;
       publishedScreen(ctx.classroomId, title);
@@ -1021,30 +1282,32 @@
   }
 
   // ════════════════════════════════════════════════════════════════════════
-  // LEADER: group insights
+  // LEADER: assignment results
   // ════════════════════════════════════════════════════════════════════════
-  function openInsights(classroomId) {
-    mount(loading('Loading group insights…'));
+  function openInsights(classroomId, assignmentId) {
+    mount(loading('Loading assignment results…'));
     var groupName = '';
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(classroomId);
       groupName = c ? c.name : 'Group';
-      if (!c || !c.active_assignment) {
-        mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-          header('Group insights', groupName) +
-          '<div class="cl-empty"><p>No active assignment yet. Create one to start collecting responses.</p>' +
+      var assignment = assignmentId && c
+        ? (c.assignments || []).filter(function (a) { return a.id === assignmentId; })[0]
+        : (c && c.latest_assignment);
+      if (!c || !assignment) {
+        mount('<div class="cl-screen">' + back('Group', "ClassroomUI.openGroup('" + classroomId + "')") +
+          header('Assignment results', groupName) +
+          '<div class="cl-empty"><p>No assignment selected. Create an assignment to start collecting responses.</p>' +
           '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Create assignment</button></div></div>');
         return;
       }
-      var assignment = c.active_assignment;
       var joinCode = c.join_code || '';
       return D().aggregate(assignment.id).then(function (agg) {
         renderInsights(groupName, assignment, agg, classroomId, false, joinCode);
       });
     }).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-        errorBox((err && err.message) || 'Could not load insights.', 'ClassroomUI.openInsights(\'' + classroomId + '\')') + '</div>');
+      mount('<div class="cl-screen">' + back('Group', "ClassroomUI.openGroup('" + classroomId + "')") +
+        errorBox((err && err.message) || 'Could not load assignment results.', 'ClassroomUI.openInsights(\'' + classroomId + '\',\'' + (assignmentId || '') + '\')') + '</div>');
     });
   }
 
@@ -1063,7 +1326,7 @@
     };
   }
 
-  // Shared by live insights and the demo (demo passes isDemo=true + seeded data).
+  // Shared by assignment results and the demo (demo passes isDemo=true + seeded data).
   // Hierarchy: A summary metrics → B what needs attention → C concept groups →
   // D Claude intervention brief → grounded actions.
   function renderInsights(groupName, assignment, agg, classroomId, isDemo, joinCode) {
@@ -1077,7 +1340,7 @@
 
     var backBar = isDemo
       ? back('Exit demo', 'ClassroomUI.exitDemo()')
-      : back('Classroom', 'renderClassroom()');
+      : back('Group', "ClassroomUI.openGroup('" + classroomId + "')");
     var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable group pattern.';
 
     // Empty state: no learners AND no responses yet.
@@ -1086,7 +1349,7 @@
       mount('<div class="cl-screen">' +
         backBar +
         (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
-        header('Group insights', groupName) +
+        header('Assignment results', assignment.title || groupName) +
         '<div class="cl-empty">' +
           '<h2>No responses yet</h2>' +
           '<p>Share the join code so learners can complete the activity.</p>' +
@@ -1110,8 +1373,8 @@
     var html = '<div class="cl-screen">' +
       backBar +
       (isDemo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
-      '<header class="cl-header cl-insights-header"><h1>Group insights</h1>' +
-        '<p>' + esc(groupName) + earlyTag + '</p></header>' +
+      '<header class="cl-header cl-insights-header"><h1>' + esc(assignment.title || 'Assignment results') + '</h1>' +
+        '<p>' + esc(groupName) + ' · ' + esc(statusText(assignment)) + earlyTag + '</p></header>' +
       // A. Summary metrics
       '<div class="cl-stat-grid">' +
         statCard(agg.learners || 0, 'Learners') +
@@ -1142,6 +1405,7 @@
       var brief = buildBrief(agg, content, ins, completedCount);
       CR.brief = brief;
       CR.insightClassroom = classroomId;
+      CR.insightAssignment = assignment.id;
       CR.insightIsDemo = !!isDemo;
       CR.lastGap = ins.primaryGap;
       CR.lastTopic = brief.topic;
@@ -1153,8 +1417,8 @@
       if (bx) bx.innerHTML = briefHtml(brief) + actionsHtml(isDemo) + '<div id="clActionOutput"></div>';
     }).catch(function () {
       var att = document.getElementById('clAttention');
-      if (att) att.innerHTML = errorBox('Claude could not summarize the group right now.',
-        isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + classroomId + "')");
+      if (att) att.innerHTML = errorBox('Claude could not summarize the assignment right now.',
+        isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + classroomId + "','" + assignment.id + "')");
     });
   }
 
@@ -1286,7 +1550,6 @@
   function actionsHtml(isDemo) {
     return '<div class="cl-actions-grid cl-mt">' +
       '<button type="button" class="cl-btn cl-btn-primary cl-action-primary" onclick="ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')">Build targeted follow-up</button>' +
-      (isDemo ? '<button type="button" class="cl-btn cl-btn-line cl-action-primary" onclick="ClassroomUI.startDemoLive()">Explore demo live session</button>' : '') +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'discussion\')">Create discussion prompt</button>' +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.showAction(\'explain\')">Explain this misconception</button>' +
       '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyNotes()">Copy facilitator notes</button>' +
@@ -1399,7 +1662,7 @@
     var demo = isDemo ? D().buildDemo() : null;
     mount('<div class="cl-screen cl-center cl-generating">' +
       '<div class="cl-spinner cl-spinner-lg"></div>' +
-      '<h2 class="cl-gen-title">Claude is building a follow-up for ' + esc((brief && brief.gapShort) || 'this gap') + '</h2>' +
+      '<h2 class="cl-gen-title">Claude is drafting follow-up candidates for ' + esc((brief && brief.gapShort) || 'this gap') + '</h2>' +
       '<p class="cl-gen-note">Targeting the detected gap — this usually takes a few seconds.</p>' +
     '</div>');
 
@@ -1418,7 +1681,7 @@
       openFollowupPreview(activity, isDemo);
     }).catch(function (err) {
       mount('<div class="cl-screen">' +
-        back('Insights', isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + (CR.insightClassroom || '') + "')") +
+        back('Results', isDemo ? 'ClassroomUI.openDemo()' : "ClassroomUI.openInsights('" + (CR.insightClassroom || '') + "','" + (CR.insightAssignment || '') + "')") +
         errorBox((err && err.message) || 'Could not build the follow-up.',
           'ClassroomUI.buildFollowup(' + (isDemo ? 'true' : 'false') + ')') + '</div>');
     });
@@ -1433,29 +1696,41 @@
       due: null,
       isFollowup: true,
       isDemo: !!isDemo,
+      mode: 'claude',
+      sourceAssignmentId: CR.insightAssignment || '',
       gapShort: activity.gapConcept || brief.gapShort || '',
       objective: brief.objective || (activity.objectives && activity.objectives[0]) || ''
     };
-    assignmentPreview(activity, ctx);
+    if (ctx.sourceAssignmentId) activity.sourceAssignmentId = ctx.sourceAssignmentId;
+    if (isDemo) { candidateSelection(activity, ctx); return; }
+    D().createAssignment(ctx.classroomId, activity, null, 'draft').then(function (draft) {
+      ctx.draftAssignmentId = draft && draft.id;
+      candidateSelection(activity, ctx);
+    }).catch(function () {
+      candidateSelection(activity, ctx);
+    });
   }
 
   // Group-detail "Build targeted follow-up": load the AI insight, then build —
   // so the follow-up is grounded even when the leader hasn't opened insights.
-  function buildTargetedFollowup(classroomId) {
+  function buildTargetedFollowup(classroomId, assignmentId) {
     mount(loading('Reading the group pattern…'));
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(classroomId);
-      if (!c || !c.active_assignment) { openInsights(classroomId); return; }
-      var assignment = c.active_assignment;
+      var assignment = assignmentId && c
+        ? (c.assignments || []).filter(function (a) { return a.id === assignmentId; })[0]
+        : (c && c.latest_assignment);
+      if (!c || !assignment) { openInsights(classroomId, assignmentId); return; }
       var content = assignment.content || {};
       return D().aggregate(assignment.id).then(function (agg) {
-        if (!D().meetsInsightThreshold(agg)) { openInsights(classroomId); return; }
+        if (!D().meetsInsightThreshold(agg)) { openInsights(classroomId, assignment.id); return; }
         return D().classroomAI('group_insight', insightPayload(content, assignment, agg)).then(function (r) {
           var ins = r.insight;
           var brief = buildBrief(agg, content, ins, Number(agg.completed) || 0);
           CR.brief = brief;
           CR.insightClassroom = classroomId;
+          CR.insightAssignment = assignment.id;
           CR.insightIsDemo = false;
           CR.lastGap = ins.primaryGap;
           CR.lastTopic = brief.topic;
@@ -1463,404 +1738,13 @@
           buildFollowup(false);
         });
       });
-    }).catch(function (err) { toast((err && err.message) || 'Could not build the follow-up.', 'error'); openInsights(classroomId); });
+    }).catch(function (err) { toast((err && err.message) || 'Could not build the follow-up.', 'error'); openInsights(classroomId, assignmentId); });
   }
 
   function demoAssignNotice() {
-    toast('In a live group this would publish the follow-up. (Demo data is read-only.)', 'info');
+    toast('In a real group this would publish the follow-up. (Demo data is read-only.)', 'info');
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  // LIVE CLASSROOM — untimed, leader-paced, anonymous
-  // ════════════════════════════════════════════════════════════════════════
-  function startLiveSession(classroomId, assignmentId) {
-    mount(loading('Preparing the live session…'));
-    D().liveCreate(assignmentId).then(function (res) {
-      CR.live = { id: res.session.id, classroomId: classroomId, leader: true, demo: false };
-      openLeaderLive();
-    }).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Group', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
-        errorBox((err && err.message) || 'Could not start the live session.', 'ClassroomUI.startLiveSession(\'' + classroomId + '\',\'' + assignmentId + '\')') + '</div>');
-    });
-  }
-
-  function scheduleLive(fn) {
-    CR.livePoll = global.setTimeout(function () {
-      if (ROOT() && CR.live) fn();
-    }, 3000);
-  }
-
-  function openLeaderLive() {
-    if (!CR.live) return;
-    if (CR.live.demo) { renderDemoLeaderLive(); return; }
-    D().liveLeaderSnapshot(CR.live.id).then(function (snap) {
-      renderLeaderLive(snap);
-    }).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.openLeaderLive()') + '</div>');
-    });
-  }
-
-  function liveStateLabel(state) {
-    return { lobby: 'Lobby', question_open: 'Question open', results: 'Results and review', paused: 'Paused', complete: 'Complete' }[state] || state;
-  }
-
-  function livePrivacy() {
-    return '<div class="cl-live-privacy">Untimed, anonymous participation designed for classrooms and community learning.<br>Leaders see group-level patterns, not individual responses. No speed rankings or public leaderboard.</div>';
-  }
-
-  function renderLeaderLive(snap) {
-    var s = snap.session, q = s.current_question || {}, n = Number(snap.participant_count) || 0;
-    var code = CR.live.demo ? 'MONEY24' : ((groupById(CR.live.classroomId) || {}).join_code || '');
-    var top = '<div class="cl-screen cl-live-screen">' + back('Group', CR.live.demo ? 'ClassroomUI.openDemo()' : 'ClassroomUI.openGroup(\'' + CR.live.classroomId + '\')') +
-      (CR.live.demo ? '<div class="cl-demo-tag">Demo data</div>' : '') +
-      '<div class="cl-live-head"><div><div class="cl-kicker">Live classroom</div><h1>' + esc(liveStateLabel(s.state)) + '</h1></div>' +
-      '<span class="cl-live-state cl-live-state-' + esc(s.state) + '">' + esc(liveStateLabel(s.state)) + '</span></div>';
-    var body = '';
-    if (s.state === 'lobby') {
-      body = '<section class="cl-live-lobby"><p class="cl-live-lead">Learners can join with the existing group code.</p>' +
-        (code ? '<div class="cl-live-code"><span>Join code</span><strong>' + esc(code) + '</strong></div>' : '') +
-        '<div class="cl-live-count"><strong>' + n + '</strong><span>' + plural(n, 'learner') + ' joined</span></div>' +
-        '<div class="cl-stack"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'start\')"' + (n < 1 && !CR.live.demo ? ' disabled' : '') + '>Start session</button>' +
-        (code ? '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy join code</button>' : '') + '</div></section>' + livePrivacy();
-    } else if (s.state === 'question_open') {
-      var answered = Number(snap.answered_count) || 0;
-      body = liveQuestionHeader(s, q) +
-        '<div class="cl-live-response-counts"><div><strong>' + answered + '</strong><span>Answered</span></div><div><strong>' + Math.max(0, n - answered) + '</strong><span>Still waiting</span></div></div>' +
-        '<div class="cl-stack"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'close\')">Close responses</button>' +
-        '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.liveControl(\'pause\')">Pause</button></div>' + learnerQuestionsHtml(snap) + liveUtilityControls();
-    } else if (s.state === 'results') {
-      body = liveQuestionHeader(s, q) + liveResultsHtml(snap, q) +
-        '<div id="clLiveIntervention">' + liveInterventionFallback(snap) + '</div>' +
-        '<div class="cl-live-actions"><button onclick="ClassroomUI.showLiveMove(\'explain\')">Explain simply</button><button onclick="ClassroomUI.showLiveMove(\'example\')">Show example</button>' +
-        '<button onclick="ClassroomUI.showLiveMove(\'followup\')">Ask follow-up</button></div><div id="clLiveMove"></div>' +
-        '<div class="cl-stack cl-mt"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'continue\')">Continue</button>' +
-        '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.openAskRoom()">Ask the room</button></div>' + learnerQuestionsHtml(snap) + liveUtilityControls();
-      requestLiveIntervention(snap, q);
-    } else if (s.state === 'paused') {
-      body = '<div class="cl-live-pause"><h2>Session paused</h2><p>Learners will stay on a waiting screen until you resume.</p>' +
-        '<button class="cl-btn cl-btn-primary" onclick="ClassroomUI.liveControl(\'resume\')">Resume question</button></div>' + liveUtilityControls();
-    } else {
-      body = liveRecapHtml(snap);
-    }
-    mount(top + body + '</div>');
-    if ((snap.anonymous_questions || []).length) requestQuestionCluster(snap);
-    if (s.state !== 'complete' && !CR.live.demo) scheduleLive(openLeaderLive);
-  }
-
-  function liveQuestionHeader(s, q) {
-    var total = Number(s.question_order && s.question_order.length) || 0;
-    return '<section class="cl-live-question"><div class="cl-live-qmeta">Question ' + (Number(s.current_question_index) + 1) + (total ? ' of ' + total : '') +
-      (q.skill ? ' · ' + esc(D().humanizeSkill(q.skill)) : '') + '</div><h2>' + modelText(q.prompt || 'Question') + '</h2></section>';
-  }
-
-  function liveResultsHtml(snap, q) {
-    var n = Number(snap.answered_count) || 0, correct = 0;
-    (snap.answer_distribution || []).forEach(function (r) { correct += Number(r.correct) || 0; });
-    var accuracy = n ? Math.round(correct / n * 100) : 0;
-    var choices = q.choices || [];
-    var dist = {};
-    (snap.answer_distribution || []).forEach(function (r) { dist[String(r.choice)] = Number(r.n) || 0; });
-    var bars = choices.length ? choices.map(function (choice, i) {
-      var count = dist[String(i)] || 0, pct = n ? Math.round(count / n * 100) : 0;
-      return '<div class="cl-dist-row"><div><span>' + 'ABCD'[i] + '</span><strong>' + modelText(choice) + '</strong><em>' + count + '</em></div>' +
-        '<div class="cl-dist-track"><i class="' + (i === q.answerIndex ? 'is-correct' : '') + '" style="width:' + pct + '%"></i></div></div>';
-    }).join('') : '<p class="cl-muted">' + n + ' anonymous ' + plural(n, 'response') + ' submitted.</p>';
-    var conf = snap.confidence_distribution || {};
-    return '<section class="cl-live-results"><div class="cl-live-metrics"><div><strong>' + n + '</strong><span>Answered</span></div>' +
-      (choices.length && q.type !== 'confidence' ? '<div><strong>' + accuracy + '%</strong><span>Accuracy</span></div>' : '') + '</div>' + bars +
-      '<div class="cl-confidence-summary"><span>Confidence</span><b>' + (Number(conf.know) || 0) + ' know this</b><b>' + (Number(conf.unsure) || 0) + ' unsure</b><b>' + (Number(conf.guessing) || 0) + ' guessing</b></div></section>';
-  }
-
-  function patternFromStates(snap) {
-    var st = snap.learning_states || {}, n = Number(snap.answered_count) || 0;
-    if (!n) return { observation: 'No responses were submitted before the question closed.', move: 'Check that everyone can access the session before continuing.' };
-    if ((Number(st.misconception) || 0) >= Math.max(2, Math.ceil(n * 0.3))) return { observation: (n === 1 ? 'One response' : (n === 2 ? 'Two responses' : 'Several responses')) + ' selected an incorrect answer with high confidence. This may indicate a specific misconception.', move: 'Contrast the incorrect mental model with the correct one using one concrete example.' };
-    if ((Number(st.fragile) || 0) >= Math.ceil(n * 0.3)) return { observation: 'Many answers were correct, but confidence was low. Understanding may still be fragile.', move: 'Reinforce the idea briefly before moving on.' };
-    if ((Number(st.gap) || 0) > (Number(st.understood) || 0)) return { observation: 'Responses are mixed and confidence is low.', move: 'Use a simpler example, then check the same idea again.' };
-    return { observation: 'Most submitted answers were correct and confident.', move: 'Confirm the key idea in one sentence, then continue.' };
-  }
-
-  function liveInterventionFallback(snap) {
-    if (CR.live && CR.live.demo) {
-      var demo = demoIntervention();
-      return '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + esc(demo.observation) + '</p>' +
-        '<div class="cl-copy-label">Suggested move</div><strong>' + esc(demo.suggestedMove) + '</strong></section>';
-    }
-    var p = patternFromStates(snap);
-    return '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + esc(p.observation) + '</p>' +
-      '<div class="cl-copy-label">Suggested move</div><strong>' + esc(p.move) + '</strong></section>';
-  }
-
-  function requestLiveIntervention(snap, q) {
-    if (CR.live.demo) { CR.liveIntervention = demoIntervention(); return; }
-    var key = q.id || String(snap.session.current_question_index);
-    CR.liveAI = CR.liveAI || {};
-    if (CR.liveAI[key]) { CR.liveIntervention = CR.liveAI[key]; return; }
-    D().classroomAI('live_intervention', { prompt: q.prompt, responseCount: snap.answered_count,
-      answerDistribution: snap.answer_distribution, confidenceDistribution: snap.confidence_distribution,
-      learningStates: snap.learning_states }).then(function (res) {
-        CR.liveAI[key] = res.intervention; CR.liveIntervention = res.intervention;
-        var el = document.getElementById('clLiveIntervention');
-        if (el) el.innerHTML = '<section class="cl-live-intervention"><div class="cl-live-ai-head"><span>Claude noticed</span></div><p>' + modelText(res.intervention.observation) +
-          '</p><div class="cl-copy-label">Suggested move</div><strong>' + modelText(res.intervention.suggestedMove) + '</strong></section>';
-      }).catch(function () {
-        var el = document.getElementById('clLiveIntervention');
-        if (el) el.insertAdjacentHTML('beforeend', '<p class="cl-action-note">Claude is unavailable. Showing a deterministic aggregate-based suggestion.</p>');
-      });
-  }
-
-  function demoIntervention() {
-    return { observation: 'Six learners chose the correct answer but reported low confidence.',
-      suggestedMove: 'Briefly contrast company-specific risk with market-wide risk before continuing.',
-      simpleExplanation: 'Diversification spreads company-specific risk across holdings, but it cannot remove risks that affect the whole market.',
-      example: 'If one company fails, a diversified portfolio has other holdings. In a broad recession, many holdings can still fall together.',
-      followUpQuestion: 'Which risk can diversification reduce most directly?',
-      followUpChoices: ['Company-specific risk', 'All market risk', 'Inflation in every case', 'Interest-rate changes'], followUpAnswerIndex: 0 };
-  }
-
-  function showLiveMove(kind) {
-    var i = CR.liveIntervention || demoIntervention(), out = document.getElementById('clLiveMove');
-    if (!out) return;
-    if (kind === 'followup') { openAskRoom(i); return; }
-    var title = kind === 'example' ? 'Example' : 'Simple explanation';
-    out.innerHTML = '<div class="cl-action-card"><div class="cl-action-head">' + title + '</div><p class="cl-action-body">' + modelText(kind === 'example' ? i.example : i.simpleExplanation) + '</p></div>';
-  }
-
-  function learnerQuestionsHtml(snap) {
-    var qs = snap.anonymous_questions || [];
-    if (!qs.length) return '';
-    var normalized = qs.map(function (q) { return typeof q === 'string' ? { id: '', question: q } : q; });
-    var combined = normalized.length > 1 ? 'Several learners are asking: ' + cleanText(normalized[0].question) : cleanText(normalized[0].question);
-    return '<details class="cl-disclosure cl-live-questions"><summary>Anonymous learner questions (' + qs.length + ')</summary><div class="cl-disclosure-body">' +
-      '<div class="cl-question-cluster" id="clQuestionCluster"><span>' + qs.length + ' related ' + plural(qs.length, 'question') + '</span><strong>Combined question</strong><p>' + modelText(combined) + '</p></div>' +
-      normalized.slice(0, 6).map(function (q) { return '<div class="cl-anon-question"><p>' + modelText(q.question) + '</p><div>' +
-        (q.id ? '<button onclick="ClassroomUI.liveQuestionAction(\'' + q.id + '\',\'answer\')">Answer now</button><button onclick="ClassroomUI.liveQuestionAction(\'' + q.id + '\',\'recap\')">Save for recap</button>' : '') +
-        '<button onclick="ClassroomUI.questionToFollowup(\'' + esc(q.id || '') + '\')">Turn into follow-up</button></div></div>'; }).join('') +
-      '<p class="cl-action-note">Questions are grouped without learner identities.</p></div></details>';
-  }
-
-  function requestQuestionCluster(snap) {
-    var qs = (snap.anonymous_questions || []).map(function (q) { return typeof q === 'string' ? q : q.question; }).filter(Boolean);
-    var el = document.getElementById('clQuestionCluster'); if (!el || !qs.length) return;
-    if (CR.live.demo) {
-      el.innerHTML = '<span>' + qs.length + ' learners asked about market-wide declines</span><strong>Claude combined question</strong><p>Why doesn’t diversification fully protect investors during a recession?</p>';
-      return;
-    }
-    var cacheKey = qs.join('|'); CR.questionClusters = CR.questionClusters || {};
-    if (CR.questionClusters[cacheKey]) { renderQuestionCluster(el, qs.length, CR.questionClusters[cacheKey]); return; }
-    D().classroomAI('question_cluster', { questions: qs }).then(function (res) {
-      CR.questionClusters[cacheKey] = res.cluster;
-      var current = document.getElementById('clQuestionCluster'); if (current) renderQuestionCluster(current, qs.length, res.cluster);
-    }).catch(function () {
-      var current = document.getElementById('clQuestionCluster');
-      if (current) current.insertAdjacentHTML('beforeend', '<small>Claude could not combine these questions right now.</small>');
-    });
-  }
-  function renderQuestionCluster(el, count, cluster) {
-    el.innerHTML = '<span>' + count + ' related ' + plural(count, 'question') + ' · ' + modelText(cluster.theme) + '</span><strong>Claude combined question</strong><p>' + modelText(cluster.combinedQuestion) + '</p>';
-  }
-
-  function liveQuestionAction(id, action) {
-    if (CR.live.demo) { toast(action === 'recap' ? 'Question saved for recap' : 'Question marked answered', 'info'); return; }
-    D().liveQuestionAction(CR.live.id, id, action).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
-  }
-  function questionToFollowup() {
-    openAskRoom({ followUpQuestion: 'Why doesn’t diversification fully protect a portfolio during a broad market decline?' });
-  }
-
-  function liveUtilityControls() {
-    return '<div class="cl-live-utilities"><button onclick="ClassroomUI.openAskRoom()">Ask the room</button><button class="is-danger" onclick="ClassroomUI.liveControl(\'end\')">End session</button></div>';
-  }
-
-  function liveControl(action) {
-    if (!CR.live) return;
-    if (CR.live.demo) { demoLiveControl(action); return; }
-    D().liveControl(CR.live.id, action, {}).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
-  }
-
-  function openAskRoom(seed) {
-    seed = seed || CR.liveIntervention || {};
-    mount('<div class="cl-screen">' + back('Live session', 'ClassroomUI.openLeaderLive()') + header('Ask the room', 'Insert an untimed question into this session only.') +
-      '<form class="cl-form" onsubmit="return false">' +
-        field('Question type', '<select class="cl-input" id="clLiveAskType" onchange="ClassroomUI.updateAskRoomFields()"><option value="mcq">Multiple choice</option><option value="agree">Agree / disagree</option><option value="confidence">Confidence check</option><option value="short">Short response</option></select>') +
-        field('Question', '<textarea class="cl-input" id="clLiveAskPrompt" rows="3" maxlength="400">' + esc(seed.followUpQuestion || '') + '</textarea>') +
-        '<div id="clLiveAskChoices">' + [0,1,2,3].map(function (i) { return '<div class="cl-opt-row"><input type="radio" name="clLiveCorrect" value="' + i + '"' + (i === Number(seed.followUpAnswerIndex || 0) ? ' checked' : '') + '><input class="cl-input" id="clLiveChoice' + i + '" value="' + esc((seed.followUpChoices || [])[i] || '') + '" placeholder="Option ' + 'ABCD'[i] + '"></div>'; }).join('') + '</div>' +
-        '<div class="cl-draft-tools"><span>Claude actions</span><button type="button" onclick="ClassroomUI.generateAskRoom(\'followup\')">Generate follow-up</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'simple\')">Make simpler</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'example\')">Ask for an example</button><button type="button" onclick="ClassroomUI.generateAskRoom(\'check\')">Check understanding</button></div>' +
-        '<button class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.submitAskRoom()">Open question</button></form></div>');
-  }
-
-  function updateAskRoomFields() {
-    var type = (document.getElementById('clLiveAskType') || {}).value, box = document.getElementById('clLiveAskChoices');
-    if (!box) return;
-    box.hidden = type === 'short' || type === 'confidence';
-    if (type === 'agree') {
-      document.getElementById('clLiveChoice0').value = 'Agree'; document.getElementById('clLiveChoice1').value = 'Disagree';
-      document.getElementById('clLiveChoice2').value = ''; document.getElementById('clLiveChoice3').value = '';
-    }
-  }
-
-  function generateAskRoom(kind) {
-    var prompt = document.getElementById('clLiveAskPrompt'); if (!prompt) return;
-    var i = CR.liveIntervention || demoIntervention();
-    if (kind === 'example') prompt.value = 'Give an example that shows ' + lcFirst((CR.liveQuestion && CR.liveQuestion.skill) || 'the main idea') + '.';
-    else if (kind === 'simple') prompt.value = 'Which explanation states the idea most simply?';
-    else if (kind === 'check') prompt.value = 'How confident are you that you could explain this idea to someone else?';
-    else prompt.value = i.followUpQuestion || 'Which statement best captures the key idea?';
-    toast('Draft updated', 'info');
-  }
-
-  function submitAskRoom() {
-    var type = (document.getElementById('clLiveAskType') || {}).value || 'mcq';
-    var prompt = ((document.getElementById('clLiveAskPrompt') || {}).value || '').trim();
-    if (!prompt) { toast('Add a question first', 'error'); return; }
-    var q = { type: type === 'short' ? 'teachback' : type, prompt: cleanText(prompt), skill: 'Live check' };
-    if (type === 'mcq' || type === 'agree') {
-      q.choices = [0,1,2,3].map(function (i) { return ((document.getElementById('clLiveChoice' + i) || {}).value || '').trim(); }).filter(Boolean);
-      var marked = document.querySelector('input[name="clLiveCorrect"]:checked'); q.answerIndex = marked ? Number(marked.value) : 0;
-      if (q.choices.length < 2 || q.answerIndex >= q.choices.length) { toast('Add at least two choices and mark a valid answer', 'error'); return; }
-    } else if (type === 'confidence') { q.choices = ['I can explain it', 'I need one more example', 'I am still unsure']; q.answerIndex = 0; }
-    if (CR.live.demo) { CR.live.demoQuestion = q; CR.live.phase = 'question_open'; renderDemoLeaderLive(); return; }
-    D().liveControl(CR.live.id, 'ask_room', q).then(openLeaderLive).catch(function (err) { toast(err.message, 'error'); });
-  }
-
-  function liveRecapHtml(snap) {
-    var overall = snap.overall_learning_states || snap.learning_states || {};
-    var overallN = Object.keys(overall).reduce(function (sum, key) { return sum + (Number(overall[key]) || 0); }, 0);
-    var recapSnap = Object.assign({}, snap, { learning_states: overall, answered_count: overallN || snap.answered_count });
-    var p = patternFromStates(recapSnap), st = recapSnap.learning_states || {}, qs = snap.anonymous_questions || [];
-    return '<section class="cl-live-recap"><div class="cl-kicker">Session recap</div><h1>What the room showed</h1>' +
-      '<div class="cl-recap-section"><span>What landed</span><p>' + ((Number(st.understood) || 0) ? (st.understood + ' correct, confident ' + plural(st.understood, 'response') + ' on the final check.') : 'Review the full insights after more responses are collected.') + '</p></div>' +
-      '<div class="cl-recap-section is-attention"><span>What needs reinforcement</span><p>' + esc(p.observation) + '</p></div>' +
-      '<div class="cl-recap-section"><span>Questions learners asked</span><p>' + (qs.length ? qs.length + ' anonymous ' + plural(qs.length, 'question') + ' saved for review.' : 'No anonymous questions were submitted.') + '</p></div>' +
-      '<div class="cl-recap-section"><span>Recommended next step</span><p>One targeted activity · approximately 4 minutes</p></div>' +
-      '<div class="cl-recap-section"><span>Facilitator note</span><p>' + esc(p.move) + '</p></div>' +
-      '<div class="cl-stack cl-mt"><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.buildLiveNextActivity()">Build next activity</button>' +
-      '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.copyLiveRecap()">Copy recap</button>' +
-      (!CR.live.demo ? '<button class="cl-btn cl-btn-line" onclick="ClassroomUI.openInsights(\'' + CR.live.classroomId + '\')">View full insights</button>' : '') +
-      '<button class="cl-btn cl-btn-ghost" onclick="ClassroomUI.exitLive()">End session</button></div></section>';
-  }
-
-  function copyLiveRecap() {
-    var text = (ROOT() && ROOT().innerText) || 'Session recap';
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('Recap copied', 'info'); });
-  }
-  function buildLiveNextActivity() {
-    if (CR.live.demo) { demoAssignNotice(); return; }
-    var id = CR.live.classroomId; CR.live = null; buildTargetedFollowup(id);
-  }
-  function exitLive() { CR.live = null; renderClassroom(); }
-
-  function joinLiveForClassroom(classroomId) {
-    mount(loading('Looking for a live session…'));
-    D().liveFind(classroomId).then(function (found) {
-      if (!found.session_id) throw new Error('There is no active live session for this group.');
-      return D().liveJoin(found.session_id).then(function () {
-        CR.live = { id: found.session_id, classroomId: classroomId, leader: false, demo: false };
-        openLearnerLive();
-      });
-    }).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.joinLiveForClassroom(\'' + classroomId + '\')') + '</div>');
-    });
-  }
-
-  function openLearnerLive() {
-    if (!CR.live) return;
-    D().liveLearnerSnapshot(CR.live.id).then(renderLearnerLive).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') + errorBox(err.message, 'ClassroomUI.openLearnerLive()') + '</div>');
-    });
-  }
-
-  function renderLearnerLive(snap) {
-    var s = snap.session, q = s.current_question || {};
-    var top = '<div class="cl-screen cl-live-screen">' + back('Classroom', 'ClassroomUI.exitLive()') +
-      '<div class="cl-live-head"><div><div class="cl-kicker">Live classroom</div><h1>' + esc(liveStateLabel(s.state)) + '</h1></div><span class="cl-live-state">Untimed</span></div>';
-    var body;
-    if (s.state === 'lobby') body = '<div class="cl-live-wait"><div class="cl-spinner"></div><h2>You’re in</h2><p>Waiting for the leader to start. ' + snap.participant_count + ' ' + plural(snap.participant_count, 'learner') + ' joined.</p></div>';
-    else if (s.state === 'paused') body = '<div class="cl-live-wait"><h2>Session paused</h2><p>The leader will continue when the room is ready.</p></div>';
-    else if (s.state === 'question_open' && snap.answered) body = learnerWaitingBlock();
-    else if (s.state === 'question_open') body = learnerLiveQuestion(s, q);
-    else if (s.state === 'results') body = '<section class="cl-live-question"><div class="cl-live-qmeta">Group review</div><h2>' + modelText(q.prompt) + '</h2>' +
-      (q.explanation ? '<div class="cl-live-explanation">' + richText(q.explanation) + '</div>' : '<p class="cl-muted">Reviewing the anonymous group results with your leader.</p>') + '</section>' + learnerWaitingBlock('Waiting for the next question…');
-    else body = '<div class="cl-live-wait"><h2>Session complete</h2><p>Thanks for contributing. Your leader saw group-level patterns, not individual responses.</p><button class="cl-btn cl-btn-primary" onclick="ClassroomUI.exitLive()">Done</button></div>';
-    mount(top + body + (s.state !== 'complete' ? learnerAskControl() : '') + '</div>');
-    if (s.state !== 'complete') scheduleLive(openLearnerLive);
-  }
-
-  function learnerLiveQuestion(s, q) {
-    CR.liveQuestion = q; CR.liveSelected = null; CR.liveConfidence = null;
-    var hasChoices = q.type !== 'teachback' && q.type !== 'short';
-    var needsConfidence = q.type === 'mcq' || q.type === 'agree';
-    var input = hasChoices ? '<div class="cl-live-choices">' + (q.choices || []).map(function (choice, i) {
-      return '<button type="button" data-live-choice="' + i + '" onclick="ClassroomUI.selectLiveChoice(' + i + ',this)"><span>' + 'ABCD'[i] + '</span>' + modelText(choice) + '</button>';
-    }).join('') + '</div>' + (needsConfidence ? '<div class="cl-confidence"><div class="cl-copy-label">How confident are you?</div>' +
-      '<button onclick="ClassroomUI.selectLiveConfidence(\'know\',this)">I know this</button><button onclick="ClassroomUI.selectLiveConfidence(\'unsure\',this)">I’m unsure</button><button onclick="ClassroomUI.selectLiveConfidence(\'guessing\',this)">I’m guessing</button></div>' :
-      '') : '<textarea class="cl-input" id="clLiveText" rows="5" maxlength="600" placeholder="Explain in one or two sentences…"></textarea>';
-    return '<section class="cl-live-question"><div class="cl-live-qmeta">Question ' + (Number(s.current_question_index) + 1) + ' of ' + s.question_count + '</div>' +
-      '<h2>' + modelText(q.prompt) + '</h2>' + input + '<button class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.submitLiveAnswer()">Submit</button></section>';
-  }
-
-  function selectLiveChoice(i, el) {
-    CR.liveSelected = i;
-    Array.prototype.forEach.call(document.querySelectorAll('[data-live-choice]'), function (b) { b.classList.toggle('is-selected', b === el); });
-  }
-  function selectLiveConfidence(value, el) {
-    CR.liveConfidence = value;
-    Array.prototype.forEach.call(document.querySelectorAll('.cl-confidence button'), function (b) { b.classList.toggle('is-selected', b === el); });
-  }
-  function submitLiveAnswer() {
-    var q = CR.liveQuestion || {}, hasChoices = q.type !== 'teachback' && q.type !== 'short';
-    var needsConfidence = q.type === 'mcq' || q.type === 'agree', response;
-    if (hasChoices) {
-      if (CR.liveSelected == null) { toast('Select an answer', 'error'); return; }
-      if (needsConfidence && !CR.liveConfidence) { toast('Select your confidence', 'error'); return; }
-      response = { selectedIndex: CR.liveSelected };
-    } else {
-      var text = ((document.getElementById('clLiveText') || {}).value || '').trim();
-      if (!text) { toast('Add a short response', 'error'); return; } response = { text: cleanText(text) };
-    }
-    D().liveSubmit(CR.live.id, response, needsConfidence ? CR.liveConfidence : null).then(openLearnerLive).catch(function (err) { toast(err.message, 'error'); });
-  }
-
-  function learnerWaitingBlock(copy) {
-    return '<div class="cl-live-wait"><div class="cl-spinner"></div><h2>Answer submitted</h2><p>' + esc(copy || 'Waiting for the leader to close responses. You cannot advance independently.') + '</p></div>';
-  }
-  function learnerAskControl() {
-    return '<details class="cl-disclosure cl-learner-ask"><summary>Ask anonymously</summary><div class="cl-disclosure-body"><textarea class="cl-input" id="clAnonQuestion" maxlength="400" rows="2" placeholder="Ask a short question…"></textarea>' +
-      '<button class="cl-btn cl-btn-line cl-mt" onclick="ClassroomUI.submitAnonymousQuestion()">Send anonymously</button></div></details>';
-  }
-  function submitAnonymousQuestion() {
-    var el = document.getElementById('clAnonQuestion'), text = (el && el.value || '').trim(); if (!text) return;
-    D().liveAsk(CR.live.id, text).then(function () { if (el) el.value = ''; toast('Question sent anonymously', 'info'); }).catch(function (err) { toast(err.message, 'error'); });
-  }
-
-  // Demo live state is isolated in memory and never calls ClassroomData's RPCs.
-  function startDemoLive() {
-    var demo = D().buildDemo();
-    CR.live = { id: 'demo-live', classroomId: 'demo', leader: true, demo: true, phase: 'lobby', index: -1, assignment: demo.assignment };
-    CR.liveIntervention = demoIntervention(); renderDemoLeaderLive();
-  }
-  function demoSnapshot() {
-    var l = CR.live, questions = l.assignment.content.questions, idx = Math.max(0, l.index), q = l.demoQuestion || questions[idx];
-    var results = l.phase === 'results' || l.phase === 'complete';
-    return { session: { id: l.id, state: l.phase, current_question_index: idx, question_order: questions, current_question: q },
-      participant_count: l.phase === 'lobby' ? 12 : 18, answered_count: results ? 16 : (l.phase === 'question_open' ? 11 : 0),
-      answer_distribution: results ? [{ choice: '0', n: 3, correct: 0 },{ choice: '1', n: 10, correct: 10 },{ choice: '2', n: 2, correct: 0 },{ choice: '3', n: 1, correct: 0 }] : [],
-      confidence_distribution: results ? { know: 6, unsure: 7, guessing: 3 } : {},
-      learning_states: results ? { understood: 4, fragile: 6, misconception: 2, gap: 4 } : {},
-      overall_learning_states: results ? { understood: 9, fragile: 12, misconception: 5, gap: 7 } : {},
-      anonymous_questions: results ? [{ id: 'demo-q1', question: 'Why doesn’t diversification protect against a market crash?' }, { id: 'demo-q2', question: 'Can every investment fall at the same time?' }] : [] };
-  }
-  function renderDemoLeaderLive() { renderLeaderLive(demoSnapshot()); }
-  function demoLiveControl(action) {
-    var l = CR.live;
-    if (action === 'start') { l.phase = 'question_open'; l.index = 0; }
-    else if (action === 'close') l.phase = 'results';
-    else if (action === 'continue') { if (l.index >= 0) l.phase = 'complete'; else { l.index++; l.phase = 'question_open'; } }
-    else if (action === 'pause') l.phase = 'paused';
-    else if (action === 'resume') l.phase = 'question_open';
-    else if (action === 'end') l.phase = 'complete';
-    renderDemoLeaderLive();
-  }
 
   // ════════════════════════════════════════════════════════════════════════
   // DEMO classroom
@@ -1897,8 +1781,7 @@
         var c = m.classrooms || {};
         return '<div class="cl-card"><div class="cl-card-head"><strong>' + esc(c.name || 'Classroom') + '</strong></div>' +
           (c.description ? '<p class="cl-muted">' + esc(c.description) + '</p>' : '') +
-          '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignment(\'' + c.id + '\')">Assignment</button>' +
-          '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.joinLiveForClassroom(\'' + c.id + '\')">Join live</button></div></div>';
+          '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignments(\'' + c.id + '\')">Assignments</button></div></div>';
       }).join('') +
       '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openJoin()">Join another classroom</button>';
     }).catch(function () {
@@ -1966,17 +1849,40 @@
     });
   }
 
+  function openLearnerAssignments(classroomId) {
+    mount(loading('Loading assignments…'));
+    D().listAssignments(classroomId).then(function (assignments) {
+      assignments = (assignments || []).filter(function (a) { return (a.status || 'active') === 'active'; });
+      if (!assignments.length) {
+        mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
+          '<div class="cl-empty"><p>No published assignments in this group yet.</p></div></div>');
+        return;
+      }
+      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
+        header('Assignments', 'Choose an activity to complete.') +
+        assignments.map(function (a) {
+          var qCount = ((a.content || {}).questions || []).length;
+          return '<div class="cl-card cl-assignment-card"><div class="cl-card-head"><strong>' + esc(a.title || 'Assignment') + '</strong></div>' +
+            '<div class="cl-card-meta"><span>' + qCount + ' questions</span><span>·</span><span>' + esc(statusText(a)) + '</span></div>' +
+            '<div class="cl-card-actions"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openLearnerAssignment(\'' + classroomId + '\',\'' + a.id + '\')">Start</button></div></div>';
+        }).join('') + '</div>');
+    }).catch(function (err) {
+      mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
+        errorBox((err && err.message) || 'Could not load assignments.', 'ClassroomUI.openLearnerAssignments(\'' + classroomId + '\')') + '</div>');
+    });
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   // LEARNER: assignment player (reuses .ml-* quiz styling)
   // ════════════════════════════════════════════════════════════════════════
-  function openLearnerAssignment(classroomId) {
+  function openLearnerAssignment(classroomId, assignmentId) {
     mount(loading('Loading assignment…'));
     var assignment;
-    D().getActiveAssignment(classroomId).then(function (a) {
+    (assignmentId ? D().getAssignment(assignmentId) : D().getActiveAssignment(classroomId)).then(function (a) {
       assignment = a;
       if (!assignment) {
         mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-          '<div class="cl-empty"><p>No active assignment in this group yet.</p></div></div>');
+          '<div class="cl-empty"><p>No published assignment in this group yet.</p></div></div>');
         return null;
       }
       return D().getMemberId(classroomId);
@@ -1995,7 +1901,7 @@
       });
     }).catch(function (err) {
       mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-        errorBox((err && err.message) || 'Could not start the assignment.', 'ClassroomUI.openLearnerAssignment(\'' + classroomId + '\')') + '</div>');
+        errorBox((err && err.message) || 'Could not start the assignment.', 'ClassroomUI.openLearnerAssignment(\'' + classroomId + '\'' + (assignmentId ? ',\'' + assignmentId + '\'' : '') + ')') + '</div>');
     });
   }
 
@@ -2258,6 +2164,9 @@
     openCreateGroup: openCreateGroup,
     submitCreateGroup: submitCreateGroup,
     openGroup: openGroup,
+    openAssignmentPreview: openAssignmentPreview,
+    openDraftAssignment: openDraftAssignment,
+    duplicateAssignment: duplicateAssignment,
     openEditGroup: openEditGroup,
     submitEditGroup: submitEditGroup,
     confirmDeleteGroup: confirmDeleteGroup,
@@ -2267,6 +2176,15 @@
     openCreateAssignment: openCreateAssignment,
     toggleTeach: toggleTeach,
     buildAssignment: buildAssignment,
+    candidateSelection: candidateSelection,
+    setQuestionFilter: setQuestionFilter,
+    toggleCandidate: toggleCandidate,
+    deleteCandidate: deleteCandidate,
+    moveCandidate: moveCandidate,
+    adjustQuestion: adjustQuestion,
+    regenerateQuestion: regenerateQuestion,
+    previewSelectedQuestions: previewSelectedQuestions,
+    backToQuestionSelection: backToQuestionSelection,
     openQuestionEditor: openQuestionEditor,
     switchQuestionType: switchQuestionType,
     backToPreview: backToPreview,
@@ -2287,28 +2205,9 @@
     demoAssignNotice: demoAssignNotice,
     openDemo: openDemo,
     exitDemo: exitDemo,
-    startLiveSession: startLiveSession,
-    openLeaderLive: openLeaderLive,
-    liveControl: liveControl,
-    showLiveMove: showLiveMove,
-    liveQuestionAction: liveQuestionAction,
-    questionToFollowup: questionToFollowup,
-    openAskRoom: openAskRoom,
-    updateAskRoomFields: updateAskRoomFields,
-    generateAskRoom: generateAskRoom,
-    submitAskRoom: submitAskRoom,
-    copyLiveRecap: copyLiveRecap,
-    buildLiveNextActivity: buildLiveNextActivity,
-    exitLive: exitLive,
-    joinLiveForClassroom: joinLiveForClassroom,
-    openLearnerLive: openLearnerLive,
-    selectLiveChoice: selectLiveChoice,
-    selectLiveConfidence: selectLiveConfidence,
-    submitLiveAnswer: submitLiveAnswer,
-    submitAnonymousQuestion: submitAnonymousQuestion,
-    startDemoLive: startDemoLive,
     openJoin: openJoin,
     submitJoin: submitJoin,
+    openLearnerAssignments: openLearnerAssignments,
     openLearnerAssignment: openLearnerAssignment,
     submitAnswer: submitAnswer,
     retryFinishAssignment: retryFinishAssignment,

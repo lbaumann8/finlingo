@@ -1,13 +1,11 @@
 """Server-side Claude actions for Finlingo Classroom.
 
-Six modes, all behind a single endpoint (`api/classroom-ai.py`):
+Four modes, all behind a single endpoint (`api/classroom-ai.py`):
 
-  * generate_assignment  — build a 5-question concept challenge
+  * generate_assignment  — build a candidate pool for an assignment
   * evaluate_teachback   — grade one "explain it in your own words" answer
   * group_insight        — summarize an ANONYMIZED/aggregated group result
   * followup_activity    — propose a short remediation activity for a gap
-  * live_intervention    — turn anonymous live aggregates into a teaching move
-  * question_cluster     — combine anonymous learner questions into one theme
 
 The Anthropic key is read server-side only (never shipped to the browser).
 Every model call uses tool-use so the output is structured, then we validate /
@@ -237,8 +235,11 @@ def generate_assignment(payload):
     if difficulty not in DIFFICULTIES:
         difficulty = "beginner"
     teach_it_back = bool(payload.get("teachItBack"))
+    requested = int(payload.get("count") or 8)
+    requested = max(6, min(10, requested))
     audience = _clean_str(payload.get("audience"), "a general adult audience", 80)
-    n_mcq = 4 if teach_it_back else 5
+    objective = _clean_str(payload.get("objective"), "", 240)
+    n_mcq = requested - 1 if teach_it_back else requested
 
     prompt = (
         f"Create a short financial-literacy concept challenge on the topic "
@@ -250,6 +251,8 @@ def generate_assignment(payload):
         f"results reveal where a group struggles. Keep language plain and avoid "
         f"specific investment recommendations.\n"
     )
+    if objective:
+        prompt += f"Use this learning objective to guide coverage: {objective}\n"
     if teach_it_back:
         prompt += (
             "Also provide a `teachBackPrompt` asking the learner to explain the "
@@ -258,7 +261,7 @@ def generate_assignment(payload):
         )
     prompt += "Also return 2-3 short `objectives` for the whole assignment."
 
-    data = _call_claude("create_assignment", _ASSIGNMENT_SCHEMA, prompt, max_tokens=2200)
+    data = _call_claude("create_assignment", _ASSIGNMENT_SCHEMA, prompt, max_tokens=3200)
 
     raw_questions = data.get("questions")
     if not isinstance(raw_questions, list):
@@ -524,12 +527,12 @@ def followup_activity(payload):
         "makes the misconception tangible,\n"
         "- an optional `chartPrompt` titled Compare the outcomes that states concrete "
         "values in plain text; never claim a chart or graphic was rendered,\n"
-        "- exactly 3 multiple-choice `questions` (each with skill, prompt, 4 choices, "
+        "- exactly 7 multiple-choice `questions` (each with skill, prompt, 4 choices, "
         "answerIndex 0-3, explanation) that directly probe the gap,\n"
         "- a `teachBackPrompt`, and a `teachBackObjective`. No Markdown, emojis, "
         "headings, repeated ideas, or long preamble."
     )
-    data = _call_claude("build_followup", _FOLLOWUP_SCHEMA, prompt, max_tokens=2200, timeout=55)
+    data = _call_claude("build_followup", _FOLLOWUP_SCHEMA, prompt, max_tokens=3200, timeout=55)
 
     questions = []
     for raw in (data.get("questions") or []):
@@ -538,9 +541,9 @@ def followup_activity(payload):
         q = _coerce_mcq(raw, f"q{len(questions) + 1}", _slug(topic))
         if q:
             questions.append(q)
-        if len(questions) >= 3:
+        if len(questions) >= 7:
             break
-    if len(questions) < 2:
+    if len(questions) < 6:
         raise ClassroomAIError(
             "Follow-up missing questions",
             public_message="Finlingo couldn't build the follow-up. Please try again.",
@@ -576,80 +579,6 @@ def followup_activity(payload):
     return {"ok": True, "activity": activity}
 
 
-# ── Mode: live_intervention ─────────────────────────────────────────────────
-
-_LIVE_INTERVENTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "observation": {"type": "string"},
-        "suggestedMove": {"type": "string"},
-        "simpleExplanation": {"type": "string"},
-        "example": {"type": "string"},
-        "followUpQuestion": {"type": "string"},
-        "followUpChoices": {"type": "array", "items": {"type": "string"}},
-        "followUpAnswerIndex": {"type": "integer"},
-    },
-    "required": ["observation", "suggestedMove", "simpleExplanation", "example", "followUpQuestion"],
-}
-
-
-def live_intervention(payload):
-    prompt_text = _clean_str(payload.get("prompt"), "the current question", 400)
-    sample = max(0, int(payload.get("responseCount") or 0))
-    distribution = payload.get("answerDistribution") or []
-    confidence = payload.get("confidenceDistribution") or {}
-    states = payload.get("learningStates") or {}
-    prompt = (
-        "Create a concise teaching intervention from anonymous live-classroom aggregates. "
-        "Never infer traits about individuals and do not overclaim from a small sample.\n\n"
-        f"Question: {prompt_text}\nResponses: {sample}\n"
-        f"Answer distribution: {json.dumps(distribution)[:1000]}\n"
-        f"Confidence distribution: {json.dumps(confidence)[:600]}\n"
-        f"Learning-state counts: {json.dumps(states)[:600]}\n\n"
-        "Return one short observation, one concrete suggested teaching move, a plain "
-        "explanation, one example, and one multiple-choice follow-up question. Use no "
-        "Markdown or emojis. Keep each prose field under 45 words."
-    )
-    data = _call_claude("live_intervention", _LIVE_INTERVENTION_SCHEMA, prompt, max_tokens=800, timeout=45)
-    choices = [_clean_str(c, limit=160) for c in (data.get("followUpChoices") or []) if isinstance(c, str)][:4]
-    try:
-        answer_index = int(data.get("followUpAnswerIndex", 0))
-    except (TypeError, ValueError):
-        answer_index = 0
-    return {"ok": True, "intervention": {
-        "observation": _word_limited(data.get("observation"), "Responses show a mixed pattern.", 45, 360),
-        "suggestedMove": _word_limited(data.get("suggestedMove"), "Pause for one concrete example before continuing.", 45, 360),
-        "simpleExplanation": _word_limited(data.get("simpleExplanation"), "", 55, 440),
-        "example": _word_limited(data.get("example"), "", 55, 440),
-        "followUpQuestion": _clean_str(data.get("followUpQuestion"), "Check the same idea with a new example.", 280),
-        "followUpChoices": choices,
-        "followUpAnswerIndex": max(0, min(answer_index, max(0, len(choices) - 1))),
-    }}
-
-
-_QUESTION_CLUSTER_SCHEMA = {
-    "type": "object",
-    "properties": {"theme": {"type": "string"}, "combinedQuestion": {"type": "string"}},
-    "required": ["theme", "combinedQuestion"],
-}
-
-
-def question_cluster(payload):
-    questions = [_clean_str(q, limit=400) for q in (payload.get("questions") or []) if isinstance(q, str) and q.strip()][:20]
-    if not questions:
-        return {"ok": True, "cluster": {"theme": "Learner questions", "combinedQuestion": ""}}
-    prompt = (
-        "Combine these anonymous classroom questions into one representative question. "
-        "Return a 2-5 word theme and one concise combined question. Do not add claims, "
-        "identify learners, use Markdown, or answer the question.\n\n"
-        + json.dumps(questions)
-    )
-    data = _call_claude("question_cluster", _QUESTION_CLUSTER_SCHEMA, prompt, max_tokens=300, timeout=35)
-    return {"ok": True, "cluster": {
-        "theme": _clean_str(data.get("theme"), "Learner questions", 80),
-        "combinedQuestion": _clean_str(data.get("combinedQuestion"), questions[0], 400),
-    }}
-
 
 # ── Dispatch ────────────────────────────────────────────────────────────────
 
@@ -658,8 +587,6 @@ _MODES = {
     "evaluate_teachback": evaluate_teachback,
     "group_insight": group_insight,
     "followup_activity": followup_activity,
-    "live_intervention": live_intervention,
-    "question_cluster": question_cluster,
 }
 
 

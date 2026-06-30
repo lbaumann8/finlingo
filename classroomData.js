@@ -203,38 +203,87 @@
       });
   }
 
-  // Attach member count + active assignment + completion count to a group card.
+  function normalizeAssignmentStatus(status) {
+    if (status === 'draft' || status === 'closed') return status;
+    return 'active';
+  }
+
+  function assignmentStatusRank(a) {
+    var s = normalizeAssignmentStatus(a && a.status);
+    if (s === 'active') return 0;
+    if (s === 'draft') return 1;
+    return 2;
+  }
+
+  function sortAssignments(assignments) {
+    return (assignments || []).slice().sort(function (a, b) {
+      var ra = assignmentStatusRank(a), rb = assignmentStatusRank(b);
+      if (ra !== rb) return ra - rb;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+  }
+
+  function listAssignments(classroomId) {
+    return global.sbGet('classroom_assignments',
+      '?classroom_id=eq.' + classroomId + '&order=created_at.desc')
+      .then(function (rows) { return sortAssignments(rows || []); });
+  }
+
+  function decorateAssignment(a, learnerCount) {
+    a.learner_count = learnerCount || 0;
+    return global.sbGet('classroom_attempts',
+      '?assignment_id=eq.' + a.id + '&completed_at=not.is.null&select=id,score,total')
+      .then(function (att) {
+        att = att || [];
+        a.completed_count = att.length;
+        var graded = att.filter(function (r) { return Number(r.total) > 0; });
+        a.avg_accuracy = graded.length
+          ? graded.reduce(function (sum, r) { return sum + ((Number(r.score) || 0) / (Number(r.total) || 1)); }, 0) / graded.length
+          : 0;
+        if (!a.completed_count) {
+          a.intel = { state: 'waiting', concept: '', label: 'Waiting for responses' };
+          return a;
+        }
+        return aggregate(a.id).then(function (agg) {
+          a.intel = computeGroupIntel(agg);
+          a._agg = agg;
+          return a;
+        }).catch(function () { a.intel = null; return a; });
+      }).catch(function () {
+        a.completed_count = 0;
+        a.avg_accuracy = 0;
+        a.intel = null;
+        return a;
+      });
+  }
+
+  // Attach member count + assignment summaries to a group card.
   function decorateGroup(c) {
     return Promise.all([
       global.sbGet('classroom_members', '?classroom_id=eq.' + c.id + '&select=id'),
-      global.sbGet('classroom_assignments',
-        '?classroom_id=eq.' + c.id + '&status=eq.active&order=created_at.desc&limit=1')
+      listAssignments(c.id)
     ]).then(function (parts) {
       var members = parts[0] || [];
-      var assignment = (parts[1] || [])[0] || null;
+      var assignments = parts[1] || [];
       c.learner_count = members.length;
-      c.active_assignment = assignment;
-      if (!assignment) { c.completed_count = 0; c.intel = null; return c; }
-      return global.sbGet('classroom_attempts',
-        '?assignment_id=eq.' + assignment.id + '&completed_at=not.is.null&select=id')
-        .then(function (att) {
-          c.completed_count = (att || []).length;
-          // No responses yet → "Waiting for responses"; no aggregate call needed.
-          if (!c.completed_count) {
-            c.intel = { state: 'waiting', concept: '', label: 'Waiting for responses' };
-            return c;
-          }
-          // One anonymized aggregate read per group-with-responses → real intel.
-          return aggregate(assignment.id).then(function (agg) {
-            c.intel = computeGroupIntel(agg);
-            c._agg = agg;
-            return c;
-          }).catch(function () { c.intel = null; return c; });
-        })
-        .catch(function () { c.completed_count = 0; c.intel = null; return c; });
+      c.assignment_count = assignments.length;
+      return Promise.all(assignments.map(function (a) { return decorateAssignment(a, c.learner_count); }))
+        .then(function (decorated) {
+          c.assignments = sortAssignments(decorated);
+          c.active_assignment = c.assignments.filter(function (a) { return normalizeAssignmentStatus(a.status) === 'active'; })[0] || null;
+          c.latest_assignment = c.assignments[0] || null;
+          c.completed_count = c.assignments.reduce(function (sum, a) { return sum + (Number(a.completed_count) || 0); }, 0);
+          var insightAssignment = c.assignments.filter(function (a) { return (Number(a.completed_count) || 0) > 0 && a.intel; })[0];
+          c.intel = insightAssignment ? insightAssignment.intel : (c.active_assignment ? c.active_assignment.intel : null);
+          c._agg = insightAssignment ? insightAssignment._agg : null;
+          return c;
+        });
     }).catch(function () {
       c.learner_count = c.learner_count || 0;
+      c.assignment_count = c.assignment_count || 0;
+      c.assignments = c.assignments || [];
       c.active_assignment = c.active_assignment || null;
+      c.latest_assignment = c.latest_assignment || null;
       c.completed_count = c.completed_count || 0;
       c.intel = c.intel || null;
       return c;
@@ -269,14 +318,14 @@
       .catch(function () { return []; });
   }
 
-  function createAssignment(classroomId, content, dueDate) {
+  function createAssignment(classroomId, content, dueDate, status) {
     var row = {
       classroom_id: classroomId,
       title: content.title,
       topic: content.topic || '',
       difficulty: content.difficulty || 'beginner',
       content: content,
-      status: 'active'
+      status: status || 'active'
     };
     if (dueDate) row.due_date = dueDate;
     return global.sbPost('classroom_assignments', row).then(function (res) {
@@ -284,9 +333,28 @@
     });
   }
 
+  function updateAssignment(assignmentId, content, dueDate, status) {
+    var patch = {
+      title: content.title,
+      topic: content.topic || '',
+      difficulty: content.difficulty || 'beginner',
+      content: content,
+      status: status || 'active'
+    };
+    if (dueDate) patch.due_date = dueDate;
+    return global.sbPatch('classroom_assignments', '?id=eq.' + assignmentId, patch).then(function (res) {
+      return Array.isArray(res) ? res[0] : res;
+    });
+  }
+
   function getActiveAssignment(classroomId) {
     return global.sbGet('classroom_assignments',
       '?classroom_id=eq.' + classroomId + '&status=eq.active&order=created_at.desc&limit=1')
+      .then(function (rows) { return (rows || [])[0] || null; });
+  }
+
+  function getAssignment(assignmentId) {
+    return global.sbGet('classroom_assignments', '?id=eq.' + assignmentId + '&limit=1')
       .then(function (rows) { return (rows || [])[0] || null; });
   }
 
@@ -339,67 +407,13 @@
       if (!res || !res.ok) {
         throw new Error((res && res.error) === 'forbidden'
           ? 'You can only view insights for groups you own.'
-          : 'Could not load group insights yet.');
+          : 'Could not load assignment results yet.');
       }
       return res;
     });
   }
 
-  // Live Classroom uses owner/member-checked RPCs. No caller reads raw live
-  // response rows; the leader receives distributions and learning-state counts.
-  function liveCreate(assignmentId) {
-    return sbRpc('classroom_live_create', { p_assignment: assignmentId }).then(liveResult);
-  }
-  function liveFind(classroomId) {
-    return sbRpc('classroom_live_find', { p_classroom: classroomId }).then(liveResult);
-  }
-  function liveJoin(sessionId) {
-    return sbRpc('classroom_live_join', { p_session: sessionId }).then(liveResult);
-  }
-  function liveControl(sessionId, action, payload) {
-    return sbRpc('classroom_live_control', {
-      p_session: sessionId, p_action: action, p_payload: payload || {}
-    }).then(liveResult);
-  }
-  function liveLeaderSnapshot(sessionId) {
-    return sbRpc('classroom_live_leader_snapshot', { p_session: sessionId }).then(liveResult);
-  }
-  function liveLearnerSnapshot(sessionId) {
-    return sbRpc('classroom_live_learner_snapshot', { p_session: sessionId }).then(liveResult);
-  }
-  function liveSubmit(sessionId, response, confidence) {
-    return sbRpc('classroom_live_submit', {
-      p_session: sessionId, p_response: response || {}, p_confidence: confidence || null
-    }).then(liveResult);
-  }
-  function liveAsk(sessionId, question) {
-    return sbRpc('classroom_live_ask', { p_session: sessionId, p_question: question }).then(liveResult);
-  }
-  function liveQuestionAction(sessionId, questionId, action) {
-    return sbRpc('classroom_live_question_action', {
-      p_session: sessionId, p_question: questionId, p_action: action
-    }).then(liveResult);
-  }
-  function liveResult(res) {
-    if (!res || !res.ok) {
-      var reason = res && res.error;
-      var messages = {
-        forbidden: 'You do not have access to this live session.',
-        not_a_member: 'Join this group before entering its live session.',
-        session_not_found: 'There is no active live session.',
-        assignment_not_found: 'That published assignment is no longer available.',
-        responses_closed: 'Responses are closed for this question.',
-        already_answered: 'Your answer is already submitted.',
-        invalid_transition: 'That session action is not available right now.'
-      };
-      var err = new Error(messages[reason] || 'The live session could not be updated.');
-      err.code = reason || 'live_error';
-      throw err;
-    }
-    return res;
-  }
-
-  // ── Insight thresholds + derivations (shared by live + demo) ──────────────
+  // ── Insight thresholds + derivations (shared by assignments + demo) ───────
   var INSIGHT_MIN_LEARNERS = 3;
   var INSIGHT_MIN_RESPONSES = 5;
 
@@ -653,7 +667,7 @@
       classroom: {
         id: 'demo',
         name: 'First-Generation Finance Workshop',
-        description: 'A sample workshop showing anonymous group insights.',
+        description: 'A sample workshop showing anonymous assignment results.',
         audience_type: 'community',
         join_code: 'MONEY24',
         is_demo: true,
@@ -685,24 +699,18 @@
     resetUserData: resetUserData,
     suggestAssignmentTitle: suggestAssignmentTitle,
     listGroups: listGroups,
+    listAssignments: listAssignments,
     joinGroup: joinGroup,
     myMemberships: myMemberships,
     createAssignment: createAssignment,
+    updateAssignment: updateAssignment,
     getActiveAssignment: getActiveAssignment,
+    getAssignment: getAssignment,
     getMemberId: getMemberId,
     startAttempt: startAttempt,
     submitResponse: submitResponse,
     completeAttempt: completeAttempt,
     aggregate: aggregate,
-    liveCreate: liveCreate,
-    liveFind: liveFind,
-    liveJoin: liveJoin,
-    liveControl: liveControl,
-    liveLeaderSnapshot: liveLeaderSnapshot,
-    liveLearnerSnapshot: liveLearnerSnapshot,
-    liveSubmit: liveSubmit,
-    liveAsk: liveAsk,
-    liveQuestionAction: liveQuestionAction,
     totalGradedResponses: totalGradedResponses,
     meetsInsightThreshold: meetsInsightThreshold,
     conceptRows: conceptRows,
@@ -721,7 +729,7 @@
   };
 
   // ── Preset question banks ─────────────────────────────────────────────────
-  // Each preset is a full assignment content object (4 MCQ + 1 teach-it-back).
+  // Curated sets start from reviewed assignment content and expand into a larger candidate pool.
   function mcq(id, skill, prompt, choices, answerIndex, explanation) {
     return { id: id, type: 'mcq', skill: skill, prompt: prompt, choices: choices,
       answerIndex: answerIndex, explanation: explanation };
@@ -869,13 +877,48 @@
     var preset = PRESETS[topic];
     if (!preset) return null;
     var hasTeach = preset.questions.some(function (q) { return q.type === 'teachback'; });
+    var questions = preset.questions.map(function (q) { return Object.assign({}, q); });
+    var mcqCount = questions.filter(function (q) { return q.type !== 'teachback'; }).length;
+    var extras = [
+      {
+        skill: topic + ' application',
+        prompt: 'Which statement best applies ' + topic.toLowerCase() + ' in a real financial decision?',
+        choices: ['Use the concept to compare tradeoffs before acting', 'Ignore the concept when the decision feels urgent', 'Assume the same answer works in every situation', 'Focus only on short-term price movement'],
+        explanation: topic + ' is most useful when it helps compare realistic tradeoffs before making a decision.'
+      },
+      {
+        skill: topic + ' misconception check',
+        prompt: 'Which habit can lead someone to misunderstand ' + topic.toLowerCase() + '?',
+        choices: ['Checking what the concept can and cannot explain', 'Treating one rule as true in every situation', 'Comparing more than one possible outcome', 'Looking for the main tradeoff'],
+        explanation: 'A common mistake is treating a useful concept as if it explains every situation.'
+      },
+      {
+        skill: topic + ' scenario',
+        prompt: 'A learner has to explain ' + topic.toLowerCase() + ' to a friend. What should they do first?',
+        choices: ['Start with a concrete example', 'Use technical terms before explaining the idea', 'Skip the tradeoff', 'Promise a guaranteed outcome'],
+        explanation: 'A concrete example makes the concept easier to test and explain.'
+      }
+    ];
+    var extraIdx = 0;
+    while (questions.length < 8 && extraIdx < extras.length) {
+      var extra = extras[extraIdx++];
+      var n = ++mcqCount;
+      questions.splice(Math.max(0, questions.length - (hasTeach ? 1 : 0)), 0, mcq(
+        'qcur' + n,
+        extra.skill,
+        extra.prompt,
+        extra.choices,
+        0,
+        extra.explanation
+      ));
+    }
     return {
       title: topic + ' Concept Challenge',
       topic: topic,
       difficulty: difficulty || 'beginner',
       objectives: preset.objectives.slice(),
       teachItBack: hasTeach,
-      questions: preset.questions.map(function (q) { return Object.assign({}, q); }),
+      questions: questions,
       source: 'preset'
     };
   }
