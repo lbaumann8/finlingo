@@ -82,11 +82,11 @@
     return '';
   }
 
-  // Classroom appears for program leaders, or for learners who have joined a group.
+  // Classroom is available to every signed-in user. Personal accounts see the
+  // join-a-classroom view; Teacher / group-leader accounts see the dashboard.
   function _showClassroom() {
     var s = (typeof S !== 'undefined' && S) || {};
-    if (s.finlingoMode === 'leader') return true;
-    return Array.isArray(s.classroomJoinedIds) && s.classroomJoinedIds.length > 0;
+    return !!(s.user && s.user.id);
   }
 
   function _primaryNavRows() {

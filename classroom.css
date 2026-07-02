@@ -207,6 +207,38 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-toggle-row.is-on .cl-toggle-switch { background: #f1f3f5; border-color: #f1f3f5; }
 .cl-toggle-row.is-on .cl-toggle-switch::after { transform: translateX(18px); background: #0b0c0f; }
 
+/* Animated reveal (due-date input under its switch). Off by default; opens with
+   a subtle height+fade transition. max-height keeps it Safari-safe. */
+.cl-reveal { overflow: hidden; max-height: 0; opacity: 0; transition: max-height .22s ease, opacity .18s ease; }
+.cl-reveal.is-open { max-height: 120px; opacity: 1; }
+.cl-reveal-inner { margin: 10px 0 0; }
+.cl-reveal-inner.cl-field { display: block; }
+
+/* Creation-path: two equal, selectable cards (icon · title · one-line · chevron). */
+.cl-path-cards { display: flex; flex-direction: column; gap: 10px; }
+.cl-path-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 14px; cursor: pointer;
+  background: var(--cl-card-2); border: 1px solid var(--cl-border);
+  border-radius: var(--cl-radius-sm); color: var(--cl-body);
+  transition: border-color .12s ease, background .12s ease, transform .06s ease;
+}
+.cl-path-card:hover { border-color: var(--cl-border-strong); background: var(--cl-card); }
+.cl-path-card:focus-visible { outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px; }
+.cl-path-card:active { transform: translateY(1px); }
+.cl-path-icon {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cl-card); border: 1px solid var(--cl-border); color: var(--cl-title);
+}
+.cl-path-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.cl-path-body { flex: 1; min-width: 0; }
+.cl-path-body strong { display: block; color: var(--cl-title); font: 600 .96rem var(--font-b); }
+.cl-path-body small { display: block; margin-top: 2px; color: var(--cl-muted); font: 400 .8rem/1.4 var(--font-b); }
+.cl-path-chevron { flex: 0 0 auto; color: var(--cl-muted); display: flex; }
+.cl-path-chevron svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cl-path-card:hover .cl-path-chevron { color: var(--cl-title); }
+
 /* ── Generating state ─────────────────────────────────────────────────────── */
 .cl-generating { padding-top: 40px; }
 .cl-spinner-lg { width: 34px; height: 34px; border-width: 3px; }
@@ -222,21 +254,22 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 
 /* ── Inline success banner (published / etc.) ─────────────────────────────── */
 .cl-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--cl-radius); margin: 2px 0 4px; }
-.cl-banner-success { background: rgba(43,189,106,0.1); border: 1px solid rgba(43,189,106,0.32); }
-.cl-banner-icon { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--cl-green); color: #ffffff; font-weight: 800; font-size: 0.95rem; }
+.cl-banner-success { background: var(--cl-card); border: 1px solid var(--cl-border-strong); }
+.cl-banner-icon { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; border: 1.5px solid var(--cl-border-strong); color: #ffffff; font-weight: 800; font-size: 0.95rem; }
 .cl-state-icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .cl-banner-text { display: flex; flex-direction: column; gap: 3px; }
 .cl-banner-text strong { color: var(--cl-title); font: 700 1rem var(--font-b); }
 .cl-banner-text span { color: var(--cl-body); font: 400 0.88rem/1.45 var(--font-b); }
 
 /* ── Join-code success / card ───────────────────────────────────────────── */
-/* Large success circle: green disc + WHITE checkmark glyph. Uses the same ✓
-   glyph and heavy weight as the quiz correct-answer mark (.ml-choice-mark) so
-   every success/completion check in Classroom looks identical. */
+/* Monochrome success circle: a WHITE checkmark inside a subtle dark outlined
+   circle (no green disc, no accent colour) — matches the rest of Finlingo's
+   line icons. */
 .cl-success-badge {
   width: 56px; height: 56px; margin: 8px auto 14px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
-  color: #ffffff; background: var(--cl-green); font-weight: 800; line-height: 1;
+  display: flex; align-items: center; justify-content: center; font-size: 1.7rem;
+  color: #ffffff; background: transparent;
+  border: 1.5px solid var(--cl-border-strong); line-height: 1;
 }
 .cl-success-title { margin: 0 0 4px; font: 700 1.3rem var(--font-d, var(--font-b)); color: var(--cl-title); }
 .cl-success-sub { margin: 0 0 4px; color: var(--cl-muted); font: 400 0.95rem var(--font-b); }
@@ -283,7 +316,9 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-opt-hint { margin: 2px 0 12px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); }
 
 /* ── Assignment preview: sticky bottom actions (never clipped) ────────────── */
-.cl-preview-screen { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+/* Sticky publish bar is a last-child in the single scroll flow, so it occupies
+   its own space — only a small safe-area gap is needed below it. */
+.cl-preview-screen { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 .cl-preview-actions {
   position: sticky; bottom: 0; z-index: 5;
   display: flex; gap: 10px; margin: 16px -20px 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
@@ -573,6 +608,20 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
+.account-mode-note { margin: 10px 0 0; color: var(--cl-muted); font: 400 .76rem/1.5 var(--font-b); }
+
+/* ── Personal (learner) join card + assignment status pill ────────────────── */
+.cl-join-card { padding: 16px; }
+.cl-join-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.cl-join-fields .cl-field { margin-bottom: 0; }
+.cl-join-card .cl-btn { width: 100%; }
+@media (max-width: 380px) { .cl-join-fields { grid-template-columns: 1fr; } }
+.cl-status-pill {
+  flex: 0 0 auto; padding: 3px 9px; border-radius: 999px;
+  background: rgba(255,255,255,.05); border: 1px solid var(--cl-border-strong);
+  color: var(--cl-muted); font: 700 .64rem var(--font-b); letter-spacing: .04em; text-transform: uppercase;
+}
+.cl-status-done { color: var(--cl-green-bright); border-color: rgba(43,189,106,.4); background: rgba(43,189,106,.1); }
 
 /* ── Structured generated copy / follow-up draft ───────────────────────── */
 .cl-rich-list { margin: 8px 0 0; padding-left: 18px; color: var(--cl-body); font: 400 .92rem/1.55 var(--font-b); }
@@ -635,47 +684,96 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .cl-btn span { display: block; }
 
-.cl-question-select { padding-bottom: 150px; }
-.cl-filter-row {
-  display: flex; gap: 7px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px;
+/* Single scroll container: the review bar sticks in-flow (never position:fixed),
+   so only a small safe-area gap is needed at the bottom of the screen. */
+.cl-question-select { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+/* Horizontally-scrollable filters with a right-edge fade cue and hidden
+   scrollbar. The wrapper's mask fades the trailing chips when more scroll
+   remains; the scroll padding keeps the final chip fully visible. */
+.cl-filter-wrap {
+  position: relative; margin-bottom: 10px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+          mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
 }
+.cl-filter-row {
+  display: flex; gap: 7px; overflow-x: auto; padding: 0 26px 8px 0;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.cl-filter-row::-webkit-scrollbar { display: none; height: 0; }
 .cl-filter-row button {
-  flex: 0 0 auto; padding: 8px 10px; border: 1px solid var(--cl-border);
+  flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--cl-border);
   border-radius: 999px; background: transparent; color: var(--cl-muted);
-  font: 700 .72rem var(--font-b); cursor: pointer;
+  font: 700 .72rem var(--font-b); cursor: pointer; white-space: nowrap;
 }
 .cl-filter-row button.is-active { background: #fff; border-color: #fff; color: #0b0c0f; }
-.cl-candidate-list { display: flex; flex-direction: column; gap: 10px; }
-.cl-candidate-card {
-  padding: 14px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
-  background: var(--cl-card);
+.cl-filter-row button:focus-visible { outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px; }
+
+.cl-candidate-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Simplified question card (.cl-qc) — one subtle border, content dominant,
+   controls secondary, reduced padding, no nested boxes/dashed dividers. ─────── */
+.cl-qc {
+  padding: 11px 12px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
+  background: var(--cl-card); transition: border-color .12s ease, background .12s ease, opacity .12s ease;
 }
-.cl-candidate-card.is-loading { opacity: .72; }
-.cl-candidate-check {
-  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+.cl-qc.is-selected { border-color: var(--cl-border-strong); background: #171b1f; }
+.cl-qc.is-loading { opacity: .6; }
+.cl-qc.is-dragging { opacity: .4; }
+.cl-qc-top { display: flex; align-items: flex-start; gap: 9px; }
+.cl-qc-check { flex: 0 0 auto; display: flex; align-items: center; cursor: pointer; padding-top: 1px; }
+.cl-qc-check input { width: 17px; height: 17px; accent-color: #fff; cursor: pointer; }
+.cl-qc-handle { flex: 0 0 auto; display: flex; align-items: center; color: var(--cl-muted); cursor: grab; opacity: .6; }
+.cl-qc-handle:active { cursor: grabbing; }
+.cl-qc-handle svg { width: 16px; height: 16px; fill: currentColor; }
+.cl-qc-headings { flex: 1; min-width: 0; }
+.cl-qc-title { color: var(--cl-title); font: 700 .9rem var(--font-b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-qc-meta { margin-top: 2px; color: var(--cl-muted); font: 600 .72rem var(--font-b); display: flex; align-items: center; gap: 6px; }
+.cl-qc-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 999px;
+  background: rgba(255,255,255,.06); border: 1px solid var(--cl-border-strong);
+  color: var(--cl-eyebrow); font: 700 .64rem var(--font-b); letter-spacing: .04em;
 }
-.cl-candidate-check input { margin-top: 3px; width: 17px; height: 17px; accent-color: #fff; }
-.cl-candidate-check strong { display: block; color: var(--cl-title); font: 700 .92rem var(--font-b); }
-.cl-candidate-check small {
-  display: block; margin-top: 3px; color: var(--cl-muted); font: 600 .72rem var(--font-b);
+.cl-qc-prompt { margin: 9px 0 0; color: var(--cl-body); font: 400 .9rem/1.5 var(--font-b); }
+.cl-qc-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.cl-qc-edit {
+  padding: 6px 12px; border: 1px solid var(--cl-border-strong); border-radius: 8px;
+  background: transparent; color: var(--cl-body); font: 600 .76rem var(--font-b); cursor: pointer;
 }
-.cl-candidate-card p { margin: 11px 0 0; color: var(--cl-body); font: 400 .9rem/1.5 var(--font-b); }
-.cl-candidate-actions,.cl-candidate-tools {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px;
+.cl-qc-edit:hover { color: var(--cl-title); border-color: rgba(255,255,255,.4); }
+/* Refine trigger (AI questions only). Menu reuses .cl-menu-pop / .cl-menu-item. */
+.cl-refine-menu { position: relative; }
+.cl-qc-refine {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--cl-border-strong); border-radius: 8px;
+  background: transparent; color: var(--cl-body); font: 600 .76rem var(--font-b); cursor: pointer;
 }
-.cl-candidate-actions button,.cl-candidate-tools button {
-  padding: 7px 9px; border: 1px solid var(--cl-border-strong); border-radius: 8px;
-  background: transparent; color: var(--cl-body); font: 600 .72rem var(--font-b); cursor: pointer;
-}
-.cl-candidate-tools { padding-top: 10px; border-top: 1px dashed var(--cl-border); }
+.cl-qc-refine:hover { color: var(--cl-title); border-color: rgba(255,255,255,.4); }
+.cl-qc-refine svg { width: 14px; height: 14px; fill: currentColor; }
+.cl-refine-menu .cl-menu-pop { left: 0; right: auto; }
+.cl-qc .cl-menu-btn { margin: -4px -4px 0 0; }
+/* Sticky review bar — lives INSIDE the single .cl-screen scroll flow (not
+   position:fixed), so it can never be mis-offset by the desktop sidebar or hide
+   behind a nav layer. It rests after the last card and sticks to the bottom of
+   the scroll viewport while scrolling. Bleeds to the screen edges via negative
+   margins that match the .cl-screen 20px horizontal padding. */
 .cl-bottom-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  position: sticky; bottom: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(11,13,15,.94); border-top: 1px solid var(--cl-border);
-  backdrop-filter: blur(12px);
+  margin: 14px -20px 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(11,13,15,0) 0%, var(--cl-bg) 30%);
+  border-top: 1px solid var(--cl-border);
 }
 .cl-bottom-bar strong { color: var(--cl-title); font: 700 .9rem var(--font-b); }
+.cl-review-count { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cl-review-hint { color: var(--cl-muted); font: 500 .72rem var(--font-b); }
+.cl-review-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.cl-review-actions .cl-btn { min-height: 40px; }
+
+/* Compact empty state used inside the review workspace. */
+.cl-empty-compact { padding: 22px 16px; }
+.cl-empty-compact h2 { font-size: 1.02rem; }
+.cl-empty-compact p { margin-bottom: 12px; }
 
 .cl-preview-facts {
   display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 14px;
@@ -690,6 +788,16 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .cl-preview-facts strong { color: var(--cl-title); font: 700 .84rem/1.35 var(--font-b); text-transform: capitalize; }
 
-@media (min-width: 900px) {
-  .cl-bottom-bar { left: 280px; }
+/* Respect reduced-motion for the animated reveal / generating steps. */
+@media (prefers-reduced-motion: reduce) {
+  .cl-reveal, .cl-path-card, .cl-qc, .cl-bar-fill { transition: none !important; }
+  .cl-gen-step, .cl-spinner { animation: none !important; opacity: 1 !important; }
 }
+
+/* Comfortable 44px minimum touch targets on small screens. */
+@media (max-width: 640px) {
+  .cl-qc-edit, .cl-qc-refine, .cl-menu-item, .cl-filter-row button,
+  .cl-btn-compact, .account-mode-opt { min-height: 44px; }
+  .cl-menu-btn { width: 40px; height: 40px; }
+}
+

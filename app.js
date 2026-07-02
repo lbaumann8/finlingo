@@ -275,17 +275,18 @@ function openFinlingoAccount() {
         </section>` : ''}
 
         ${isAuthenticated ? `<section class="account-section" aria-labelledby="accountClassroomLabel">
-          <h2 id="accountClassroomLabel">Finlingo mode</h2>
-          <div class="account-mode-toggle" role="group" aria-label="Finlingo mode">
-            <button type="button" class="account-mode-opt ${_accountMode() === 'personal' ? 'is-active' : ''}" onclick="setFinlingoMode('personal')">
-              <strong>Personal learning</strong>
-              <small>Just for you</small>
+          <h2 id="accountClassroomLabel">Account mode</h2>
+          <div class="account-mode-toggle" role="group" aria-label="Account mode">
+            <button type="button" class="account-mode-opt ${_accountMode() === 'personal' ? 'is-active' : ''}" aria-pressed="${_accountMode() === 'personal'}" onclick="setFinlingoMode('personal')">
+              <strong>Personal</strong>
+              <small>Join classrooms &amp; learn</small>
             </button>
-            <button type="button" class="account-mode-opt ${_accountMode() === 'leader' ? 'is-active' : ''}" onclick="setFinlingoMode('leader')">
-              <strong>Classroom leader</strong>
-              <small>Create groups &amp; activities</small>
+            <button type="button" class="account-mode-opt ${_accountMode() === 'leader' ? 'is-active' : ''}" aria-pressed="${_accountMode() === 'leader'}" onclick="setFinlingoMode('leader')">
+              <strong>Teacher / Group leader</strong>
+              <small>Create classrooms &amp; activities</small>
             </button>
           </div>
+          <p class="account-mode-note">Switching modes never deletes your data. You can change this anytime.</p>
           <div class="account-list account-action-list" style="margin-top:10px;">
             ${_accountMode() === 'leader'
               ? `<button type="button" class="account-row account-row-button" onclick="openClassroomFromAccount()"><span>Open Classroom</span>${_accountChevron()}</button>`

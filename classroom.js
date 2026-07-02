@@ -126,7 +126,7 @@
     // the signed-out gate at an authenticated user.
     if (status === 'loading') {
       mount('<div class="cl-screen">' +
-        header('Classroom', 'Create short activities and see where your group needs support.') +
+        header('Classroom', 'Create short activities and see where your classroom needs support.') +
         loading('Loading your account…') + '</div>');
       _scheduleAuthPoll(view);
       return;
@@ -162,9 +162,9 @@
   function renderSignedOut() {
     mount(
       '<div class="cl-screen">' +
-        header('Classroom', 'Create short activities and see where your group needs support.') +
+        header('Classroom', 'Create short activities and see where your classroom needs support.') +
         '<div class="cl-empty">' +
-          '<p>Sign in to create a group or join one with a code.</p>' +
+          '<p>Sign in to create a classroom or join one with a code.</p>' +
           '<button type="button" class="cl-btn cl-btn-primary" onclick="openFinlingoAccount()">Sign in</button>' +
         '</div>' +
       '</div>'
@@ -247,9 +247,9 @@
   function renderLeaderDashboard() {
     mount(
       '<div class="cl-screen">' +
-        header('Classroom', 'Create short activities and see where your group needs support.') +
-        '<div class="cl-section-title">Your groups</div>' +
-        '<div id="clGroups">' + loading('Loading your groups…') + '</div>' +
+        header('Classroom', 'Create short activities and see where your classroom needs support.') +
+        '<div class="cl-section-title">Your classrooms</div>' +
+        '<div id="clGroups">' + loading('Loading your classrooms…') + '</div>' +
       '</div>'
     );
     D().listGroups().then(function (groups) {
@@ -258,19 +258,19 @@
       if (!box) return;
       if (!groups.length) { box.innerHTML = leaderEmptyState(); return; }
       box.innerHTML = groups.map(groupCard).join('') +
-        '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateGroup()">Create group</button>' +
+        '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateGroup()">Create classroom</button>' +
         demoEntry();
     }).catch(function () {
       var box = document.getElementById('clGroups');
-      if (box) box.innerHTML = errorBox('Could not load your groups. The classroom database may not be set up yet.', 'renderClassroom()') + leaderEmptyState();
+      if (box) box.innerHTML = errorBox('Could not load your classrooms. The classroom database may not be set up yet.', 'renderClassroom()') + leaderEmptyState();
     });
   }
 
   function leaderEmptyState() {
     return '<div class="cl-empty">' +
-      '<h2>Create your first group</h2>' +
+      '<h2>Create your first classroom</h2>' +
           '<p>Assign a short Finlingo activity and see anonymous assignment-level learning gaps.</p>' +
-      '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateGroup()">Create group</button>' +
+      '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateGroup()">Create classroom</button>' +
       '<div class="cl-demo-entry">' +
         '<button type="button" class="cl-btn cl-btn-ghost" onclick="ClassroomUI.openDemo()">Explore demo classroom</button>' +
         '<span class="cl-demo-entry-copy">See how anonymous assignment results work with sample data.</span>' +
@@ -309,8 +309,8 @@
   function groupCard(c) {
     var menu = overflowMenu('card_' + c.id, [
       { label: 'Copy join code', onclick: "ClassroomUI.copyCode('" + esc(c.join_code) + "')" },
-      { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
-      { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
+      { label: 'Edit classroom', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
+      { label: 'Delete classroom', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
     ]);
     return '<div class="cl-card cl-group-card cl-click-card" role="button" tabindex="0" ' +
       'onclick="ClassroomUI.cardOpen(event,\'group\',\'' + c.id + '\')" ' +
@@ -326,7 +326,7 @@
         '<span>·</span><span>' + (c.assignment_count || 0) + ' assignment' + ((c.assignment_count === 1) ? '' : 's') + '</span>' +
       '</div>' +
       latestLine(c) +
-      '<div class="cl-card-link">Open group <span aria-hidden="true">→</span></div>' +
+      '<div class="cl-card-link">Open classroom <span aria-hidden="true">→</span></div>' +
     '</div>';
   }
 
@@ -378,7 +378,9 @@
   function assignmentsList(c) {
     var assignments = c.assignments || [];
     if (!assignments.length) {
-      return '<div class="cl-empty cl-mt"><p>No assignments yet.</p></div>';
+      return '<div class="cl-empty cl-empty-compact cl-mt">' +
+        '<h2>No assignments yet</h2>' +
+        '<p>Create a short activity for this classroom.</p></div>';
     }
     var groups = [
       { label: 'Published assignments', items: assignments.filter(function (a) { return (a.status || 'active') === 'active'; }) },
@@ -467,14 +469,14 @@
 
   // Group detail: group identity, summary, compact join code, then assignment list.
   function openGroup(id) {
-    mount(loading('Opening group…'));
+    mount(loading('Opening classroom…'));
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(id);
       if (!c) { renderLeaderDashboard(); return; }
       var menu = overflowMenu('grp_' + c.id, [
-        { label: 'Edit group', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
-        { label: 'Delete group', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
+        { label: 'Edit classroom', onclick: "ClassroomUI.openEditGroup('" + c.id + "')" },
+        { label: 'Delete classroom', danger: true, onclick: "ClassroomUI.confirmDeleteGroup('" + c.id + "')" }
       ]);
 
       mount(
@@ -507,7 +509,7 @@
     }).catch(function () { renderLeaderDashboard(); });
   }
 
-  // ── Edit group ──────────────────────────────────────────────────────────────
+  // ── Edit classroom ──────────────────────────────────────────────────────────────
   function openEditGroup(id) {
     var c = groupById(id);
     if (c) { editGroupForm(c); return; }
@@ -524,10 +526,10 @@
     }).join('');
     mount(
       '<div class="cl-screen">' +
-        back('Group', 'ClassroomUI.openGroup(\'' + c.id + '\')') +
-        header('Edit group', 'Update the group name and details.') +
+        back('Classroom', 'ClassroomUI.openGroup(\'' + c.id + '\')') +
+        header('Edit classroom', 'Update the classroom name and details.') +
         '<form class="cl-form" onsubmit="return false;">' +
-          field('Group name', '<input class="cl-input" id="clEditName" type="text" maxlength="80" value="' + esc(c.name) + '" required>') +
+          field('Classroom name', '<input class="cl-input" id="clEditName" type="text" maxlength="80" value="' + esc(c.name) + '" required>') +
           field('Description (optional)', '<textarea class="cl-input" id="clEditDesc" maxlength="400" rows="2">' + esc(c.description || '') + '</textarea>') +
           field('Audience type', '<select class="cl-input" id="clEditAudience">' + audiences + '</select>') +
           '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clEditBtn" onclick="ClassroomUI.submitEditGroup(\'' + c.id + '\')">Save changes</button>' +
@@ -538,24 +540,24 @@
   }
   function submitEditGroup(id) {
     var name = (document.getElementById('clEditName') || {}).value || '';
-    if (!name.trim()) { toast('Group name can’t be empty', 'error'); return; }
+    if (!name.trim()) { toast('Classroom name can’t be empty', 'error'); return; }
     var desc = (document.getElementById('clEditDesc') || {}).value || '';
     var audience = (document.getElementById('clEditAudience') || {}).value || 'other';
     var btn = document.getElementById('clEditBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
     D().updateGroup(id, { name: name, description: desc, audience: audience }).then(function () {
-      toast('Group updated', 'info');
+      toast('Classroom updated', 'info');
       return D().listGroups().then(function (groups) { setGroups(groups); openGroup(id); });
     }).catch(function (err) {
       if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
-      toast((err && err.message) || 'Could not update the group.', 'error');
+      toast((err && err.message) || 'Could not update the classroom.', 'error');
     });
   }
 
-  // ── Delete group (leader-only, confirmed, server-enforced) ──────────────────
+  // ── Delete classroom (leader-only, confirmed, server-enforced) ──────────────────
   function confirmDeleteGroup(id) {
     var c = groupById(id);
-    var name = (c && c.name) ? c.name : 'this group';
+    var name = (c && c.name) ? c.name : 'this classroom';
     if (typeof global.showAppModal !== 'function') {
       if (global.confirm && global.confirm('Delete ' + name + '? This cannot be undone.')) performDeleteGroup(id);
       return;
@@ -563,10 +565,10 @@
     global.showAppModal({
       icon: 'danger',
       title: 'Delete ' + name + '?',
-      body: 'This permanently deletes the group, assignments, learner memberships, attempts, responses, and insights. This cannot be undone.',
+      body: 'This permanently deletes the classroom, assignments, learner memberships, attempts, responses, and insights. This cannot be undone.',
       actions: [
         { label: 'Cancel', cls: 'modal-cancel', fn: global.closeAppModal },
-        { label: 'Delete group', cls: 'btn btn-danger', fn: function () { performDeleteGroup(id); } }
+        { label: 'Delete classroom', cls: 'btn btn-danger', fn: function () { performDeleteGroup(id); } }
       ]
     });
   }
@@ -579,17 +581,17 @@
     D().deleteGroup(id).then(function () {
       if (typeof global.closeAppModal === 'function') global.closeAppModal();
       CR.groups = (CR.groups || []).filter(function (g) { return g.id !== id; });
-      toast('Group deleted', 'info');
+      toast('Classroom deleted', 'info');
       if (global.NavDrawer && NavDrawer.refresh) NavDrawer.refresh();
       renderLeaderDashboard();
     }).catch(function (err) {
       Array.prototype.forEach.call(btns, function (b) { b.disabled = false; });
-      if (delBtn) delBtn.textContent = 'Delete group';
+      if (delBtn) delBtn.textContent = 'Delete classroom';
       var bodyEl = document.getElementById('modalBody');
       if (bodyEl) {
         var e = bodyEl.querySelector('.app-modal-inline-error');
         if (!e) { e = document.createElement('p'); e.className = 'app-modal-inline-error'; bodyEl.appendChild(e); }
-        e.textContent = (err && err.message) || 'Could not delete the group. Please try again.';
+        e.textContent = (err && err.message) || 'Could not delete the classroom. Please try again.';
       }
     });
   }
@@ -611,12 +613,12 @@
     mount(
       '<div class="cl-screen">' +
         back('Classroom', 'renderClassroom()') +
-        header('Create group', 'Set up a group and share its join code.') +
+        header('Create classroom', 'Set up a classroom and share its join code.') +
         '<form class="cl-form" id="clCreateForm" onsubmit="return false;">' +
-          field('Group name', '<input class="cl-input" id="clGroupName" type="text" maxlength="80" placeholder="First-Generation Finance Workshop" required>') +
-          field('Description (optional)', '<textarea class="cl-input" id="clGroupDesc" maxlength="400" rows="2" placeholder="What is this group about?"></textarea>') +
+          field('Classroom name', '<input class="cl-input" id="clGroupName" type="text" maxlength="80" placeholder="First-Generation Finance Workshop" required>') +
+          field('Description (optional)', '<textarea class="cl-input" id="clGroupDesc" maxlength="400" rows="2" placeholder="What is this classroom about?"></textarea>') +
           field('Audience type', '<select class="cl-input" id="clGroupAudience">' + audiences + '</select>') +
-          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clCreateBtn" onclick="ClassroomUI.submitCreateGroup()">Create group</button>' +
+          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clCreateBtn" onclick="ClassroomUI.submitCreateGroup()">Create classroom</button>' +
         '</form>' +
       '</div>',
       function () { var el = document.getElementById('clGroupName'); if (el) el.focus(); }
@@ -625,7 +627,7 @@
 
   function submitCreateGroup() {
     var name = (document.getElementById('clGroupName') || {}).value || '';
-    if (!name.trim()) { toast('Give your group a name', 'error'); return; }
+    if (!name.trim()) { toast('Give your classroom a name', 'error'); return; }
     var desc = (document.getElementById('clGroupDesc') || {}).value || '';
     var audience = (document.getElementById('clGroupAudience') || {}).value || 'other';
     var btn = document.getElementById('clCreateBtn');
@@ -633,8 +635,8 @@
     D().createGroup({ name: name, description: desc, audience: audience }).then(function (c) {
       groupCreatedScreen(c);
     }).catch(function (err) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Create group'; }
-      toast(err && err.message ? err.message : 'Could not create the group. Is the classroom database set up?', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Create classroom'; }
+      toast(err && err.message ? err.message : 'Could not create the classroom. Is the classroom database set up?', 'error');
     });
   }
 
@@ -642,7 +644,7 @@
     mount(
       '<div class="cl-screen cl-center">' +
         '<div class="cl-success-badge">' + stateIcon('check') + '</div>' +
-        '<h1 class="cl-success-title">Your group is ready</h1>' +
+        '<h1 class="cl-success-title">Your classroom is ready</h1>' +
         (c.name ? '<p class="cl-success-sub">' + esc(c.name) + '</p>' : '') +
         '<div class="cl-card cl-code-card">' +
           '<div class="cl-code-label">Join code</div>' +
@@ -668,7 +670,7 @@
     var diffs = D().DIFFICULTIES.map(function (d) { return '<option value="' + d.id + '">' + esc(d.label) + '</option>'; }).join('');
     mount(
       '<div class="cl-screen">' +
-        back('Group', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
+        back('Classroom', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
         header('Create assignment', 'Build a reviewed activity before publishing.') +
         '<form class="cl-form cl-form-spaced" onsubmit="return false;">' +
           '<div class="cl-form-group">' +
@@ -677,20 +679,35 @@
             field('Difficulty', '<select class="cl-input" id="clAsgDiff">' + diffs + '</select>') +
             field('Learning objective', '<textarea class="cl-input" id="clAsgObjective" rows="2" maxlength="220" placeholder="What should learners be able to do after this assignment?"></textarea>') +
             field('Number of candidates', '<input class="cl-input" id="clAsgCount" type="number" min="6" max="10" value="8">') +
-            field('Due date (optional)', '<input class="cl-input" id="clAsgDue" type="date">') +
           '</div>' +
           '<div class="cl-form-group">' +
-            '<button type="button" class="cl-toggle-row is-on" id="clAsgTeachRow" aria-pressed="true" onclick="ClassroomUI.toggleTeach()">' +
-              '<span class="cl-toggle-text">Include a teach-it-back question</span>' +
-              '<span class="cl-toggle-switch" aria-hidden="true"></span>' +
-            '</button>' +
-            '<input type="hidden" id="clAsgTeach" value="1">' +
+            '<div class="cl-stack">' +
+              '<button type="button" class="cl-toggle-row is-on" id="clAsgTeachRow" aria-pressed="true" onclick="ClassroomUI.toggleTeach()">' +
+                '<span class="cl-toggle-text">Include a teach-it-back question</span>' +
+                '<span class="cl-toggle-switch" aria-hidden="true"></span>' +
+              '</button>' +
+              '<input type="hidden" id="clAsgTeach" value="1">' +
+              '<div>' +
+                '<button type="button" class="cl-toggle-row" id="clDueRow" aria-pressed="false" aria-controls="clDueWrap" onclick="ClassroomUI.toggleDue()">' +
+                  '<span class="cl-toggle-text">Add a due date</span>' +
+                  '<span class="cl-toggle-switch" aria-hidden="true"></span>' +
+                '</button>' +
+                '<div class="cl-reveal" id="clDueWrap">' +
+                  '<label class="cl-field cl-reveal-inner"><span class="cl-field-label">Due date</span>' +
+                    '<input class="cl-input" id="clAsgDue" type="date"></label>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
           '<div class="cl-form-group">' +
             '<div class="cl-section-title">Creation path</div>' +
-            '<div class="cl-stack">' +
-              '<button type="button" class="cl-btn cl-btn-line" id="clPresetBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'preset\')"><span>Use a curated set</span><small>Reviewed questions ready to customize.</small></button>' +
-              '<button type="button" class="cl-btn cl-btn-primary" id="clGenBtn" onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'claude\')"><span>Generate with Claude</span><small>Create a custom activity for this topic and group.</small></button>' +
+            '<div class="cl-path-cards">' +
+              pathCard(classroomId, 'scratch',
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+                'Start from scratch', 'Write and organize the questions yourself.') +
+              pathCard(classroomId, 'claude',
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>',
+                'Generate with AI', 'Create a reviewed set of candidate questions for this topic.') +
             '</div>' +
           '</div>' +
         '</form>' +
@@ -706,8 +723,22 @@
         if (topicSel) topicSel.addEventListener('change', function () {
           if (!CR.titleEdited && titleInp) titleInp.value = D().suggestAssignmentTitle(topicSel.value);
         });
+        // Keep the session due-date draft in sync as the user types, so toggling
+        // the switch off and back on restores it.
+        var dueInp = document.getElementById('clAsgDue');
+        if (dueInp) dueInp.addEventListener('input', function () { CR.dueDraft = dueInp.value || ''; });
       }
     );
+  }
+
+  // Two equal, selectable creation-path cards (icon · title · one-line · chevron).
+  function pathCard(classroomId, mode, icon, title, desc) {
+    return '<button type="button" class="cl-path-card" ' +
+      'onclick="ClassroomUI.buildAssignment(\'' + classroomId + '\',\'' + mode + '\')">' +
+      '<span class="cl-path-icon">' + icon + '</span>' +
+      '<span class="cl-path-body"><strong>' + esc(title) + '</strong><small>' + esc(desc) + '</small></span>' +
+      '<span class="cl-path-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></span>' +
+    '</button>';
   }
 
   function toggleTeach() {
@@ -720,12 +751,39 @@
     row.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
+  // Due-date switch: off by default. No date is stored while off; the typed
+  // value is preserved in CR.dueDraft during the session so toggling off/on
+  // restores it. Reveal animates via the .cl-reveal wrapper.
+  function toggleDue() {
+    var row = document.getElementById('clDueRow');
+    var wrap = document.getElementById('clDueWrap');
+    var input = document.getElementById('clAsgDue');
+    if (!row || !wrap || !input) return;
+    var on = row.getAttribute('aria-pressed') !== 'true';
+    row.classList.toggle('is-on', on);
+    row.setAttribute('aria-pressed', on ? 'true' : 'false');
+    wrap.classList.toggle('is-open', on);
+    if (on) {
+      if (!input.value && CR.dueDraft) input.value = CR.dueDraft;
+      global.setTimeout(function () { try { input.focus(); } catch (e) {} }, 80);
+    } else {
+      CR.dueDraft = input.value || CR.dueDraft || '';
+      input.value = '';
+    }
+  }
+  // Read the draft due date only when the switch is on (never publish it while off).
+  function currentDueDate() {
+    var row = document.getElementById('clDueRow');
+    if (!row || row.getAttribute('aria-pressed') !== 'true') return '';
+    return (document.getElementById('clAsgDue') || {}).value || '';
+  }
+
   // Generating state: spinner + progressively-animated status lines + honest
   // "few seconds" hint. No fake percentages.
   function generatingScreen() {
     return '<div class="cl-screen cl-center cl-generating">' +
       '<div class="cl-spinner cl-spinner-lg"></div>' +
-      '<h2 class="cl-gen-title">Claude is building candidate questions</h2>' +
+      '<h2 class="cl-gen-title">Generating candidate questions</h2>' +
       '<ul class="cl-gen-steps">' +
         '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Creating concept coverage</li>' +
         '<li class="cl-gen-step"><span class="cl-gen-dot"></span>Checking answer quality</li>' +
@@ -739,23 +797,33 @@
     var title = (document.getElementById('clAsgTitle') || {}).value || '';
     var topic = (document.getElementById('clAsgTopic') || {}).value || D().TOPICS[0];
     var diff = (document.getElementById('clAsgDiff') || {}).value || 'beginner';
-    var due = (document.getElementById('clAsgDue') || {}).value || '';
+    var due = currentDueDate();
     var teach = (document.getElementById('clAsgTeach') || {}).value === '1';
     var candidateCount = Number((document.getElementById('clAsgCount') || {}).value) || 8;
     candidateCount = Math.max(6, Math.min(10, candidateCount));
     var objective = ((document.getElementById('clAsgObjective') || {}).value || '').trim();
     var ctx = { classroomId: classroomId, title: title, due: due, mode: mode, objective: objective };
 
+    // Start from scratch — open the review workspace with an empty question set.
+    if (mode === 'scratch') {
+      var blank = {
+        title: title.trim() || (topic + ' assignment'), topic: topic, difficulty: diff,
+        questions: [], teachItBack: false, objectives: objective ? [objective] : []
+      };
+      candidateSelection(blank, ctx);
+      return;
+    }
+    // Curated set (retained for duplicate/draft flows; not exposed as a path).
     if (mode === 'preset') {
       var unit = D().presetUnitFor(topic, diff);
-      if (!unit) { toast('No curated set for that topic — try Generate with Claude.', 'error'); return; }
+      if (!unit) { toast('No curated set for that topic — try Generate with AI.', 'error'); return; }
       if (!teach) unit.questions = unit.questions.filter(function (q) { return q.type !== 'teachback'; });
       unit.teachItBack = unit.questions.some(function (q) { return q.type === 'teachback'; });
       if (title.trim()) unit.title = title.trim();
       candidateSelection(unit, ctx);
       return;
     }
-    // Claude
+    // Generate with AI
     mount(generatingScreen());
     D().classroomAI('generate_assignment', {
       topic: topic, difficulty: diff, teachItBack: teach, count: candidateCount, objective: objective
@@ -766,9 +834,9 @@
     }).catch(function (err) {
       mount(
         '<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-        errorBox((err && err.message) || 'Claude could not build the assignment.',
+        errorBox((err && err.message) || 'The assignment could not be generated.',
           'ClassroomUI.openCreateAssignment(\'' + classroomId + '\')') +
-        '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Use a curated set instead</button>' +
+        '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Start from scratch instead</button>' +
         '</div>'
       );
     });
@@ -817,44 +885,145 @@
     var visible = qs.map(function (q, i) { return { q: q, i: i }; }).filter(function (item) {
       return CR.questionFilter === 'all' || item.q._cat === CR.questionFilter;
     });
+
+    var MIN_SEL = 3;
+    var teachSel = selected.filter(function (q) { return q.type === 'teachback'; }).length;
+    var canPublish = selected.length >= MIN_SEL && selected.length <= 10 && teachSel <= 1;
+    var reason = selected.length < MIN_SEL
+      ? ('Select at least ' + MIN_SEL + ' questions'
+        ) : (selected.length > 10 ? 'Use 10 questions or fewer'
+        : (teachSel > 1 ? 'Use one teach-it-back question' : ''));
+    var hint = reason || (selected.length + ' selected · 5 recommended');
+
+    var listInner = visible.length
+      ? visible.map(function (item) { return candidateCard(item.q, item.i, ctx); }).join('')
+      : emptyQuestionState(qs.length, ctx);
+
     mount(
       '<div class="cl-screen cl-question-select">' +
-        back('Create assignment', "ClassroomUI.openCreateAssignment('" + ctx.classroomId + "')") +
+        back('Create assignment', 'ClassroomUI.exitReview()') +
         (ctx.gapShort ? '<div class="cl-gap-banner"><div class="cl-gap-banner-kicker">Based on assignment gap</div><div class="cl-gap-banner-concept">' + esc(ctx.gapShort) + '</div></div>' : '') +
         header('Choose questions', 'Select the questions you want to publish.') +
-        '<div class="cl-filter-row">' + filters + '</div>' +
-        '<div class="cl-candidate-list">' + visible.map(function (item) { return candidateCard(item.q, item.i, ctx); }).join('') + '</div>' +
+        '<div class="cl-filter-wrap"><div class="cl-filter-row" role="tablist" aria-label="Filter questions by type">' + filters + '</div></div>' +
+        '<div class="cl-candidate-list">' + listInner + '</div>' +
         '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
-          '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add a question</button>' +
-        '<div class="cl-bottom-bar"><strong>' + selected.length + ' selected</strong>' +
-          '<button type="button" class="cl-btn cl-btn-primary cl-btn-compact" onclick="ClassroomUI.previewSelectedQuestions()">Preview assignment</button></div>' +
-      '</div>'
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add question</button>' +
+        '<div class="cl-bottom-bar">' +
+          '<div class="cl-review-count"><strong>' + selected.length + ' selected</strong>' +
+            '<span class="cl-review-hint">' + esc(hint) + '</span></div>' +
+          '<div class="cl-review-actions">' +
+            '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.previewSelectedQuestions()"' +
+              (canPublish ? '' : ' disabled') + '>Preview</button>' +
+            '<button type="button" class="cl-btn cl-btn-primary cl-btn-compact" onclick="ClassroomUI.publishFromReview()"' +
+              (canPublish ? '' : ' disabled aria-disabled="true" title="' + esc(reason) + '"') + '>Publish assignment</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      function () {
+        var list = document.querySelector('.cl-candidate-list');
+        if (list) bindCandidateDrag(list);
+      }
     );
   }
 
-  function candidateCard(q, i, ctx) {
-    var typeLabel = q.type === 'teachback' ? 'Teach it back' : 'Multiple choice';
-    var checked = q.selected !== false ? ' checked' : '';
-    var claudeTools = ctx.mode === 'claude'
-      ? '<div class="cl-candidate-tools">' +
-          '<button onclick="ClassroomUI.regenerateQuestion(' + i + ')">Regenerate</button>' +
-          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'easier\')">Make easier</button>' +
-          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'harder\')">Make harder</button>' +
-          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'practical\')">Make more practical</button>' +
-          '<button onclick="ClassroomUI.adjustQuestion(' + i + ',\'scenario\')">Change to scenario</button>' +
-        '</div>' : '';
-    return '<div class="cl-candidate-card' + (q.loading ? ' is-loading' : '') + '">' +
-      '<label class="cl-candidate-check"><input type="checkbox"' + checked + ' onchange="ClassroomUI.toggleCandidate(' + i + ')">' +
-        '<span><strong>' + esc(D().humanizeSkill(q.skill || 'Question')) + '</strong><small>' +
-          esc(humanCategory(q._cat)) + ' · ' + esc(typeLabel) + '</small></span></label>' +
-      '<p>' + modelText(q.loading ? 'Updating this question…' : q.prompt) + '</p>' +
-      '<div class="cl-candidate-actions">' +
-        '<button onclick="ClassroomUI.moveCandidate(' + i + ',-1)">Move up</button>' +
-        '<button onclick="ClassroomUI.moveCandidate(' + i + ',1)">Move down</button>' +
-        '<button onclick="ClassroomUI.editQuestion(' + i + ',true)">Edit</button>' +
-        '<button onclick="ClassroomUI.deleteCandidate(' + i + ')">Delete</button>' +
-      '</div>' + claudeTools +
+  // Compact empty state for the review workspace (Start-from-scratch or an
+  // over-filtered list).
+  function emptyQuestionState(total, ctx) {
+    if (total > 0) {
+      return '<div class="cl-empty cl-empty-compact"><p>No questions match this filter.</p></div>';
+    }
+    return '<div class="cl-empty cl-empty-compact">' +
+      '<h2>No questions yet</h2>' +
+      '<p>Add your first question to start building this assignment.</p>' +
+      '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">Add question</button>' +
     '</div>';
+  }
+
+  // Refine menu — only for AI-generated questions. Opens on demand; never shows
+  // all refinement controls at once.
+  function refineMenu(i) {
+    var id = 'qr_' + i;
+    var item = function (label, onclick) {
+      return '<button type="button" role="menuitem" class="cl-menu-item" ' +
+        'onclick="ClassroomUI.closeMenus();' + onclick + '">' + esc(label) + '</button>';
+    };
+    return '<div class="cl-menu cl-refine-menu" data-menu="' + id + '">' +
+      '<button type="button" class="cl-qc-refine" aria-haspopup="true" ' +
+        'onclick="ClassroomUI.toggleMenu(\'' + id + '\', event)">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l1.2 3L9 7 6.2 8 5 11 3.8 8 1 7l2.8-1z"/><path d="M17 9l1.6 4L23 14.5 18.6 16 17 20l-1.6-4L11 14.5 15.4 13z"/></svg>' +
+        'Refine</button>' +
+      '<div class="cl-menu-pop" id="clMenuPop_' + id + '" role="menu">' +
+        item('Regenerate', 'ClassroomUI.regenerateQuestion(' + i + ')') +
+        item('Make easier', 'ClassroomUI.adjustQuestion(' + i + ',\'easier\')') +
+        item('Make harder', 'ClassroomUI.adjustQuestion(' + i + ',\'harder\')') +
+        item('Make more practical', 'ClassroomUI.adjustQuestion(' + i + ',\'practical\')') +
+        item('Change to scenario', 'ClassroomUI.adjustQuestion(' + i + ',\'scenario\')') +
+      '</div>' +
+    '</div>';
+  }
+
+  function candidateCard(q, i, ctx) {
+    var isTeach = q.type === 'teachback';
+    var selected = q.selected !== false;
+    var isClaude = ctx.mode === 'claude';
+    var meta = isTeach
+      ? '<span class="cl-qc-badge">Teach it back</span>'
+      : esc(humanCategory(q._cat)) + ' · Multiple choice';
+    var menu = overflowMenu('qc_' + i, [
+      { label: 'Move up', onclick: 'ClassroomUI.moveCandidate(' + i + ',-1)' },
+      { label: 'Move down', onclick: 'ClassroomUI.moveCandidate(' + i + ',1)' },
+      { label: 'Duplicate', onclick: 'ClassroomUI.duplicateCandidate(' + i + ')' },
+      { label: 'Delete', danger: true, onclick: 'ClassroomUI.deleteCandidate(' + i + ')' }
+    ]);
+    return '<div class="cl-qc' + (selected ? ' is-selected' : '') + (q.loading ? ' is-loading' : '') + '" data-qi="' + i + '" draggable="true">' +
+      '<div class="cl-qc-top">' +
+        '<label class="cl-qc-check"><input type="checkbox"' + (selected ? ' checked' : '') +
+          ' onchange="ClassroomUI.toggleCandidate(' + i + ')" aria-label="Include this question"></label>' +
+        '<span class="cl-qc-handle" aria-hidden="true" title="Drag to reorder">' +
+          '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg>' +
+        '</span>' +
+        '<div class="cl-qc-headings">' +
+          '<div class="cl-qc-title">' + esc(D().humanizeSkill(q.skill || 'Question')) + '</div>' +
+          '<div class="cl-qc-meta">' + meta + '</div>' +
+        '</div>' +
+        menu +
+      '</div>' +
+      '<p class="cl-qc-prompt">' + modelText(q.loading ? 'Updating this question…' : q.prompt) + '</p>' +
+      '<div class="cl-qc-actions">' +
+        '<button type="button" class="cl-qc-edit" onclick="ClassroomUI.editQuestion(' + i + ',true)">Edit</button>' +
+        (isClaude ? refineMenu(i) : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  // Native drag-to-reorder for the candidate list (desktop). Move up / Move down
+  // in the ••• menu remain the universal (touch-safe) path.
+  function bindCandidateDrag(list) {
+    var dragI = null;
+    list.addEventListener('dragstart', function (e) {
+      var card = e.target.closest && e.target.closest('.cl-qc');
+      if (!card) return;
+      dragI = parseInt(card.getAttribute('data-qi'), 10);
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragI)); } catch (_) {} }
+      card.classList.add('is-dragging');
+    });
+    list.addEventListener('dragend', function (e) {
+      var card = e.target.closest && e.target.closest('.cl-qc');
+      if (card) card.classList.remove('is-dragging');
+    });
+    list.addEventListener('dragover', function (e) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; });
+    list.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var card = e.target.closest && e.target.closest('.cl-qc');
+      if (!card || dragI == null) return;
+      var toI = parseInt(card.getAttribute('data-qi'), 10);
+      var qs = CR.pendingUnit && CR.pendingUnit.questions;
+      if (!qs || isNaN(toI) || toI === dragI) { dragI = null; return; }
+      var moved = qs.splice(dragI, 1)[0];
+      qs.splice(toI, 0, moved);
+      dragI = null;
+      candidateSelection(CR.pendingUnit, CR.pendingCtx);
+    });
   }
 
   function humanCategory(cat) {
@@ -878,8 +1047,36 @@
     candidateSelection(CR.pendingUnit, CR.pendingCtx);
   }
   function deleteCandidate(i) {
-    if (!CR.pendingUnit) return;
-    CR.pendingUnit.questions.splice(i, 1);
+    if (!CR.pendingUnit || !CR.pendingUnit.questions[i]) return;
+    var doDelete = function () {
+      CR.pendingUnit.questions.splice(i, 1);
+      if (typeof global.closeAppModal === 'function') global.closeAppModal();
+      toast('Question deleted', 'info');
+      candidateSelection(CR.pendingUnit, CR.pendingCtx);
+    };
+    if (typeof global.showAppModal === 'function') {
+      global.showAppModal({
+        icon: 'danger',
+        title: 'Delete this question?',
+        body: 'This removes the question from the assignment draft.',
+        actions: [
+          { label: 'Cancel', cls: 'modal-cancel', fn: global.closeAppModal },
+          { label: 'Delete', cls: 'btn btn-danger', fn: doDelete }
+        ]
+      });
+    } else if (!global.confirm || global.confirm('Delete this question?')) {
+      doDelete();
+    }
+  }
+  function duplicateCandidate(i) {
+    var qs = CR.pendingUnit && CR.pendingUnit.questions;
+    if (!qs || !qs[i]) return;
+    var copy = Object.assign({}, qs[i]);
+    if (copy.choices) copy.choices = copy.choices.slice();
+    delete copy.id;
+    copy.selected = true;
+    qs.splice(i + 1, 0, copy);
+    toast('Question duplicated', 'info');
     candidateSelection(CR.pendingUnit, CR.pendingCtx);
   }
   function moveCandidate(i, dir) {
@@ -929,15 +1126,17 @@
       candidateSelection(unit, ctx);
     });
   }
-  function previewSelectedQuestions() {
-    var unit = CR.pendingUnit, ctx = CR.pendingCtx;
-    if (!unit || !ctx) return;
+  // Validate the current selection and return a publish-ready unit (selection/
+  // loading/category flags stripped), or null after showing the reason.
+  function buildCleanSelectedUnit() {
+    var unit = CR.pendingUnit;
+    if (!unit) return null;
     var selected = (unit.questions || []).filter(function (q) { return q.selected !== false; });
     var teachCount = selected.filter(function (q) { return q.type === 'teachback'; }).length;
-    if (selected.length < 3) { toast('Select at least 3 questions', 'error'); return; }
-    if (selected.length > 10) { toast('Use 10 questions or fewer', 'error'); return; }
-    if (teachCount > 1) { toast('Use one teach-it-back question by default', 'error'); return; }
-    var cleanUnit = Object.assign({}, unit, {
+    if (selected.length < 3) { toast('Select at least 3 questions', 'error'); return null; }
+    if (selected.length > 10) { toast('Use 10 questions or fewer', 'error'); return null; }
+    if (teachCount > 1) { toast('Use one teach-it-back question by default', 'error'); return null; }
+    return Object.assign({}, unit, {
       questions: selected.map(function (q, i) {
         var copy = Object.assign({}, q);
         delete copy.selected; delete copy.loading; delete copy._cat;
@@ -946,8 +1145,43 @@
       }),
       teachItBack: teachCount > 0
     });
-    CR.candidateUnit = unit;
-    assignmentPreview(cleanUnit, ctx);
+  }
+  function previewSelectedQuestions() {
+    var cleanUnit = buildCleanSelectedUnit();
+    if (!cleanUnit) return;
+    CR.candidateUnit = CR.pendingUnit;
+    assignmentPreview(cleanUnit, CR.pendingCtx);
+  }
+  // Publish directly from the sticky review bar (Preview stays available too).
+  function publishFromReview() {
+    var cleanUnit = buildCleanSelectedUnit();
+    if (!cleanUnit) return;
+    CR.candidateUnit = CR.pendingUnit;
+    CR.pendingUnit = cleanUnit;
+    confirmAssignment();
+  }
+
+  // Leaving the review workspace discards the unpublished draft — warn first
+  // when there is work to lose.
+  function exitReview() {
+    var unit = CR.pendingUnit;
+    var ctx = CR.pendingCtx || {};
+    var hasWork = unit && (unit.questions || []).length > 0;
+    var go = function () { CR.inQuestionSelection = false; openCreateAssignment(ctx.classroomId); };
+    if (!hasWork) { go(); return; }
+    if (typeof global.showAppModal === 'function') {
+      global.showAppModal({
+        icon: 'neutral',
+        title: 'Discard this draft?',
+        body: 'These questions have not been published yet. Leaving will discard them.',
+        actions: [
+          { label: 'Keep editing', cls: 'modal-cancel', fn: global.closeAppModal },
+          { label: 'Discard', cls: 'btn btn-danger', fn: function () { global.closeAppModal(); go(); } }
+        ]
+      });
+    } else if (!global.confirm || global.confirm('Discard this draft? Unpublished questions will be lost.')) {
+      go();
+    }
   }
 
   function backToQuestionSelection() {
@@ -995,7 +1229,7 @@
   }
 
   // Unified preview for both a new assignment and a grounded targeted follow-up.
-  // Follow-ups (ctx.isFollowup) get a "Based on group gap" banner, the AI's
+  // Follow-ups (ctx.isFollowup) get a "Based on classroom gap" banner, the AI's
   // explanation / real-world scenario / chart check, an estimated time, an
   // editable title, and an Add-question editor — the leader can edit everything
   // before publishing.
@@ -1024,7 +1258,7 @@
 
     var banner = (isFollow && ctx.gapShort)
       ? '<div class="cl-gap-banner">' +
-          '<div class="cl-gap-banner-kicker">Based on group gap</div>' +
+          '<div class="cl-gap-banner-kicker">Based on classroom gap</div>' +
           '<div class="cl-gap-banner-concept">' + esc(ctx.gapShort) + '</div>' +
           (ctx.objective ? '<div class="cl-gap-banner-obj"><span>Suggested objective</span>' + esc(ctx.objective) + '</div>' : '') +
         '</div>'
@@ -1094,7 +1328,7 @@
             'Add question</button>' +
         '</div>' +
         '<div class="cl-preview-actions">' +
-          '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (ctx.readonly ? 'Back to group' : (isFollow ? 'Back' : 'Back to question selection')) + '</button>' +
+          '<button type="button" class="cl-btn cl-btn-line" onclick="' + backHandler + '">' + (ctx.readonly ? 'Back to classroom' : (isFollow ? 'Back' : 'Back to question selection')) + '</button>' +
           (ctx.readonly ? '' : '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.confirmAssignment()">' + (isFollow ? 'Publish follow-up' : 'Publish assignment') + '</button>') +
         '</div>' +
       '</div>'
@@ -1289,7 +1523,7 @@
           '</div>' +
           '<div class="cl-stack cl-mt">' +
             (code ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy join code</button>' : '') +
-            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + classroomId + '\')">View group</button>' +
+            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + classroomId + '\')">View classroom</button>' +
           '</div>' +
         '</div>'
       );
@@ -1312,12 +1546,12 @@
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(classroomId);
-      groupName = c ? c.name : 'Group';
+      groupName = c ? c.name : 'Classroom';
       var assignment = assignmentId && c
         ? (c.assignments || []).filter(function (a) { return a.id === assignmentId; })[0]
         : (c && c.latest_assignment);
       if (!c || !assignment) {
-        mount('<div class="cl-screen">' + back('Group', "ClassroomUI.openGroup('" + classroomId + "')") +
+        mount('<div class="cl-screen">' + back('Classroom', "ClassroomUI.openGroup('" + classroomId + "')") +
           header('Assignment results', groupName) +
           '<div class="cl-empty"><p>No assignment selected. Create an assignment to start collecting responses.</p>' +
           '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openCreateAssignment(\'' + classroomId + '\')">Create assignment</button></div></div>');
@@ -1328,7 +1562,7 @@
         renderInsights(groupName, assignment, agg, classroomId, false, joinCode);
       });
     }).catch(function (err) {
-      mount('<div class="cl-screen">' + back('Group', "ClassroomUI.openGroup('" + classroomId + "')") +
+      mount('<div class="cl-screen">' + back('Classroom', "ClassroomUI.openGroup('" + classroomId + "')") +
         errorBox((err && err.message) || 'Could not load assignment results.', 'ClassroomUI.openInsights(\'' + classroomId + '\',\'' + (assignmentId || '') + '\')') + '</div>');
     });
   }
@@ -1362,8 +1596,8 @@
 
     var backBar = isDemo
       ? back('Exit demo', 'ClassroomUI.exitDemo()')
-      : back('Group', "ClassroomUI.openGroup('" + classroomId + "')");
-    var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable group pattern.';
+      : back('Classroom', "ClassroomUI.openGroup('" + classroomId + "')");
+    var thresholdMsg = 'More responses are needed before Finlingo can identify a reliable pattern across learners.';
 
     // Empty state: no learners AND no responses yet.
     var hasData = learners > 0 || totalGraded > 0 || completedCount > 0;
@@ -1406,14 +1640,14 @@
       '</div>' +
       // B + D. Filled once Claude responds.
       '<div id="clAttention" class="cl-mt">' +
-        (meets ? loading('Claude is reading the group pattern…')
+        (meets ? loading('Claude is reading learner responses…')
           : '<div class="cl-threshold">' + esc(thresholdMsg) + '</div>') +
       '</div>' +
       // C. Concept understanding (no AI required)
       conceptUnderstandingHtml(groups) +
       // D. Intervention brief + grounded actions
       '<div id="clBrief" class="cl-mt"></div>' +
-      '<div class="cl-privacy-note">Based on anonymous group responses.</div>' +
+      '<div class="cl-privacy-note">Based on anonymous learner responses.</div>' +
     '</div>';
     mount(html);
 
@@ -1484,7 +1718,7 @@
       return lead + ' a gap in ' + lcFirst(concept) + '.';
     }
     return ins.needsAttention || ins.primaryGap ||
-      (concept ? ('The group needs support with ' + lcFirst(concept) + '.') : 'A shared learning gap is emerging.');
+      (concept ? ('Learners need support with ' + lcFirst(concept) + '.') : 'A shared learning gap is emerging.');
   }
 
   // "Evidence used" line for the brief, derived from the anonymized aggregate.
@@ -1562,7 +1796,7 @@
       '<div class="cl-brief-block cl-brief-move"><div class="cl-brief-label">Recommended move</div>' +
         '<div class="cl-brief-text">' + richText(brief.recommendedMove) + '</div></div>' +
       '<details class="cl-disclosure cl-disclosure-tight"><summary>See Claude’s reasoning</summary><div class="cl-disclosure-body">' +
-        block('What the group knows', brief.knows) + block('Primary misconception', brief.misconception) + block('Why it matters', brief.whyItMatters) +
+        block('What learners know', brief.knows) + block('Primary misconception', brief.misconception) + block('Why it matters', brief.whyItMatters) +
         (brief.detailed ? brief.detailed.split('\n\n').map(function (p) { return '<p>' + modelText(p) + '</p>'; }).join('') : '') + '</div></details>' +
       '<details class="cl-disclosure cl-disclosure-tight"><summary>View evidence</summary><div class="cl-disclosure-body"><p>' + esc(brief.evidenceUsed) + '</p></div></details>' +
     '</section>';
@@ -1598,7 +1832,7 @@
       '<div class="cl-action-head">' + esc(title) +
         '<button type="button" class="cl-action-copy" onclick="ClassroomUI.copyActionText()">Copy</button></div>' +
       body +
-      '<div class="cl-action-note">Grounded in the detected gap · anonymous group responses.</div>' +
+      '<div class="cl-action-note">Grounded in the detected gap · anonymous learner responses.</div>' +
     '</div>';
     if (out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1621,7 +1855,7 @@
       'Real-world example:', brief.realWorldExample, '',
       'Discussion question:', brief.discussionQuestion, '',
       'Follow-up check question:', brief.followUpCheck, '',
-      'Based on anonymous group responses.'
+      'Based on anonymous learner responses.'
     ].join('\n');
   }
 
@@ -1736,7 +1970,7 @@
   // Group-detail "Build targeted follow-up": load the AI insight, then build —
   // so the follow-up is grounded even when the leader hasn't opened insights.
   function buildTargetedFollowup(classroomId, assignmentId) {
-    mount(loading('Reading the group pattern…'));
+    mount(loading('Reading learner responses…'));
     D().listGroups().then(function (groups) {
       setGroups(groups);
       var c = groupById(classroomId);
@@ -1764,7 +1998,7 @@
   }
 
   function demoAssignNotice() {
-    toast('In a real group this would publish the follow-up. (Demo data is read-only.)', 'info');
+    toast('In a real classroom this would publish the follow-up. (Demo data is read-only.)', 'info');
   }
 
 
@@ -1787,16 +2021,21 @@
   // ════════════════════════════════════════════════════════════════════════
   // LEARNER: home + join
   // ════════════════════════════════════════════════════════════════════════
+  // Personal (learner) Classroom page: inline join-code entry, then the
+  // classrooms already joined with their assigned activities. No creation or
+  // authoring tools are shown in this mode.
   function renderLearnerHome() {
-    mount('<div class="cl-screen">' + header('Classroom', 'Your groups and assignments.') +
-      '<div id="clLearnerGroups">' + loading('Loading your classrooms…') + '</div></div>');
+    mount('<div class="cl-screen">' +
+      header('Classroom', 'Join a classroom and complete assigned activities.') +
+      joinInlineCard() +
+      '<div class="cl-section-title cl-mt">Classrooms you’ve joined</div>' +
+      '<div id="clLearnerGroups">' + loading('Loading your classrooms…') + '</div></div>',
+      bindJoinCodeInput);
     D().myMemberships().then(function (rows) {
       var box = document.getElementById('clLearnerGroups');
       if (!box) return;
       if (!rows.length) {
-        box.innerHTML = '<div class="cl-empty"><h2>Join a classroom</h2>' +
-          '<p>Enter the code your program leader gave you.</p>' +
-          '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openJoin()">Join a classroom</button></div>';
+        box.innerHTML = '<div class="cl-empty cl-empty-compact"><p>You haven’t joined a classroom yet. Enter a join code above to get started.</p></div>';
         return;
       }
       box.innerHTML = rows.map(function (m) {
@@ -1804,13 +2043,28 @@
         return '<div class="cl-card cl-click-card" role="button" tabindex="0" onclick="ClassroomUI.cardOpen(event,\'learnerAssignments\',\'' + c.id + '\')" onkeydown="ClassroomUI.cardKey(event,\'learnerAssignments\',\'' + c.id + '\')">' +
           '<div class="cl-card-head"><strong>' + esc(c.name || 'Classroom') + '</strong></div>' +
           (c.description ? '<p class="cl-muted">' + esc(c.description) + '</p>' : '') +
-          '<div class="cl-card-link">Assignments <span aria-hidden="true">→</span></div></div>';
-      }).join('') +
-      '<button type="button" class="cl-btn cl-btn-ghost cl-mt" onclick="ClassroomUI.openJoin()">Join another classroom</button>';
+          '<div class="cl-card-link">View assignments <span aria-hidden="true">→</span></div></div>';
+      }).join('');
     }).catch(function () {
       var box = document.getElementById('clLearnerGroups');
-      if (box) box.innerHTML = '<div class="cl-empty"><button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openJoin()">Join a classroom</button></div>';
+      if (box) box.innerHTML = errorBox('Could not load your classrooms.', 'renderClassroom()');
     });
+  }
+
+  function joinInlineCard() {
+    return '<div class="cl-card cl-join-card">' +
+      '<div class="cl-join-fields">' +
+        '<label class="cl-field"><span class="cl-field-label">Join code</span>' +
+          '<input class="cl-input cl-input-code" id="clJoinCode" type="text" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="MONEY24"></label>' +
+        '<label class="cl-field"><span class="cl-field-label">First name or nickname</span>' +
+          '<input class="cl-input" id="clJoinName" type="text" maxlength="40" placeholder="Alex"></label>' +
+      '</div>' +
+      '<button type="button" class="cl-btn cl-btn-primary" id="clJoinBtn" onclick="ClassroomUI.submitJoin()">Join classroom</button>' +
+    '</div>';
+  }
+  function bindJoinCodeInput() {
+    var el = document.getElementById('clJoinCode');
+    if (el) el.addEventListener('input', function () { el.value = el.value.toUpperCase(); });
   }
 
   function openJoin() {
@@ -1821,7 +2075,7 @@
         '<form class="cl-form" onsubmit="return false;">' +
           field('Join code', '<input class="cl-input cl-input-code" id="clJoinCode" type="text" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="MONEY24">') +
           field('First name or nickname', '<input class="cl-input" id="clJoinName" type="text" maxlength="40" placeholder="Alex">') +
-          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clJoinBtn" onclick="ClassroomUI.submitJoin()">Join</button>' +
+          '<button type="button" class="cl-btn cl-btn-primary cl-mt" id="clJoinBtn" onclick="ClassroomUI.submitJoin()">Join classroom</button>' +
         '</form>' +
       '</div>',
       function () {
@@ -1841,7 +2095,7 @@
       if (global.NavDrawer && NavDrawer.refresh) NavDrawer.refresh();
       joinedScreen(res.classroom);
     }).catch(function (err) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Join'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Join classroom'; }
       toast((err && err.message) || 'Could not join. Check your code.', 'error');
     });
   }
@@ -1874,21 +2128,27 @@
 
   function openLearnerAssignments(classroomId) {
     mount(loading('Loading assignments…'));
-    D().listAssignments(classroomId).then(function (assignments) {
-      assignments = (assignments || []).filter(function (a) { return (a.status || 'active') === 'active'; });
+    Promise.all([
+      D().listAssignments(classroomId),
+      D().myCompletedAssignmentIds(classroomId)
+    ]).then(function (out) {
+      var assignments = (out[0] || []).filter(function (a) { return (a.status || 'active') === 'active'; });
+      var done = out[1] || {};
       if (!assignments.length) {
         mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-          '<div class="cl-empty"><p>No published assignments in this group yet.</p></div></div>');
+          '<div class="cl-empty cl-empty-compact"><p>No published assignments in this classroom yet.</p></div></div>');
         return;
       }
       mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
         header('Assignments', 'Choose an activity to complete.') +
         assignments.map(function (a) {
           var qCount = ((a.content || {}).questions || []).length;
+          var isDone = !!done[a.id];
           return '<div class="cl-card cl-assignment-card cl-click-card" role="button" tabindex="0" onclick="ClassroomUI.cardOpen(event,\'learnerStart\',\'' + classroomId + '\',\'' + a.id + '\')" onkeydown="ClassroomUI.cardKey(event,\'learnerStart\',\'' + classroomId + '\',\'' + a.id + '\')">' +
-            '<div class="cl-card-head"><strong>' + esc(a.title || 'Assignment') + '</strong></div>' +
+            '<div class="cl-card-head"><div class="cl-card-head-main"><strong>' + esc(a.title || 'Assignment') + '</strong></div>' +
+              (isDone ? '<span class="cl-status-pill cl-status-done">Completed</span>' : '<span class="cl-status-pill">Not started</span>') + '</div>' +
             '<div class="cl-card-meta"><span>' + qCount + ' questions</span>' + (statusText(a) ? '<span>·</span><span>' + esc(statusText(a)) + '</span>' : '') + '</div>' +
-            '<div class="cl-card-link">Start <span aria-hidden="true">→</span></div></div>';
+            '<div class="cl-card-link">' + (isDone ? 'Review' : 'Start') + ' <span aria-hidden="true">→</span></div></div>';
         }).join('') + '</div>');
     }).catch(function (err) {
       mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
@@ -1906,13 +2166,13 @@
       assignment = a;
       if (!assignment) {
         mount('<div class="cl-screen">' + back('Classroom', 'renderClassroom()') +
-          '<div class="cl-empty"><p>No published assignment in this group yet.</p></div></div>');
+          '<div class="cl-empty"><p>No published assignment in this classroom yet.</p></div></div>');
         return null;
       }
       return D().getMemberId(classroomId);
     }).then(function (memberId) {
       if (!assignment) return;
-      if (!memberId) { toast('You are not a member of this group.', 'error'); renderClassroom(); return; }
+      if (!memberId) { toast('You are not a member of this classroom.', 'error'); renderClassroom(); return; }
       return D().startAttempt(assignment, memberId, classroomId).then(function (attempt) {
         CR.player = {
           classroomId: classroomId, assignment: assignment, attempt: attempt,
@@ -2084,7 +2344,7 @@
             '<h1 class="cl-success-title">Assignment complete</h1>' +
             '<p class="cl-success-sub">You scored ' + p.score + ' of ' + p.graded + '</p>' +
             '<div class="cl-bar cl-mt"><div class="cl-bar-fill cl-bar-white" style="width:' + (p.graded ? Math.round(p.score / p.graded * 100) : 0) + '%"></div></div>' +
-            '<p class="cl-muted cl-mt">Your responses are private. Your leader sees only anonymous group results.</p>' +
+            '<p class="cl-muted cl-mt">Your responses are private. Your leader sees only anonymous learner results.</p>' +
             learnerSummaryHtml(summary) +
             '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="renderClassroom()">Done</button>' +
           '</div>'
@@ -2201,15 +2461,19 @@
     closeMenus: closeMenus,
     openCreateAssignment: openCreateAssignment,
     toggleTeach: toggleTeach,
+    toggleDue: toggleDue,
     buildAssignment: buildAssignment,
     candidateSelection: candidateSelection,
     setQuestionFilter: setQuestionFilter,
     toggleCandidate: toggleCandidate,
     deleteCandidate: deleteCandidate,
+    duplicateCandidate: duplicateCandidate,
     moveCandidate: moveCandidate,
     adjustQuestion: adjustQuestion,
     regenerateQuestion: regenerateQuestion,
     previewSelectedQuestions: previewSelectedQuestions,
+    publishFromReview: publishFromReview,
+    exitReview: exitReview,
     backToQuestionSelection: backToQuestionSelection,
     openQuestionEditor: openQuestionEditor,
     switchQuestionType: switchQuestionType,

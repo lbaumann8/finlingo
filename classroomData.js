@@ -394,6 +394,24 @@
     return global.sbPost('classroom_responses', row);
   }
 
+  // Map of assignment_id -> true for the current learner's completed attempts in
+  // a classroom (drives learner-side completion status). Empty on any failure.
+  function myCompletedAssignmentIds(classroomId) {
+    var uid = currentUserId();
+    if (!uid) return Promise.resolve({});
+    return getMemberId(classroomId).then(function (memberId) {
+      if (!memberId) return {};
+      return global.sbGet('classroom_attempts',
+        '?classroom_id=eq.' + classroomId + '&member_id=eq.' + memberId +
+        '&completed_at=not.is.null&select=assignment_id')
+        .then(function (rows) {
+          var m = {};
+          (rows || []).forEach(function (r) { if (r && r.assignment_id) m[r.assignment_id] = true; });
+          return m;
+        });
+    }).catch(function () { return {}; });
+  }
+
   function completeAttempt(attemptId, score, total) {
     return global.sbPatch('classroom_attempts', '?id=eq.' + attemptId, {
       completed_at: new Date().toISOString(),
@@ -707,6 +725,7 @@
     getActiveAssignment: getActiveAssignment,
     getAssignment: getAssignment,
     getMemberId: getMemberId,
+    myCompletedAssignmentIds: myCompletedAssignmentIds,
     startAttempt: startAttempt,
     submitResponse: submitResponse,
     completeAttempt: completeAttempt,
