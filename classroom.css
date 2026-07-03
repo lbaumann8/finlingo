@@ -300,11 +300,14 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-q-prompt { color: var(--cl-title); font: 500 0.94rem/1.4 var(--font-b); }
 .cl-preview-q .cl-q-prompt { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 
-/* ── Add-question card (lower emphasis than the real question cards) ──────── */
+/* ── Add-question control (lower emphasis than the real question cards) ─────
+   Same width as a question card, but visibly a control, not a card: a muted
+   dashed border over a darker/more transparent fill, separated from the last
+   card by ~14px. Stays quieter than Preview / Publish in the bottom bar. */
 .cl-add-q {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 14px 13px; cursor: pointer;
-  background: var(--cl-card-2); border: 1px solid var(--cl-border);
+  width: 100%; margin-top: 14px; padding: 14px 13px; cursor: pointer;
+  background: rgba(0, 0, 0, 0.18); border: 1px dashed var(--cl-border);
   border-radius: var(--cl-radius-sm); color: var(--cl-muted);
   font: 600 0.88rem var(--font-b);
   transition: border-color .12s ease, color .12s ease, background .12s ease;

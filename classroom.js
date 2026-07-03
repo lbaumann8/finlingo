@@ -677,7 +677,10 @@
     var firstTopic = D().TOPICS[0];
     var suggested = D().suggestAssignmentTitle(firstTopic);
     var topics = D().TOPICS.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
-    var diffs = D().DIFFICULTIES.map(function (d) { return '<option value="' + d.id + '">' + esc(d.label) + '</option>'; }).join('');
+    var savedDiff = CR.draftDiff || 'beginner';
+    var diffs = D().DIFFICULTIES.map(function (d) {
+      return '<option value="' + d.id + '"' + (d.id === savedDiff ? ' selected' : '') + '>' + esc(d.label) + '</option>';
+    }).join('');
     mount(
       '<div class="cl-screen">' +
         back('Classroom', 'ClassroomUI.openGroup(\'' + classroomId + '\')') +
@@ -807,6 +810,7 @@
     var title = (document.getElementById('clAsgTitle') || {}).value || '';
     var topic = (document.getElementById('clAsgTopic') || {}).value || D().TOPICS[0];
     var diff = (document.getElementById('clAsgDiff') || {}).value || 'beginner';
+    CR.draftDiff = diff;
     var due = currentDueDate();
     var teach = (document.getElementById('clAsgTeach') || {}).value === '1';
     var candidateCount = Number((document.getElementById('clAsgCount') || {}).value) || 8;
@@ -878,7 +882,12 @@
     CR.pendingUnit = ensureCandidateState(unit);
     CR.pendingCtx = ctx;
     CR.candidateUnit = CR.pendingUnit;
-    CR.questionFilter = CR.questionFilter || 'all';
+    // Default to All ONLY the first time this screen is opened. Once a filter has
+    // been chosen it must survive every re-render (edit / refine / select /
+    // duplicate / delete / reorder / add). 'teachback' is the single internal
+    // value for Teach it back — filter button, question _cat, filtering logic,
+    // and this saved state all use it; only the label ever reads "Teach it back".
+    if (CR.questionFilter == null) CR.questionFilter = 'all';
     var qs = CR.pendingUnit.questions || [];
     var selected = qs.filter(function (q) { return q.selected !== false; });
     var filters = [
@@ -911,7 +920,7 @@
     // the currently displayed (filtered) results, distinct from the total
     // selection reported in the bottom bar.
     var filterCountLine = CR.questionFilter !== 'all'
-      ? '<div class="cl-filter-count">' + visible.length + ' ' +
+      ? '<div class="cl-filter-count">Showing ' + visible.length + ' ' +
           esc(humanCategory(CR.questionFilter)) + ' ' + plural(visible.length, 'question') + '</div>'
       : '';
 
@@ -951,6 +960,15 @@
         var list = document.querySelector('.cl-candidate-list');
         if (list) bindCandidateDrag(list);
         if (isRerender && rootEl) rootEl.scrollTop = prevScroll;
+        // The filter row scrolls horizontally and "Teach it back" is the last
+        // pill. mount() rebuilds it with scrollLeft 0, so the active pill can
+        // land off-screen and read as a reset to "All". Keep it in view — the
+        // filter STATE is already preserved above; this only fixes visibility.
+        var activePill = rootEl && rootEl.querySelector('.cl-filter-row button.is-active');
+        var filterRow = rootEl && rootEl.querySelector('.cl-filter-row');
+        if (activePill && filterRow && CR.questionFilter !== 'all') {
+          filterRow.scrollLeft = Math.max(0, activePill.offsetLeft - 16);
+        }
       }
     );
   }
@@ -1501,7 +1519,10 @@
         if (words.length > limit) unit[key] = words.slice(0, limit).join(' ').replace(/[,:;]$/, '') + '.';
       });
     } else {
-      unit.difficulty = kind === 'easier' ? 'beginner' : 'intermediate';
+      var ladder = ['beginner', 'intermediate', 'advanced'];
+      var at = Math.max(0, ladder.indexOf(unit.difficulty || 'beginner'));
+      var next = kind === 'easier' ? Math.max(0, at - 1) : Math.min(ladder.length - 1, at + 1);
+      unit.difficulty = ladder[next];
     }
     toast('Draft updated', 'info');
     assignmentPreview(unit, CR.pendingCtx);

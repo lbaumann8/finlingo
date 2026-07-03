@@ -33,7 +33,8 @@
 
   var DIFFICULTIES = [
     { id: 'beginner', label: 'Beginner' },
-    { id: 'intermediate', label: 'Intermediate' }
+    { id: 'intermediate', label: 'Intermediate' },
+    { id: 'advanced', label: 'Advanced' }
   ];
 
   // Unambiguous join-code alphabet (no 0/O/1/I/L). 6 characters.
