@@ -106,6 +106,10 @@
 .cl-btn-line:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); }
 .cl-btn-ghost { background: transparent; color: var(--cl-muted); }
 .cl-btn-ghost:hover:not(:disabled) { color: var(--cl-title); }
+/* Secondary "+ Create assignment": dark surface + muted border so it stays
+   visible but sits below the assignment cards, never a dominant white fill. */
+.cl-btn-create { background: var(--cl-card-2); border-color: var(--cl-border); color: var(--cl-title); font-weight: 600; }
+.cl-btn-create:hover:not(:disabled) { background: var(--cl-card); border-color: var(--cl-border-strong); }
 .cl-btn-compact { width: auto; flex: 0 0 auto; padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; }
 
 .cl-stack { display: flex; flex-direction: column; gap: 10px; }
@@ -675,9 +679,20 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   margin-top: 12px; color: var(--cl-eyebrow); font: 700 .84rem var(--font-b);
 }
 .cl-card-link span { color: var(--cl-muted); }
+.cl-assignment-card { padding: 13px 14px; }
 .cl-assignment-card .cl-card-head-main { align-items: flex-start; }
-.cl-assignment-finding { padding-top: 10px; margin-top: 10px; }
-.cl-assignment-card .cl-finding-kicker { color: var(--cl-muted); }
+/* Title is the strongest element on the card. */
+.cl-assignment-card .cl-card-head strong { font: 650 1.06rem/1.25 var(--font-b); letter-spacing: -0.01em; }
+.cl-assignment-card .cl-card-meta { margin-top: 5px; font-size: 0.8rem; }
+/* Muted single-line response state. */
+.cl-asg-state { margin-top: 9px; color: var(--cl-muted); font: 500 0.86rem/1.4 var(--font-b); }
+/* Thin progress bar — only rendered when the group has ≥1 learner. */
+.cl-asg-progress {
+  margin-top: 9px; height: 4px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.cl-asg-progress span { display: block; height: 100%; border-radius: inherit; background: var(--cl-green); transition: width .2s ease; }
+.cl-assignment-card .cl-card-link { margin-top: 11px; }
 .cl-assignment-section { margin-top: 12px; }
 .cl-assignment-section-title {
   margin: 12px 0 8px; color: var(--cl-muted);

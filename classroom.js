@@ -340,29 +340,39 @@
     '</div>';
   }
 
-  // One plain-language "latest finding" line, derived from the no-AI intel only.
-  function findingSentence(intel) {
-    if (!intel) return '';
-    if (intel.state === 'ontrack') return 'No major gaps detected yet.';
-    if (intel.state === 'waiting') return 'Waiting for the first responses.';
-    var concept = intel.concept || 'this concept';
-    var lead = /^(recognizing|explaining|identifying|applying|defining)\b/i.test(concept)
-      ? 'Learners need support ' : 'Learners need support with ';
-    return lead + lcFirst(concept) + '.';
+  function difficultyLabel(id) {
+    var list = D().DIFFICULTIES || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].id === id) return list[i].label; }
+    return id ? (String(id).charAt(0).toUpperCase() + String(id).slice(1)) : 'Beginner';
   }
 
-  function assignmentProgress(a, learners) {
-    return (Number(a.completed_count) || 0) + ' of ' + (Number(learners) || 0) + ' completed';
+  // Compact "Beginner · 8 questions · Teach-it-back" metadata row.
+  function assignmentMetaLine(a) {
+    var content = a.content || {};
+    var qs = content.questions || [];
+    var count = qs.length;
+    var hasTeach = content.teachItBack || qs.some(function (q) { return q.type === 'teachback'; });
+    var parts = [difficultyLabel(a.difficulty || content.difficulty)];
+    if (count) parts.push(count + ' ' + plural(count, 'question'));
+    if (hasTeach) parts.push('Teach-it-back');
+    return parts.join(' · ');
   }
 
-  function assignmentFinding(a) {
-    if (!a || !(Number(a.completed_count) || 0)) return 'Waiting for responses';
-    return findingSentence(a.intel) || 'No major gaps detected yet.';
+  // One state line reflecting the group's response progress:
+  //   no learners        → "Share the join code to add learners"
+  //   learners, no submit → "No responses yet"
+  //   responses           → "3 of 8 learners completed"
+  function assignmentStateLine(a, learners) {
+    learners = Number(learners) || 0;
+    var completed = Number(a.completed_count) || 0;
+    if (!learners) return 'Share the join code to add learners';
+    if (!completed) return 'No responses yet';
+    return completed + ' of ' + learners + ' ' + plural(learners, 'learner') + ' completed';
   }
 
   function assignmentCard(a, c) {
     var completed = Number(a.completed_count) || 0;
-    var avg = Math.round((Number(a.avg_accuracy) || 0) * 100);
+    var learners = Number(c.learner_count) || 0;
     var hasResults = completed > 0;
     var isDraft = (a.status || 'active') === 'draft';
     var target = isDraft ? 'draft' : (hasResults ? 'results' : 'assignment');
@@ -370,6 +380,12 @@
       { label: 'View assignment', onclick: "ClassroomUI.openAssignmentPreview('" + c.id + "','" + a.id + "')" },
       { label: 'Duplicate', onclick: "ClassroomUI.duplicateAssignment('" + c.id + "','" + a.id + "')" }
     ]);
+    // Thin progress bar only once the group has at least one learner.
+    var pct = learners ? Math.round(Math.min(1, completed / learners) * 100) : 0;
+    var progressBar = learners
+      ? '<div class="cl-asg-progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + learners +
+          '" aria-valuenow="' + completed + '"><span style="width:' + pct + '%"></span></div>'
+      : '';
     return '<div class="cl-card cl-assignment-card cl-click-card" role="button" tabindex="0" ' +
       'onclick="ClassroomUI.cardOpen(event,\'' + target + '\',\'' + c.id + '\',\'' + a.id + '\')" ' +
       'onkeydown="ClassroomUI.cardKey(event,\'' + target + '\',\'' + c.id + '\',\'' + a.id + '\')">' +
@@ -377,11 +393,10 @@
         '<div class="cl-card-head-main"><strong>' + esc(a.title || 'Untitled assignment') + '</strong></div>' +
         menu +
       '</div>' +
-      '<div class="cl-card-meta"><span>' + assignmentProgress(a, c.learner_count) + '</span>' +
-        (hasResults ? '<span>·</span><span>Average score: ' + avg + '%</span>' : '') + '</div>' +
-      '<div class="cl-finding cl-assignment-finding"><div class="cl-finding-kicker">' + (hasResults ? 'Latest finding' : 'Status') + '</div>' +
-        '<p class="cl-finding-text">' + esc(assignmentFinding(a)) + '</p></div>' +
-      '<div class="cl-card-link">' + (isDraft ? 'Continue draft' : (hasResults ? 'View results' : 'View assignment')) + ' <span aria-hidden="true">→</span></div>' +
+      '<div class="cl-card-meta">' + esc(assignmentMetaLine(a)) + '</div>' +
+      '<div class="cl-asg-state">' + esc(assignmentStateLine(a, learners)) + '</div>' +
+      progressBar +
+      '<div class="cl-card-link">' + (isDraft ? 'Continue draft' : 'View assignment') + ' <span aria-hidden="true">→</span></div>' +
     '</div>';
   }
 
@@ -392,17 +407,24 @@
         '<h2>No assignments yet</h2>' +
         '<p>Create a short activity for this classroom.</p></div>';
     }
-    var groups = [
-      { label: 'Published assignments', items: assignments.filter(function (a) { return (a.status || 'active') === 'active'; }) },
+    var active = assignments.filter(function (a) { return (a.status || 'active') === 'active'; });
+    var out = '';
+    // Published (active) assignments render directly under the "Assignments"
+    // heading — no redundant "Published assignments" subheading.
+    if (active.length) {
+      out += '<div class="cl-assignment-section">' +
+        active.map(function (a) { return assignmentCard(a, c); }).join('') + '</div>';
+    }
+    [
       { label: 'Drafts', items: assignments.filter(function (a) { return a.status === 'draft'; }) },
       { label: 'Closed', items: assignments.filter(function (a) { return a.status === 'closed'; }) }
-    ];
-    return groups.filter(function (g) { return g.items.length; }).map(function (g) {
-      return '<div class="cl-assignment-section">' +
+    ].forEach(function (g) {
+      if (!g.items.length) return;
+      out += '<div class="cl-assignment-section">' +
         '<div class="cl-assignment-section-title">' + esc(g.label) + '</div>' +
-        g.items.map(function (a) { return assignmentCard(a, c); }).join('') +
-      '</div>';
-    }).join('');
+        g.items.map(function (a) { return assignmentCard(a, c); }).join('') + '</div>';
+    });
+    return out;
   }
 
   function shouldIgnoreCardEvent(ev) {
@@ -513,7 +535,7 @@
           '</div>' +
           '<div class="cl-section-title cl-mt">Assignments</div>' +
           assignmentsList(c) +
-          '<button type="button" class="cl-btn cl-btn-primary cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">+ Create assignment</button>' +
+          '<button type="button" class="cl-btn cl-btn-create cl-mt" onclick="ClassroomUI.openCreateAssignment(\'' + c.id + '\')">+ Create assignment</button>' +
         '</div>'
       );
     }).catch(function () { renderLeaderDashboard(); });
@@ -673,10 +695,17 @@
   // LEADER: create assignment
   // ════════════════════════════════════════════════════════════════════════
   function openCreateAssignment(classroomId) {
-    CR.titleEdited = false;
-    var firstTopic = D().TOPICS[0];
-    var suggested = D().suggestAssignmentTitle(firstTopic);
-    var topics = D().TOPICS.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
+    // Restore an unfinished draft's topic/title if the leader steps back into the
+    // form; otherwise start blank so no topic or title is pre-filled.
+    var savedTopic = CR.draftTopic || '';
+    var savedTitle = CR.draftTitle || '';
+    CR.titleEdited = savedTitle.trim() !== '';
+    // Disabled "Choose a topic" placeholder (empty value) selected until the
+    // leader picks a real topic.
+    var placeholder = '<option value="" disabled' + (savedTopic ? '' : ' selected') + '>Choose a topic</option>';
+    var topics = placeholder + D().TOPICS.map(function (t) {
+      return '<option value="' + esc(t) + '"' + (t === savedTopic ? ' selected' : '') + '>' + esc(t) + '</option>';
+    }).join('');
     var savedDiff = CR.draftDiff || 'beginner';
     var diffs = D().DIFFICULTIES.map(function (d) {
       return '<option value="' + d.id + '"' + (d.id === savedDiff ? ' selected' : '') + '>' + esc(d.label) + '</option>';
@@ -688,7 +717,7 @@
         '<form class="cl-form cl-form-spaced" onsubmit="return false;">' +
           '<div class="cl-form-group">' +
             field('Topic', '<select class="cl-input" id="clAsgTopic">' + topics + '</select>') +
-            field('Assignment title', '<input class="cl-input" id="clAsgTitle" type="text" maxlength="120" value="' + esc(suggested) + '" placeholder="' + esc(suggested) + '">') +
+            field('Assignment title', '<input class="cl-input" id="clAsgTitle" type="text" maxlength="120" value="' + esc(savedTitle) + '" placeholder="Suggested once you pick a topic">') +
             field('Difficulty', '<select class="cl-input" id="clAsgDiff">' + diffs + '</select>') +
             field('Learning objective', '<textarea class="cl-input" id="clAsgObjective" rows="2" maxlength="220" placeholder="What should learners be able to do after this assignment?"></textarea>') +
             field('Number of candidates', '<input class="cl-input" id="clAsgCount" type="number" min="6" max="10" value="8">') +
@@ -729,12 +758,20 @@
         var topicSel = document.getElementById('clAsgTopic');
         var titleInp = document.getElementById('clAsgTitle');
         // Mark the title as user-owned once they type into it (non-empty), so an
-        // auto-suggestion never clobbers a manually edited title.
+        // auto-suggestion never clobbers a manually edited title. Persist the
+        // typed value so stepping away and back restores the draft.
         if (titleInp) titleInp.addEventListener('input', function () {
           CR.titleEdited = titleInp.value.trim() !== '';
+          CR.draftTitle = titleInp.value;
         });
+        // A real topic must be chosen before the title is generated; only then
+        // fill the suggested "Understanding <Topic>" title (kept fully editable).
         if (topicSel) topicSel.addEventListener('change', function () {
-          if (!CR.titleEdited && titleInp) titleInp.value = D().suggestAssignmentTitle(topicSel.value);
+          CR.draftTopic = topicSel.value;
+          if (!CR.titleEdited && titleInp) {
+            titleInp.value = D().suggestAssignmentTitle(topicSel.value);
+            CR.draftTitle = titleInp.value;
+          }
         });
         // Keep the session due-date draft in sync as the user types, so toggling
         // the switch off and back on restores it.
@@ -808,7 +845,14 @@
 
   function buildAssignment(classroomId, mode) {
     var title = (document.getElementById('clAsgTitle') || {}).value || '';
-    var topic = (document.getElementById('clAsgTopic') || {}).value || D().TOPICS[0];
+    var topicSel = document.getElementById('clAsgTopic');
+    var topic = (topicSel || {}).value || '';
+    // A real topic is required before either creation path can proceed.
+    if (!topic) {
+      toast('Choose a topic to continue.', 'error');
+      if (topicSel) try { topicSel.focus(); } catch (e) {}
+      return;
+    }
     var diff = (document.getElementById('clAsgDiff') || {}).value || 'beginner';
     CR.draftDiff = diff;
     var due = currentDueDate();
@@ -1659,6 +1703,8 @@
       var title = unit.title;
       var assignmentId = (saved && saved.id) || ctx.draftAssignmentId || '';
       CR.pendingUnit = null; CR.pendingCtx = null;
+      // Clear the create-form draft so the next new assignment starts blank.
+      CR.draftTopic = ''; CR.draftTitle = ''; CR.titleEdited = false;
       publishedScreen(ctx.classroomId, title, qCount, assignmentId);
     }).catch(function (err) {
       toast((err && err.message) || 'Could not publish. Please try again.', 'error');
