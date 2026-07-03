@@ -210,11 +210,21 @@
     if (!pop) return;
     var wasOpen = pop.classList.contains('is-open');
     closeMenus();
-    if (!wasOpen) { pop.classList.add('is-open'); _bindMenuDismiss(); }
+    if (!wasOpen) {
+      // Reset direction, reveal, then flip upward if the menu would overflow the
+      // bottom of the viewport — keeps it from being clipped or hidden behind the
+      // sticky action bar.
+      pop.classList.remove('is-up');
+      pop.classList.add('is-open');
+      var rect = pop.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if (rect.bottom > vh - 12 && rect.top - rect.height > 12) pop.classList.add('is-up');
+      _bindMenuDismiss();
+    }
   }
   function closeMenus() {
     Array.prototype.forEach.call(document.querySelectorAll('.cl-menu-pop.is-open'),
-      function (p) { p.classList.remove('is-open'); });
+      function (p) { p.classList.remove('is-open'); p.classList.remove('is-up'); });
   }
   function _bindMenuDismiss() {
     if (_menuDismissBound) return;
@@ -893,11 +903,28 @@
       ? ('Select at least ' + MIN_SEL + ' questions'
         ) : (selected.length > 10 ? 'Use 10 questions or fewer'
         : (teachSel > 1 ? 'Use one teach-it-back question' : ''));
-    var hint = reason || (selected.length + ' selected · 5 recommended');
+    // Bottom bar reports the TOTAL selection; the recommended range is fixed
+    // guidance (replaces the old "N selected · 5 recommended" duplication).
+    var hint = reason || 'Recommended: 5–7';
+
+    // Count of questions matching the active filter, shown near the filter row —
+    // the currently displayed (filtered) results, distinct from the total
+    // selection reported in the bottom bar.
+    var filterCountLine = CR.questionFilter !== 'all'
+      ? '<div class="cl-filter-count">' + visible.length + ' ' +
+          esc(humanCategory(CR.questionFilter)) + ' ' + plural(visible.length, 'question') + '</div>'
+      : '';
 
     var listInner = visible.length
       ? visible.map(function (item) { return candidateCard(item.q, item.i, ctx); }).join('')
       : emptyQuestionState(qs.length, ctx);
+
+    // Preserve scroll position across re-renders (toggle / edit / reorder / add /
+    // delete). mount() resets scrollTop to 0, so re-apply the previous position
+    // when we are re-rendering the same screen rather than arriving fresh.
+    var rootEl = ROOT();
+    var isRerender = !!(rootEl && rootEl.querySelector('.cl-question-select'));
+    var prevScroll = rootEl ? rootEl.scrollTop : 0;
 
     mount(
       '<div class="cl-screen cl-question-select">' +
@@ -905,11 +932,12 @@
         (ctx.gapShort ? '<div class="cl-gap-banner"><div class="cl-gap-banner-kicker">Based on assignment gap</div><div class="cl-gap-banner-concept">' + esc(ctx.gapShort) + '</div></div>' : '') +
         header('Choose questions', 'Select the questions you want to publish.') +
         '<div class="cl-filter-wrap"><div class="cl-filter-row" role="tablist" aria-label="Filter questions by type">' + filters + '</div></div>' +
+        filterCountLine +
         '<div class="cl-candidate-list">' + listInner + '</div>' +
         '<button type="button" class="cl-add-q" onclick="ClassroomUI.openQuestionEditor(\'' + ctx.classroomId + '\')">' +
           '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add question</button>' +
         '<div class="cl-bottom-bar">' +
-          '<div class="cl-review-count"><strong>' + selected.length + ' selected</strong>' +
+          '<div class="cl-review-count"><strong>' + selected.length + ' ' + plural(selected.length, 'question') + ' selected</strong>' +
             '<span class="cl-review-hint">' + esc(hint) + '</span></div>' +
           '<div class="cl-review-actions">' +
             '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.previewSelectedQuestions()"' +
@@ -922,6 +950,7 @@
       function () {
         var list = document.querySelector('.cl-candidate-list');
         if (list) bindCandidateDrag(list);
+        if (isRerender && rootEl) rootEl.scrollTop = prevScroll;
       }
     );
   }
@@ -941,8 +970,10 @@
 
   // Refine menu — only for AI-generated questions. Opens on demand; never shows
   // all refinement controls at once.
-  function refineMenu(i) {
+  function refineMenu(i, q) {
     var id = 'qr_' + i;
+    var isTeach = q && q.type === 'teachback';
+    var isScenario = q && q._cat === 'scenario';
     var item = function (label, onclick) {
       return '<button type="button" role="menuitem" class="cl-menu-item" ' +
         'onclick="ClassroomUI.closeMenus();' + onclick + '">' + esc(label) + '</button>';
@@ -957,18 +988,26 @@
         item('Make easier', 'ClassroomUI.adjustQuestion(' + i + ',\'easier\')') +
         item('Make harder', 'ClassroomUI.adjustQuestion(' + i + ',\'harder\')') +
         item('Make more practical', 'ClassroomUI.adjustQuestion(' + i + ',\'practical\')') +
-        item('Change to scenario', 'ClassroomUI.adjustQuestion(' + i + ',\'scenario\')') +
+        (isScenario ? '' : item('Convert to scenario', 'ClassroomUI.adjustQuestion(' + i + ',\'scenario\')')) +
+        (isTeach ? '' : item('Convert to teach it back', 'ClassroomUI.adjustQuestion(' + i + ',\'teachback\')')) +
       '</div>' +
     '</div>';
   }
 
-  function candidateCard(q, i, ctx) {
+  // Compact metadata pills: category + response type, standardized across every
+  // question card. Teach-it-back uses the exact same wording as the filter.
+  function metaPills(q) {
     var isTeach = q.type === 'teachback';
+    var category = isTeach ? 'Teach it back' : humanCategory(q._cat);
+    var responseType = isTeach ? 'Written response' : 'Multiple choice';
+    return '<span class="cl-qc-pill">' + esc(category) + '</span>' +
+      '<span class="cl-qc-pill">' + esc(responseType) + '</span>';
+  }
+
+  function candidateCard(q, i, ctx) {
     var selected = q.selected !== false;
     var isClaude = ctx.mode === 'claude';
-    var meta = isTeach
-      ? '<span class="cl-qc-badge">Teach it back</span>'
-      : esc(humanCategory(q._cat)) + ' · Multiple choice';
+    var meta = metaPills(q);
     var menu = overflowMenu('qc_' + i, [
       { label: 'Move up', onclick: 'ClassroomUI.moveCandidate(' + i + ',-1)' },
       { label: 'Move down', onclick: 'ClassroomUI.moveCandidate(' + i + ',1)' },
@@ -991,7 +1030,7 @@
       '<p class="cl-qc-prompt">' + modelText(q.loading ? 'Updating this question…' : q.prompt) + '</p>' +
       '<div class="cl-qc-actions">' +
         '<button type="button" class="cl-qc-edit" onclick="ClassroomUI.editQuestion(' + i + ',true)">Edit</button>' +
-        (isClaude ? refineMenu(i) : '') +
+        (isClaude ? refineMenu(i, q) : '') +
       '</div>' +
     '</div>';
   }
@@ -1093,6 +1132,12 @@
     if (kind === 'scenario') {
       q._cat = 'scenario';
       if (!/^Scenario:/i.test(q.prompt)) q.prompt = 'Scenario: ' + q.prompt;
+    } else if (kind === 'teachback') {
+      // Convert a multiple-choice question into an open written response.
+      q.type = 'teachback';
+      q._cat = 'teachback';
+      delete q.choices; delete q.answerIndex;
+      q.objective = q.objective || D().humanizeSkill(q.skill || '') || q.prompt;
     } else if (kind === 'practical') {
       q._cat = 'application';
       q.prompt = q.prompt.replace(/\?$/, '') + ' in a real financial decision?';
@@ -1344,15 +1389,106 @@
     });
   }
 
+  // Finlingo-styled edit modal (replaces the native prompt). Because it is an
+  // overlay layered over the current screen, the underlying filter and scroll
+  // position are preserved automatically; Save re-renders in place and Cancel
+  // simply closes.
+  function editQuestionBody(q) {
+    var isMcq = q.type !== 'teachback';
+    var titleVal = esc(D().humanizeSkill(q.skill || ''));
+    var promptVal = esc(cleanText(q.prompt || ''));
+    var typeSel =
+      '<option value="mcq"' + (isMcq ? ' selected' : '') + '>Multiple choice</option>' +
+      '<option value="teachback"' + (!isMcq ? ' selected' : '') + '>Written response</option>';
+    var rows = '';
+    for (var i = 0; i < 4; i++) {
+      var cv = esc((q.choices || [])[i] || '');
+      var isCorrect = (q.answerIndex || 0) === i;
+      rows += '<div class="cl-opt-row">' +
+        '<input type="radio" name="clEditCorrect" value="' + i + '" id="clEditC' + i + '"' + (isCorrect ? ' checked' : '') +
+          ' aria-label="Mark option ' + 'ABCD'[i] + ' correct">' +
+        '<input class="cl-input" id="clEditOpt' + i + '" type="text" maxlength="160" placeholder="Option ' + 'ABCD'[i] + '" value="' + cv + '">' +
+      '</div>';
+    }
+    var choicesBlock = '<div id="clEditChoices" class="cl-edit-choices"' + (isMcq ? '' : ' hidden') + '>' +
+      field('Answer choices', '<div>' + rows + '</div>') +
+      '<p class="cl-opt-hint">Select the radio beside the correct answer. Empty options are dropped.</p>' +
+    '</div>';
+    return '<form class="cl-form" onsubmit="return false;">' +
+      field('Title', '<input class="cl-input" id="clEditTitle" type="text" maxlength="80" value="' + titleVal + '" placeholder="Concept or category">') +
+      field('Question text', '<textarea class="cl-input" id="clEditPrompt" rows="3" maxlength="400" placeholder="The question learners see">' + promptVal + '</textarea>') +
+      field('Response type', '<select class="cl-input" id="clEditType" onchange="ClassroomUI.toggleEditType()">' + typeSel + '</select>') +
+      choicesBlock +
+    '</form>';
+  }
+
   function editQuestion(index, fromSelection) {
     var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[index];
-    if (!q || !global.prompt) return;
-    var next = global.prompt('Question text', q.prompt);
-    if (next && next.trim()) {
-      q.prompt = cleanText(next).slice(0, 400);
-      if (fromSelection || CR.inQuestionSelection) candidateSelection(CR.pendingUnit, CR.pendingCtx);
-      else assignmentPreview(CR.pendingUnit, CR.pendingCtx);
+    if (!q) return;
+    // Fallback for environments with no modal host (keeps editing usable).
+    if (typeof global.showAppModal !== 'function') {
+      if (!global.prompt) return;
+      var next = global.prompt('Question text', q.prompt);
+      if (next && next.trim()) {
+        q.prompt = cleanText(next).slice(0, 400);
+        if (fromSelection || CR.inQuestionSelection) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+        else assignmentPreview(CR.pendingUnit, CR.pendingCtx);
+      }
+      return;
     }
+    CR.editIndex = index;
+    CR.editFromSelection = !!(fromSelection || CR.inQuestionSelection);
+    global.showAppModal({
+      icon: 'neutral',
+      iconSvg: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+      title: 'Edit question',
+      bodyIsHTML: true,
+      body: editQuestionBody(q),
+      boxClass: 'cl-edit-modal',
+      actions: [
+        { label: 'Cancel', cls: 'modal-cancel', fn: global.closeAppModal },
+        { label: 'Save changes', cls: 'btn btn-primary', fn: function () { saveEditQuestion(); } }
+      ]
+    });
+  }
+
+  function toggleEditType() {
+    var sel = document.getElementById('clEditType');
+    var block = document.getElementById('clEditChoices');
+    if (!sel || !block) return;
+    block.hidden = sel.value === 'teachback';
+  }
+
+  function saveEditQuestion() {
+    var q = CR.pendingUnit && CR.pendingUnit.questions && CR.pendingUnit.questions[CR.editIndex];
+    if (!q) { if (global.closeAppModal) global.closeAppModal(); return; }
+    var title = (((document.getElementById('clEditTitle') || {}).value) || '').trim();
+    var prompt = (((document.getElementById('clEditPrompt') || {}).value) || '').trim();
+    var type = (((document.getElementById('clEditType') || {}).value) === 'teachback') ? 'teachback' : 'mcq';
+    if (!prompt) { toast('Add the question text', 'error'); return; }
+    if (type === 'mcq') {
+      var raw = [];
+      for (var i = 0; i < 4; i++) raw.push((((document.getElementById('clEditOpt' + i) || {}).value) || '').trim());
+      if (raw.filter(function (c) { return c; }).length < 2) { toast('Add at least two answer options', 'error'); return; }
+      var correctEl = document.querySelector('input[name="clEditCorrect"]:checked');
+      var correctIdx = correctEl ? parseInt(correctEl.value, 10) : 0;
+      if (!raw[correctIdx]) { toast('The correct option can’t be empty', 'error'); return; }
+      var choices = [], answerIndex = 0;
+      raw.forEach(function (c, ix) { if (!c) return; if (ix === correctIdx) answerIndex = choices.length; choices.push(c); });
+      q.type = 'mcq'; q.choices = choices; q.answerIndex = answerIndex;
+    } else {
+      q.type = 'teachback'; q._cat = 'teachback';
+      delete q.choices; delete q.answerIndex;
+      q.objective = q.objective || title || prompt;
+    }
+    q.skill = title || q.skill;
+    q.prompt = cleanText(prompt).slice(0, 400);
+    if (type === 'mcq' && q._cat === 'teachback') q._cat = candidateMeta(q);
+    if (CR.pendingUnit) CR.pendingUnit.teachItBack = (CR.pendingUnit.questions || []).some(function (qq) { return qq.type === 'teachback'; });
+    if (global.closeAppModal) global.closeAppModal();
+    toast('Question updated', 'info');
+    if (CR.editFromSelection || CR.inQuestionSelection) candidateSelection(CR.pendingUnit, CR.pendingCtx);
+    else assignmentPreview(CR.pendingUnit, CR.pendingCtx);
   }
 
   function transformDraft(kind) {
@@ -1497,10 +1633,12 @@
     var savePromise = ctx.draftAssignmentId
       ? D().updateAssignment(ctx.draftAssignmentId, unit, ctx.due || null, 'active')
       : D().createAssignment(ctx.classroomId, unit, ctx.due || null, 'active');
-    savePromise.then(function () {
+    var qCount = (unit.questions || []).length;
+    savePromise.then(function (saved) {
       var title = unit.title;
+      var assignmentId = (saved && saved.id) || ctx.draftAssignmentId || '';
       CR.pendingUnit = null; CR.pendingCtx = null;
-      publishedScreen(ctx.classroomId, title);
+      publishedScreen(ctx.classroomId, title, qCount, assignmentId);
     }).catch(function (err) {
       toast((err && err.message) || 'Could not publish. Please try again.', 'error');
       assignmentPreview(unit, ctx);
@@ -1509,8 +1647,12 @@
 
   // Inline published-success state (not toast-dependent): banner near the top
   // with Copy join code + View group.
-  function publishedScreen(classroomId, title) {
+  function publishedScreen(classroomId, title, count, assignmentId) {
+    var viewHandler = assignmentId
+      ? "ClassroomUI.openAssignmentPreview('" + classroomId + "','" + assignmentId + "')"
+      : "ClassroomUI.openGroup('" + classroomId + "')";
     var render = function (code) {
+      var countLabel = count ? (count + ' ' + plural(count, 'question')) : '';
       mount(
         '<div class="cl-screen">' +
           back('Classroom', 'renderClassroom()') +
@@ -1518,12 +1660,20 @@
             '<div class="cl-banner-icon">' + stateIcon('check') + '</div>' +
             '<div class="cl-banner-text">' +
               '<strong>Assignment published</strong>' +
-              '<span>Learners can now complete ' + esc(title) + '.</span>' +
+              '<span>' + esc(title) + (countLabel ? ' · ' + countLabel : '') + '</span>' +
             '</div>' +
           '</div>' +
+          (code ?
+            '<div class="cl-card cl-code-card cl-code-card-sm cl-mt">' +
+              '<div class="cl-code-inline">' +
+                '<div><div class="cl-code-label">Join code</div>' +
+                  '<div class="cl-code-mid">' + esc(code) + '</div></div>' +
+                '<button type="button" class="cl-btn cl-btn-line cl-btn-compact" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy</button>' +
+              '</div>' +
+            '</div>' : '') +
           '<div class="cl-stack cl-mt">' +
-            (code ? '<button type="button" class="cl-btn cl-btn-line" onclick="ClassroomUI.copyCode(\'' + esc(code) + '\')">Copy join code</button>' : '') +
-            '<button type="button" class="cl-btn cl-btn-primary" onclick="ClassroomUI.openGroup(\'' + classroomId + '\')">View classroom</button>' +
+            '<button type="button" class="cl-btn cl-btn-primary" onclick="' + viewHandler + '">View assignment</button>' +
+            '<button type="button" class="cl-btn cl-btn-line" onclick="renderClassroom()">Return to classroom</button>' +
           '</div>' +
         '</div>'
       );
@@ -2482,6 +2632,7 @@
     confirmAssignment: confirmAssignment,
     editPreviewTitle: editPreviewTitle,
     editQuestion: editQuestion,
+    toggleEditType: toggleEditType,
     switchFollowupTab: switchFollowupTab,
     transformDraft: transformDraft,
     toggleDraftTeachback: toggleDraftTeachback,

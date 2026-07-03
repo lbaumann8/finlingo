@@ -73,6 +73,9 @@
   border-radius: var(--cl-radius-sm); box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
 .cl-menu-pop.is-open { display: block; }
+/* Flip upward when there is not enough room below (set by toggleMenu), so the
+   menu is never clipped by the viewport edge or the sticky action bar. */
+.cl-menu-pop.is-up { top: auto; bottom: calc(100% + 4px); }
 .cl-menu-item {
   display: block; width: 100%; text-align: left; padding: 9px 10px; border: 0;
   border-radius: 9px; background: transparent; color: var(--cl-body);
@@ -728,10 +731,17 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-qc-headings { flex: 1; min-width: 0; }
 .cl-qc-title { color: var(--cl-title); font: 700 .9rem var(--font-b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cl-qc-meta { margin-top: 2px; color: var(--cl-muted); font: 600 .72rem var(--font-b); display: flex; align-items: center; gap: 6px; }
-.cl-qc-badge {
+.cl-qc-badge, .cl-qc-pill {
   display: inline-block; padding: 2px 7px; border-radius: 999px;
   background: rgba(255,255,255,.06); border: 1px solid var(--cl-border-strong);
   color: var(--cl-eyebrow); font: 700 .64rem var(--font-b); letter-spacing: .04em;
+  white-space: nowrap;
+}
+/* Count of questions matching the active filter, sitting just under the filter
+   row (the currently displayed / filtered results). */
+.cl-filter-count {
+  margin: -4px 0 10px; color: var(--cl-muted);
+  font: 600 .74rem var(--font-b);
 }
 .cl-qc-prompt { margin: 9px 0 0; color: var(--cl-body); font: 400 .9rem/1.5 var(--font-b); }
 .cl-qc-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -793,6 +803,14 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   .cl-reveal, .cl-path-card, .cl-qc, .cl-bar-fill { transition: none !important; }
   .cl-gen-step, .cl-spinner { animation: none !important; opacity: 1 !important; }
 }
+
+/* Finlingo edit-question modal — a left-aligned form body inside the shared
+   app modal, with a scroll cap so long MCQ forms stay within the viewport. */
+.cl-edit-modal .modal-body { text-align: left; padding-top: 4px; max-height: 62vh; overflow-y: auto; }
+.cl-edit-modal .modal-title { text-align: center; }
+.cl-edit-modal .cl-form { margin: 0; }
+.cl-edit-modal .cl-field:last-child { margin-bottom: 0; }
+.cl-edit-choices[hidden] { display: none; }
 
 /* Comfortable 44px minimum touch targets on small screens. */
 @media (max-width: 640px) {
