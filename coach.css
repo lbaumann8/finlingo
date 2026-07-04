@@ -8039,3 +8039,47 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .market-personal-card .market-card-kicker {
   color: var(--fl-accent) !important;
 }
+
+
+/* ============================================================
+   PHASE 6.1 — COACH MOBILE HIERARCHY (layout only)
+   The empty-state hero (.coach-hero) is a flex ROW, so the greeting,
+   Today's Context card, and suggested-prompt block sat side-by-side and
+   compressed on narrow screens. Stack them into a single, top-flowing
+   column: greeting → subtitle → context → prompts (composer stays fixed).
+   No colors, tokens, markup, chat logic, or content changed.
+   ============================================================ */
+.coach-page-shell.has-composer .coach-hero.coach-mentor-hero {
+  flex-direction: column;
+  align-items: stretch;          /* children span the full column width */
+  justify-content: flex-start;   /* hero first — flow from the top      */
+  gap: 20px;
+  min-height: 0;
+  overflow-y: auto;              /* scroll only if content exceeds height */
+  padding: clamp(44px, 8vh, 96px) 0 20px;
+}
+
+/* Hero first — greeting occupies full width, never squeezed by cards */
+.coach-mentor-hero .coach-hero-copy { width: 100%; }
+
+/* Today's Context — full-width card, comfortable line length */
+.coach-mentor-hero .coach-insight-card {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Suggested prompts — full-width vertical stack of compact quick-actions */
+.coach-mentor-hero .coach-suggest {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+.coach-mentor-hero .coach-suggest-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.coach-mentor-hero .coach-suggest-card {
+  padding: 11px 14px;
+  min-height: 0;
+}
