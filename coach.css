@@ -2244,64 +2244,70 @@ body:not(.entry-gate-visible) #mainNav,
    type hierarchy, market tones, and motion across both pages.
    ============================================================ */
 :root {
+  /* Phase 1: these tokens now ALIAS the canonical --fl-* primitive layer
+     in theme.css. Values are byte-for-byte identical to the previous
+     literals, so Learn/Market render unchanged. Edit the primitives, not
+     these aliases. --mkt-* stays independent (see below). */
+
   /* Page frame — one standardized side padding + safe bottom clearance */
   --v3-pad-x: 18px;
   --v3-pad-top: 28px;
   --v3-pad-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
 
   /* Spacing scale */
-  --v3-space-1: 6px;
-  --v3-space-2: 10px;
-  --v3-space-3: 14px;
-  --v3-space-4: 18px;
-  --v3-space-6: 24px;
-  --v3-section-gap: 30px;          /* separation between major sections */
+  --v3-space-1: var(--fl-space-1);
+  --v3-space-2: var(--fl-space-2);
+  --v3-space-3: var(--fl-space-3);
+  --v3-space-4: var(--fl-space-4);
+  --v3-space-6: var(--fl-space-6);
+  --v3-section-gap: var(--fl-section-gap);   /* separation between major sections */
 
   /* Radius — one card radius, one control radius */
-  --v3-radius-card: 16px;
-  --v3-radius-control: 12px;
-  --v3-radius-chip: 10px;
-  --v3-radius-icon: 12px;
-  --v3-radius-pill: 999px;
+  --v3-radius-card: var(--fl-radius-card);
+  --v3-radius-control: var(--fl-radius-control);
+  --v3-radius-chip: var(--fl-radius-chip);
+  --v3-radius-icon: var(--fl-radius-icon);
+  --v3-radius-pill: var(--fl-radius-pill);
 
   /* Surfaces — lighter charcoal for interactive, darker for passive */
-  --v3-bg: #0B0D0F;
-  --v3-surface: #14171A;           /* interactive card base */
-  --v3-surface-hover: #161A1E;
-  --v3-surface-raised: #15191D;    /* featured / focal card */
-  --v3-surface-passive: #0F1215;   /* passive / quiet / completed */
-  --v3-overlay: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-  --v3-overlay-hover: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
-  --v3-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+  --v3-bg: var(--fl-bg);
+  --v3-surface: var(--fl-surface);           /* interactive card base */
+  --v3-surface-hover: var(--fl-surface-hover);
+  --v3-surface-raised: var(--fl-surface-raised);  /* featured / focal card */
+  --v3-surface-passive: var(--fl-surface-passive);  /* passive / quiet / completed */
+  --v3-overlay: var(--fl-overlay);
+  --v3-overlay-hover: var(--fl-overlay-hover);
+  --v3-inset: var(--fl-inset);
 
   /* Borders — 1px hairline, single passive color */
-  --v3-border: #23272D;
-  --v3-border-strong: #2C323A;
-  --v3-border-hover: rgba(255,255,255,0.28);
-  --v3-divider: rgba(255,255,255,0.06);
+  --v3-border: var(--fl-border);
+  --v3-border-strong: var(--fl-border-strong);
+  --v3-border-hover: var(--fl-border-hover);
+  --v3-divider: var(--fl-divider);
 
   /* Type hierarchy — eyebrow → heading → title → body → sub → meta */
-  --v3-eyebrow: #C7CDD6;
-  --v3-heading: #FFFFFF;           /* important page headings only */
-  --v3-title: #F5F5F5;             /* section + card titles */
-  --v3-body: #D1D5DB;
-  --v3-sub: #B6BECB;               /* secondary copy (raised contrast) */
-  --v3-muted: #9CA3AF;             /* metadata */
-  --v3-faint: #8A93A1;             /* de-emphasized metadata */
+  --v3-eyebrow: var(--fl-eyebrow);
+  --v3-heading: var(--fl-heading);           /* important page headings only */
+  --v3-title: var(--fl-title);               /* section + card titles */
+  --v3-body: var(--fl-body);
+  --v3-sub: var(--fl-sub);                   /* secondary copy (raised contrast) */
+  --v3-muted: var(--fl-muted);               /* metadata */
+  --v3-faint: var(--fl-faint);               /* de-emphasized metadata */
 
-  /* Market tones — green positive, red negative, gray unchanged */
+  /* Market tones — INDEPENDENT of the mint accent. Bright green stays
+     reserved for market-positive values only; do NOT alias to --fl-accent. */
   --mkt-up: #22F05A;
   --mkt-down: #F87171;
   --mkt-flat: #D1D5DB;
   --mkt-na: #8A93A1;
 
   /* Motion — subtle, no bounce, 150–250ms */
-  --v3-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --v3-dur: 180ms;
-  --v3-dur-fast: 150ms;
+  --v3-ease: var(--fl-ease);
+  --v3-dur: var(--fl-dur);
+  --v3-dur-fast: var(--fl-dur-fast);
 
   /* Focus ring — visible, never color-only */
-  --v3-focus: rgba(255,255,255,0.78);
+  --v3-focus: var(--fl-focus);
 }
 
 /* ============================================================
@@ -4496,25 +4502,32 @@ body {
   color: #FFFFFF !important;
 }
 
-.coach-send,
-.coach-msg-user,
+/* De-gamification white-forcing group. The mint-accent elements
+   (.coach-send, .coach-msg-user, .level-fill, .nb.active::after) were removed
+   here so the unified mint accent (Phase 1–2 + Phase 6) can take effect; they
+   are styled in the Phase-6 block at the end of this file / base.css. The
+   remaining fills stay neutral until their own phases. */
 .v3-new-unit-btn,
 .market-coach-btn.is-active,
 .market-demo-btn:hover,
 .demo-mode-btn:hover,
 .dt-dot.is-active,
 .cd-stepper li.is-current .cd-step-dot,
-.rail-bar > span,
-.level-fill,
 .xp-banner-bar,
 .skill-fill-building,
-.skill-fill-confident,
-.market-read-dot.up,
-.nb.active::after {
+.skill-fill-confident {
   background: #FFFFFF !important;
   border-color: #FFFFFF !important;
   color: #0B0D0F !important;
 }
+
+/* Cleanup (post-migration): the two ACTIVE elements below were removed from the
+   white-forcing group above because they belong to the unified system:
+   the market-up dot is market MOVEMENT (green via --mkt-up), and the rail
+   progress fill is PROGRESS (mint via --fl-accent). The remaining selectors
+   above are dormant (skill-fill/xp-banner/v3-new-unit-btn) or demo-only. */
+.market-read-dot.up { background: var(--mkt-up) !important; }
+.rail-bar > span { background: var(--fl-accent) !important; }
 
 .nav .nb.active {
   background: transparent !important;
@@ -4617,16 +4630,17 @@ body {
   color: #D1D5DB !important;
 }
 
+/* Chart range + timeframe = UI selection → mint (movement stays green/red). */
 .mkt-range-btn.is-active {
-  background: #FFFFFF !important;
-  color: #0B0D0F !important;
-  box-shadow: none !important;
+  background: var(--fl-accent-soft) !important;
+  color: var(--fl-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--fl-accent-border) !important;
 }
 
 .market-timeframe-btn.active {
-  background: #FFFFFF !important;
-  color: #0B0D0F !important;
-  border-color: #FFFFFF !important;
+  background: var(--fl-accent-soft) !important;
+  color: var(--fl-accent) !important;
+  border-color: var(--fl-accent-border) !important;
   box-shadow: none !important;
 }
 
@@ -5829,7 +5843,7 @@ body:not(.entry-gate-visible) #mainNav {
    container, or shadow remains on any screen. */
 .nav .nb.active,
 .nav .nb.active svg {
-  color: #FFFFFF !important;        /* white icon when active */
+  color: var(--nav-active) !important;   /* mint icon when active (Phase 2 token) */
 }
 
 .nav .nb.active {
@@ -5857,7 +5871,7 @@ body:not(.entry-gate-visible) #mainNav {
   width: 26px;
   height: 2.5px;
   border-radius: 99px;
-  background: #FFFFFF;
+  background: var(--nav-active);
   opacity: 0;
   transform: translate(-50%, -50%) scaleX(0.35);
   transition: opacity 180ms ease, transform 180ms ease;
@@ -6526,16 +6540,17 @@ body.nav-drawer-lock { overflow: hidden; }
   align-items: center;
   gap: 12px;
   width: 100%;
-  /* Extra top padding + a faint shade (no divider line) sets the footer
-     apart from the chat list above it. */
+  /* Match the Account-page identity card surface (--bg2) with a subtle top
+     divider to set the footer apart from the chat list above it. */
   padding: 16px 16px 14px;
-  background: rgba(255, 255, 255, 0.022);
+  background: var(--bg2);
   border: 0;
+  border-top: 1px solid var(--border);
   text-align: left;
   cursor: pointer;
   transition: background 0.12s;
 }
-.nav-drawer-footer:hover { background: rgba(255, 255, 255, 0.06); }
+.nav-drawer-footer:hover { background: var(--bg3); }
 .nav-drawer-avatar {
   flex: 0 0 auto;
   display: grid;
@@ -7831,4 +7846,196 @@ body.auth-modal-visible .ask-tutor-backdrop {
 #microLessonScreen.active .ml-slide p,
 #microLessonScreen.active .ml-key-details ul {
   max-width: 100%;
+}
+
+
+/* ============================================================
+   PHASE 6 — AI COACH → PERSONAL AI MENTOR
+   Presentation-only. Appended last so it wins the cascade over the
+   earlier coach blocks. Consumes the unified --fl-* / mint tokens
+   (Phase 1–2). No chat logic, threading, or persistence touched.
+   ============================================================ */
+
+/* ── Mentor front-door: kicker + greeting + subtitle ── */
+.coach-mentor-kicker {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 700 0.68rem/1 var(--font-b);
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--fl-accent);
+  margin-bottom: 14px;
+}
+.coach-mentor-kicker::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--fl-accent); box-shadow: 0 0 0 3px var(--fl-accent-soft);
+}
+.coach-mentor-hero h1 { letter-spacing: -0.04em; }
+
+/* ── Daily insight card ── */
+.coach-insight-card {
+  margin: 24px auto 0; max-width: 620px;
+  padding: 15px 17px;
+  background: var(--fl-surface-passive);
+  border: 1px solid var(--fl-border);
+  border-left: 2px solid var(--fl-accent);
+  border-radius: var(--fl-radius-control);
+  text-align: left;
+}
+.coach-insight-eyebrow {
+  display: block;
+  font: 700 0.62rem/1 var(--font-b);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fl-accent);
+  margin-bottom: 8px;
+}
+.coach-insight-text {
+  margin: 0; color: var(--fl-body);
+  font: 400 0.94rem/1.5 var(--font-b);
+}
+
+/* ── Suggested prompts (market-aware + learning-aware) ── */
+.coach-suggest { margin: 26px auto 0; max-width: 620px; text-align: left; }
+.coach-suggest-label {
+  font: 700 0.66rem/1 var(--font-b);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fl-muted);
+  margin-bottom: 12px;
+}
+.coach-suggest-grid { display: grid; gap: 10px; }
+.coach-suggest-card {
+  display: flex; align-items: center; gap: 13px;
+  width: 100%; text-align: left;
+  padding: 13px 15px;
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-radius-control);
+  color: var(--fl-title);
+  font: 500 0.92rem/1.35 var(--font-b);
+  cursor: pointer;
+  transition: background var(--fl-dur) var(--fl-ease),
+              border-color var(--fl-dur) var(--fl-ease),
+              transform var(--fl-dur) var(--fl-ease);
+}
+.coach-suggest-card:hover {
+  background: var(--fl-surface-hover);
+  border-color: var(--fl-border-hover);
+  transform: translateY(-1px);
+}
+.coach-suggest-card:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.coach-suggest-icon {
+  flex: 0 0 auto; width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--fl-radius-chip);
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+}
+.coach-suggest-icon svg { width: 16px; height: 16px; }
+.coach-suggest-text { flex: 1 1 auto; min-width: 0; }
+.coach-suggest-arrow {
+  flex: 0 0 auto; display: inline-flex; align-items: center;
+  color: var(--fl-faint);
+  transition: color var(--fl-dur) var(--fl-ease), transform var(--fl-dur) var(--fl-ease);
+}
+.coach-suggest-arrow svg { width: 16px; height: 16px; }
+.coach-suggest-card:hover .coach-suggest-arrow { color: var(--fl-accent); transform: translateX(2px); }
+
+/* ── Calmer user bubble — charcoal surface, not white ── */
+.coach-msg-user {
+  background: var(--fl-surface-raised);
+  color: var(--fl-title);
+  border: 1px solid var(--fl-border);
+  border-radius: 16px 16px 5px 16px;
+}
+
+/* ── Assistant avatar mark → subtle mint ── */
+.coach-msg-mark {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+}
+
+/* ── Mint send button (primary/helpful action) ── */
+.coach-send { background: var(--fl-accent); color: #06231A; }
+.coach-send:hover { background: var(--fl-accent-hover); filter: none; transform: translateY(-1px); }
+
+/* ── Composer focus → mint ring ── */
+.coach-input-form:focus-within { border-color: var(--fl-accent-border); }
+
+/* ── Structured answer polish ── */
+.coach-answer-text strong { color: var(--fl-heading); font-weight: 600; }
+
+
+/* ============================================================
+   PHASE 4 — LEARN: Track → Module → Lesson sharpening
+   Applies the mint accent to active / progress / completion and
+   refines the unit-library hierarchy. Appended last so it wins.
+   No renderPath logic, lesson data, locking, or swipe behavior
+   touched — this is CSS + the is-active class only.
+   ============================================================ */
+
+/* Segmented My/Preset tabs — mint-tinted active segment (was solid white) */
+.v3-learn-tabs button.active {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+  box-shadow: inset 0 0 0 1px var(--fl-accent-border);
+}
+
+/* Module progress fill — mint (was white) */
+.v3-unit-progress i { background: var(--fl-accent); }
+
+/* In-progress = the "active module": mint left edge + mint icon tile.
+   (.is-active is added in renderPath when started && !completed.) */
+.v3-unit-card.is-active {
+  box-shadow: inset 2px 0 0 var(--fl-accent), inset 0 1px 0 rgba(255,255,255,0.035);
+}
+.v3-unit-card.is-active:hover {
+  box-shadow: inset 2px 0 0 var(--fl-accent), inset 0 1px 0 rgba(255,255,255,0.045);
+}
+.v3-unit-card.is-active .v3-unit-icon,
+.v3-unit-card-preset.is-active .v3-unit-icon {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-border);
+  color: var(--fl-accent);
+}
+
+/* Completed module — stays quiet, but a small mint check signals done */
+.v3-unit-card.is-complete .v3-unit-copy small { color: var(--fl-accent); }
+.v3-unit-card.is-complete .v3-unit-copy small::before {
+  content: "✓";
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+/* "Completed" section heading → quiet uppercase eyebrow */
+.v3-section-heading-completed {
+  color: var(--fl-muted);
+  font: 700 0.68rem/1 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+
+/* ============================================================
+   PHASE 5 — MARKET: premium learning-aware terminal
+   Mint = UI accent/selection ONLY. Market movement stays green/red
+   via --mkt-* (untouched). No data/quote/API/selector logic changed.
+   Appended last so it wins the cascade.
+   ============================================================ */
+
+/* Asset selector — mint selected row + mint check (a UI selection, not
+   market movement). The row list is Market's "watchlist" analog. */
+.market-asset-option.is-selected { color: var(--fl-accent) !important; }
+.market-asset-option.is-selected .market-asset-check svg {
+  color: var(--fl-accent);
+  stroke: var(--fl-accent);
+}
+
+/* Learning-relevance band — the two learning-aware cards ("Market → lesson"
+   and "Your learning journey") get a mint left edge + mint kicker, tying the
+   market story back to the user's lessons. Mint here is UI accent, not tone. */
+.market-connect-card,
+.market-personal-card {
+  box-shadow: inset 2px 0 0 var(--fl-accent) !important;
+}
+.market-connect-card .market-card-kicker,
+.market-personal-card .market-card-kicker {
+  color: var(--fl-accent) !important;
 }

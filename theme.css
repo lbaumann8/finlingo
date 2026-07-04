@@ -104,9 +104,11 @@
   --topbar-bg:  #0b0d10;
   --nav-bg:     #0b0d10;
 
-  /* ── Primary button — high contrast, flat. ── */
-  --btn-primary-bg:   #e6e8ec;
-  --btn-primary-text: #0b0d10;
+  /* ── Primary button — mint brand accent (Phase 2). Brand-constant
+     across themes: the accent is the same in light and dark. ── */
+  --btn-primary-bg:       var(--fl-accent);
+  --btn-primary-bg-hover: var(--fl-accent-hover);
+  --btn-primary-text:     #06231A;   /* dark green ink for contrast on mint */
 }
 
 
@@ -168,8 +170,111 @@
   --topbar-bg:  #ffffff;
   --nav-bg:     #ffffff;
 
-  --btn-primary-bg:   #0b0d10;
-  --btn-primary-text: #ffffff;
+  --btn-primary-bg:       var(--fl-accent);
+  --btn-primary-bg-hover: var(--fl-accent-hover);
+  --btn-primary-text:     #06231A;
+}
+
+
+/* ============================================================
+   CANONICAL PRIMITIVE LAYER  (Phase 1 — unified token foundation)
+   Single source of truth for the dark "phone-canvas" surfaces,
+   the mint brand accent, the type ramp, radii, spacing, motion,
+   and focus. The Learn/Market (--v3-*) and Classroom (--cl-*)
+   systems alias onto these primitives (see coach.css / classroom.css).
+
+   Deliberately NOT theme-switched: the dark canvas is constant on the
+   surfaces that consume these (Learn, Market, Classroom are always
+   dark regardless of the light/dark toggle) — matching current behavior.
+
+   Market ± deltas (--mkt-*, defined in coach.css) stay INDEPENDENT so
+   bright green keeps its "market-positive only" meaning and never bleeds
+   into the restrained mint accent.
+
+   NOTE: the accent is namespaced --fl-accent (not a bare --accent) on
+   purpose — practice.css has pre-existing dangling var(--accent) refs
+   that will be wired to --fl-accent in Phase 7, not silently altered now.
+   ============================================================ */
+:root {
+  /* ── Surfaces — charcoal ramp, deep → raised ── */
+  --fl-bg-deep:         #080A0C;   /* outermost page, below the canvas    */
+  --fl-bg:              #0B0D0F;   /* canvas background                   */
+  --fl-surface-passive: #0F1215;   /* quiet / completed / recessed        */
+  --fl-surface:         #14171A;   /* interactive card base               */
+  --fl-surface-raised:  #15191D;   /* featured / focal card               */
+  --fl-surface-hover:   #161A1E;   /* hover fill                          */
+
+  /* ── Borders ── */
+  --fl-border:          #23272D;
+  --fl-border-strong:   #2C323A;
+  --fl-border-hover:    rgba(255,255,255,0.28);
+  --fl-divider:         rgba(255,255,255,0.06);
+
+  /* ── Shared card treatment (overlay sheen + top inset) ── */
+  --fl-overlay:         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  --fl-overlay-hover:   linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
+  --fl-inset:           inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* ── Text ramp — heading (white) → faint (meta) ── */
+  --fl-heading:         #FFFFFF;   /* important page headings only        */
+  --fl-title:           #F5F5F5;   /* section + card titles               */
+  --fl-eyebrow:         #C7CDD6;
+  --fl-body:            #D1D5DB;
+  --fl-sub:             #B6BECB;
+  --fl-muted:           #9CA3AF;
+  --fl-faint:           #8A93A1;
+
+  /* ── Mint accent — the single restrained brand accent.
+     Phase 2 wires this into nav / progress / primary CTAs. ── */
+  --fl-accent:          #76D6A2;
+  --fl-accent-hover:    #8BE2B1;
+  --fl-accent-soft:     rgba(118,214,162,0.12);
+  --fl-accent-border:   rgba(118,214,162,0.40);
+
+  /* ── Radii ── */
+  --fl-radius-card:     16px;
+  --fl-radius-control:  12px;
+  --fl-radius-chip:     10px;
+  --fl-radius-icon:     12px;
+  --fl-radius-pill:     999px;
+
+  /* ── Spacing scale ── */
+  --fl-space-1:  6px;
+  --fl-space-2:  10px;
+  --fl-space-3:  14px;
+  --fl-space-4:  18px;
+  --fl-space-6:  24px;
+  --fl-section-gap: 30px;          /* separation between major sections   */
+
+  /* ── Motion — subtle, no bounce, 150–250ms ── */
+  --fl-ease:     cubic-bezier(0.22, 0.61, 0.36, 1);
+  --fl-dur:      180ms;
+  --fl-dur-fast: 150ms;
+
+  /* ── Focus ring — visible, never color-only ── */
+  --fl-focus:    rgba(255,255,255,0.78);
+}
+
+
+/* ============================================================
+   SHARED COMPONENT TOKENS  (Phase 2)
+   Semantic tokens that map the GLOBAL shared components onto the
+   mint accent + primitive surfaces. Components reference THESE
+   semantic tokens, not raw --fl-* primitives. Keeping them here
+   means Phases 3–8 restyle screens by pointing at the same tokens.
+
+   Market ± deltas (--mkt-*) and the 452 legacy --green sites are
+   intentionally NOT routed through these — the accent is applied
+   only to the enumerated shared components in Phase 2.
+   ============================================================ */
+:root {
+  --nav-active:           var(--fl-accent);        /* bottom-nav / primary-nav active text + indicator */
+  --nav-active-soft:      var(--fl-accent-soft);    /* active-tab pill fill                             */
+  --progress-fill:        var(--fl-accent);         /* shared progress-bar fill                         */
+  --chip-selected-bg:     var(--fl-accent-soft);    /* selected chip / segment surface                 */
+  --chip-selected-border: var(--fl-accent-border);
+  --chip-selected-text:   var(--fl-accent);
+  --focus-ring:           rgba(118,214,162,0.45);   /* mint focus-visible outline                       */
 }
 
 

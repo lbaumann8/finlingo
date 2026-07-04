@@ -1099,3 +1099,52 @@
 .practice-est { font-size: 0.8rem; }
 
 .practice-section-head { margin-bottom: 14px; }
+
+
+/* ════════════════════════════════════════════════════════════
+   PHASE 7 — MASTERY: premium dark presentation + mint progress.
+   Presentation only — no practice/mastery logic, engines, data,
+   or session flow touched. Appended last so it wins the cascade.
+   ════════════════════════════════════════════════════════════ */
+
+/* Force the premium dark canvas (consistent with Home/Learn/Market/Coach)
+   by scoping the neutral theme primitives to this screen, regardless of the
+   light/dark toggle. Defining --accent = mint here ALSO wires the two
+   previously-dangling var(--accent) refs (.pm-unit-icon, .pm-unit-bar-fill),
+   fixing the invisible mastery progress bar. */
+#ranksScreen,
+#practiceSessionScreen {
+  --bg:       var(--fl-bg);
+  --bg2:      var(--fl-surface);
+  --bg3:      var(--fl-surface-hover);
+  --surface:  var(--fl-surface);
+  --border:   var(--fl-border);
+  --border2:  var(--fl-border-strong);
+  --text:     var(--fl-title);
+  --text-sub: var(--fl-sub);
+  --muted:    var(--fl-muted);
+  --muted2:   var(--fl-faint);
+  --accent:   var(--fl-accent);
+  background:  var(--fl-bg);
+}
+
+/* Competency scale kept as a meaningful gradient; "mastered" ties to the
+   mint completion accent. Intermediate states (new/learning/familiar/strong)
+   are unchanged. */
+#ranksScreen { --pm-mastered: var(--fl-accent); }
+#ranksScreen .pm-badge.pm-mastered {
+  color: var(--fl-accent);
+  border-color: var(--fl-accent-border);
+  background: var(--fl-accent-soft);
+}
+
+/* Overall mastery ring → mint progress fill */
+#ranksScreen .pm-ring-fill { stroke: var(--fl-accent); }
+
+/* Active unit + primary next-action → mint accent */
+#ranksScreen .pm-unit-active { border-color: var(--fl-accent-border); }
+#ranksScreen .pm-unit-active.is-open { border-color: var(--fl-accent); }
+#ranksScreen .practice-next { border-left-color: var(--fl-accent); }
+
+/* Mint focus ring (replaces the legacy green rgba) */
+#ranksScreen .pm-unit-head:focus-visible { outline-color: var(--focus-ring); }

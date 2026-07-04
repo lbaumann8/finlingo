@@ -74,7 +74,7 @@ body {
 .topbar-icon-btn:hover { color: var(--text); background: var(--bg2); border-color: var(--border); }
 .topbar-icon-btn:active { background: var(--bg3); }
 .topbar-icon-btn:focus-visible {
-  outline: 2px solid rgba(0,184,74,0.32);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .pill {
@@ -105,7 +105,7 @@ body {
   color: var(--text);
 }
 .pill-clickable:focus-visible {
-  outline: 2px solid rgba(0,184,74,0.32);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .pill-streak {
@@ -164,7 +164,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .level-track { height: 3px; border-radius: 99px; background: var(--bg3); overflow: hidden; }
-.level-fill  { height: 100%; width: 0%; border-radius: 99px; background: var(--green); transition: width 0.4s cubic-bezier(.34,1.56,.64,1); }
+.level-fill  { height: 100%; width: 0%; border-radius: 99px; background: var(--progress-fill); transition: width 0.4s cubic-bezier(.34,1.56,.64,1); }
 
 /* ── SCREENS ─────────────────────────────────────────────────── */
 .screen { flex: 1; overflow-y: auto; padding: 26px 22px 118px; display: none; min-height: 0; background: var(--bg); position: relative; z-index: 0; }
@@ -189,7 +189,7 @@ body {
 }
 .nb svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 .nb.active {
-  color: var(--text);
+  color: var(--nav-active);
 }
 .nb.active::after {
   content: '';
@@ -199,7 +199,7 @@ body {
   transform: translateX(-50%);
   width: 16px;
   height: 2px;
-  background: var(--green);
+  background: var(--nav-active);
   border-radius: 99px;
 }
 .nb { position: relative; }
@@ -221,7 +221,8 @@ body {
 .btn:disabled{ cursor: not-allowed; opacity: 0.4; }
 
 .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); }
-.btn-primary:hover:not(:disabled) { background: var(--text); }
+.btn-primary:hover:not(:disabled) { background: var(--btn-primary-bg-hover); }
+.btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .btn-secondary { background: var(--bg2); color: var(--text); border: 1px solid var(--border2); }
 .btn-secondary:hover:not(:disabled) { background: var(--bg3); border-color: var(--border2); }

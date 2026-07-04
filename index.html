@@ -29,16 +29,16 @@
       screens.css → styles for each screen (auth, profile, leaderboard, path, course, quiz, result)
       ui.css      → floating/overlay components (toast, modal, edit sheet, share card, banners)
   -->
-  <link rel="stylesheet" href="theme.css"/>
-  <link rel="stylesheet" href="base.css?v=redesign-2"/>
+  <link rel="stylesheet" href="theme.css?v=phase2-1"/>
+  <link rel="stylesheet" href="base.css?v=phase2-1"/>
   <link rel="stylesheet" href="screens.css?v=redesign-2"/>
   <link rel="stylesheet" href="ui.css?v=notif-polish-1"/>
-  <link rel="stylesheet" href="practice.css?v=redesign-2"/>
+  <link rel="stylesheet" href="practice.css?v=phase7-1"/>
   <!-- Visual refinement pass — loaded last so it wins the cascade. -->
-  <link rel="stylesheet" href="refine.css?v=classroom-fix-1"/>
+  <link rel="stylesheet" href="refine.css?v=phase3-1"/>
   <!-- Ask-first components — loaded after refine so they win. -->
-  <link rel="stylesheet" href="coach.css?v=notif-polish-1"/>
-  <link rel="stylesheet" href="classroom.css?v=classroom-ia-3"/>
+  <link rel="stylesheet" href="coach.css?v=phase8-1"/>
+  <link rel="stylesheet" href="classroom.css?v=phase8-1"/>
 </head>
 <body class="entry-gate-visible">
 
@@ -144,11 +144,15 @@
     <button class="notif-prompt-dismiss" onclick="dismissNotifPrompt()" style="font-size:0.9rem;">✕</button>
   </div>
 
-  <!-- ── 1. WELCOME ──────────────────────────────────────── -->
-  <div class="home-welcome">
+  <!-- ── 1. DAILY BRIEF HERO — greeting + Knowledge Capital ── -->
+  <div class="home-welcome home-brief-hero">
     <div class="home-welcome-kicker" id="homeWelcomeKicker">Welcome to Finlingo</div>
-    <div class="home-welcome-title" id="homeWelcomeTitle">Build your financial confidence.</div>
-    <div class="home-welcome-copy">Finlingo teaches money through real-world decisions — short lessons and everyday scenarios you'll actually use.</div>
+    <div class="home-welcome-title" id="homeWelcomeTitle">Your daily brief.</div>
+    <div class="home-capital">
+      <span class="home-capital-eyebrow">Knowledge Capital</span>
+      <!-- Real Financial Confidence score, written by renderSkillProgress() -->
+      <span class="home-capital-stat" id="homeCapitalStat"></span>
+    </div>
   </div>
 
   <!-- ── 2. CONTINUE LEARNING ────────────────────────────── -->
@@ -166,24 +170,56 @@
     <button class="btn hero-btn" id="continueBtn">Start Learning</button>
   </div>
 
-  <!-- ── 3. FINANCIAL CONFIDENCE ─────────────────────────── -->
-  <section class="home-section home-skills-section">
+  <!-- ── 3. TODAY'S MARKET CONTEXT ───────────────────────── -->
+  <section class="home-section home-market-section">
     <div class="home-section-head">
       <div class="home-section-copy">
-        <div class="home-section-title">Financial Confidence</div>
+        <div class="home-section-title">Today's Market Context</div>
       </div>
     </div>
-    <div id="skillProgressCard"></div>
+    <div id="homeMarketSnapshot"></div>
   </section>
 
-  <!-- ── 5. MARKET SNAPSHOT ──────────────────────────────── -->
-  <section class="home-section home-market-section">
+  <!-- ── 4. AI INSIGHT — teaser into Coach ───────────────── -->
+  <section class="home-section home-insight-section">
+    <div class="home-section-head">
+      <div class="home-section-copy">
+        <div class="home-section-title">AI Insight</div>
+      </div>
+    </div>
+    <button type="button" class="home-simple-card home-insight-card" onclick="showCoach()">
+      <span class="home-insight-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+      </span>
+      <span class="home-insight-body">
+        <span class="home-insight-eyebrow">Finlingo Coach</span>
+        <span class="home-insight-text">Bring today's market move to your mentor — ask what it means for a long-term investor.</span>
+      </span>
+      <span class="home-insight-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </span>
+    </button>
+  </section>
+
+  <!-- ── 5. MARKET SNAPSHOT — real ticker strip ──────────── -->
+  <section class="home-section home-snapshot-section">
     <div class="home-section-head">
       <div class="home-section-copy">
         <div class="home-section-title">Market Snapshot</div>
       </div>
     </div>
-    <div id="homeMarketSnapshot"></div>
+    <!-- Ticker strip written by renderHomeMarketSnapshot() from real quote rows -->
+    <div id="homeMarketTickers"></div>
+  </section>
+
+  <!-- ── 6. MASTERY PROGRESS ─────────────────────────────── -->
+  <section class="home-section home-mastery-section">
+    <div class="home-section-head">
+      <div class="home-section-copy">
+        <div class="home-section-title">Mastery Progress</div>
+      </div>
+    </div>
+    <div id="skillProgressCard"></div>
   </section>
 
   </div>
@@ -613,14 +649,14 @@
 <script src="personalization.js"></script>
 <script src="dailyLoop.js"></script>
 <script src="fluencyEngine.js"></script>
-<script src="app.js?v=classroom-ia-3"></script>
+<script src="app.js?v=phase4-1"></script>
 <script src="market.js?v=market-simplify-13"></script>
 <script src="practice.js?v=desktop-1"></script>
 <script src="tutor.js?v=ask-v3-1"></script>
 <script src="microUnits.js?v=slides-1"></script>
 <script src="microLessons.js?v=reset-progress-1"></script>
 <script src="chats.js?v=reset-appdata-1"></script>
-<script src="coachPage.js?v=reset-appdata-1"></script>
+<script src="coachPage.js?v=phase6-1"></script>
 <script src="learnSwipe.js?v=swipe-delete-1"></script>
 <script src="navDrawer.js?v=classroom-ia-3"></script>
 <script src="classroomData.js?v=classroom-ia-3"></script>

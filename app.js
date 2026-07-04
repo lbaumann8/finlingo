@@ -2522,6 +2522,15 @@ function renderSkillProgress(summary) {
       </div>
       <div class="confidence-compact-sub">Complete lessons and practice to build your confidence.</div>
     </div>`;
+
+  // Daily Brief hero mirrors the same real score as "Knowledge Capital"
+  // (no separate/fake metric). Guarded — no-op if the hero slot is absent.
+  const capitalEl = document.getElementById('homeCapitalStat');
+  if (capitalEl) {
+    capitalEl.innerHTML =
+      `<span class="cc-value">${confidence.score}</span><span class="cc-max"> / 100</span>` +
+      `<span class="home-capital-level cc-level-${confidence.statusKey}">${escapeAppHtml(confidence.statusLabel)}</span>`;
+  }
 }
 
 function renderHomeMarketSnapshot() {
@@ -2563,6 +2572,21 @@ function renderHomeMarketSnapshot() {
       <div class="market-read-copy">${read.copy}</div>
       <button class="btn btn-secondary home-card-action" onclick="showMarket()">Open Market</button>
     </div>`;
+
+  // Market Snapshot strip — reuses the same real quote rows already computed
+  // above (no extra fetch/API). Guarded — no-op if the slot is absent.
+  const tickersEl = document.getElementById('homeMarketTickers');
+  if (tickersEl) {
+    tickersEl.innerHTML =
+      `<div class="home-simple-card brief-snapshot">` +
+        rows.map(r => `
+        <button type="button" class="brief-ticker brief-ticker-${r.tone}" onclick="showMarket()">
+          <span class="brief-ticker-label">${escapeAppHtml(r.label)}</span>
+          <span class="brief-ticker-value">${escapeAppHtml(r.value)}</span>
+          <span class="brief-ticker-change">${escapeAppHtml(r.change)}</span>
+        </button>`).join('') +
+      `</div>`;
+  }
 }
 
 /** Re-render all dynamic home screen elements. */
@@ -3513,7 +3537,7 @@ function renderV3LearnWorkspace(container) {
     const title = escapeAppHtml(rawTitle);
     const trashSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     return `
-      <div class="v3-unit-card v3-unit-card-ai${card.info.completed ? ' is-complete' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
+      <div class="v3-unit-card v3-unit-card-ai${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
         <div class="v3-swipe-action" aria-hidden="true">
           <button type="button" class="v3-swipe-trash" tabindex="-1" aria-label="Delete ${title}" onclick="LearnUnitDelete.fromTrash(event, '${uid}')">${trashSvg}</button>
         </div>
@@ -3535,7 +3559,7 @@ function renderV3LearnWorkspace(container) {
     const rawTitle = card.title || card.unit.title || card.unit.name || 'Preset unit';
     const title = escapeAppHtml(rawTitle);
     return `
-      <button type="button" class="v3-unit-card v3-unit-card-preset${card.info.completed ? ' is-complete' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${escapeAppHtml(String(card.unit.id))}"
+      <button type="button" class="v3-unit-card v3-unit-card-preset${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${escapeAppHtml(String(card.unit.id))}"
               aria-label="${escapeAppHtml(_a11y(rawTitle, card.info))}" onclick="openMicroUnit('preset_unit_${Number(card.unit.id)}')">
         <span class="v3-unit-icon">${_learnUnitIcon('preset')}</span>
         <span class="v3-unit-copy">

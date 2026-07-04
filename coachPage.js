@@ -2980,6 +2980,37 @@
     return false;
   }
 
+  // ── Mentor front-door helpers (presentation only) ───────────────────
+  // Time-of-day greeting for the empty-state mentor hero. Pure UI copy — no
+  // chat state, persistence, or logic involved.
+  function _coachGreeting() {
+    let h = 12;
+    try { h = new Date().getHours(); } catch (_) {}
+    return (h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening') + '.';
+  }
+  const _COACH_ICON_MARKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>';
+  const _COACH_ICON_LEARN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h11v16H6a2 2 0 0 0-2 2z"/><path d="M17 3h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-1"/></svg>';
+  // Curated, evergreen suggested prompts — market-aware and learning-aware
+  // categories (NOT live data / portfolio). Static presentation content.
+  function _coachSuggestions() {
+    return [
+      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'Explain the latest Fed rate decision', q: 'Explain the latest Fed rate decision in plain English.' },
+      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'How does inflation affect a portfolio?', q: 'How does inflation affect a diversified portfolio?' },
+      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: 'Quiz me on what I’m learning', q: 'Quiz me on the concepts I’ve been learning.' },
+      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: 'Connect my lessons to the market', q: 'Connect what I’m learning to current market moves.' }
+    ];
+  }
+  // A suggested-prompt card fills the composer and sends via the normal ask
+  // path (coachAsk). No ChatStore/threading/streaming/persistence change.
+  function askPrompt(source) {
+    const text = (source && source.getAttribute) ? source.getAttribute('data-q') : String(source || '');
+    if (!text || !text.trim()) return;
+    const input = document.getElementById('coachInput');
+    if (input) input.value = text;
+    _checkAskInactivity();   // mirror submit(): start a fresh chat first if idle
+    coachAsk(text.trim());
+  }
+
   // ── Page render ─────────────────────────────────────────────────────
   // Empty chat → large empty-state (heading, description, input, disclaimer).
   // Existing chat → conversation, with a persistent compact composer below it
@@ -2996,12 +3027,29 @@
     const showHero = isBlank;
     const showCompact = !isBlank;
 
+    const greeting = _coachGreeting();
+    const suggestHtml = showHero ? _coachSuggestions().map(s => `
+            <button type="button" class="coach-suggest-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
+              <span class="coach-suggest-icon" aria-hidden="true">${s.icon}</span>
+              <span class="coach-suggest-text">${esc(s.label)}</span>
+              <span class="coach-suggest-arrow" aria-hidden="true">${FinLingoIcons.right()}</span>
+            </button>`).join('') : '';
+
     root.innerHTML = `
       <div class="coach-page-shell ${isBlank ? 'has-composer' : 'is-conversation'}">
-        ${showHero ? `<section class="coach-hero">
+        ${showHero ? `<section class="coach-hero coach-mentor-hero">
           <div class="coach-hero-copy">
-          <h2>Ask Finlingo</h2>
-          <p class="coach-subtitle">Ask anything about money, investing, or today’s market.</p>
+            <div class="coach-mentor-kicker">Finlingo Coach</div>
+            <h1>${greeting}</h1>
+            <p class="coach-subtitle">Your AI mentor for markets, investing, and the language of finance.</p>
+          </div>
+          <div class="coach-insight-card">
+            <span class="coach-insight-eyebrow">Today’s context</span>
+            <p class="coach-insight-text">Markets move on expectations, not just headlines. Bring a question and we’ll unpack the “why” behind the move.</p>
+          </div>
+          <div class="coach-suggest">
+            <div class="coach-suggest-label">Try asking</div>
+            <div class="coach-suggest-grid">${suggestHtml}</div>
           </div>
         </section>
         <div class="coach-bottom-composer coach-bottom-composer-empty">
@@ -3201,7 +3249,7 @@
   global.CoachPage = {
     render: renderCoach, chip: chip, act: act, suggest: suggest, quizSelect: quizSelect, quizSubmit: quizSubmit, saveUnit: saveUnit,
     retryUnit: retryUnit, chooseAnotherDepth: chooseAnotherDepth, cancelUnitJob: cancelUnitJob,
-    simplifyAnswer: simplifyAnswer, submit: submit, ask: coachAsk, newChat: newChat, openChat: openChat,
+    simplifyAnswer: simplifyAnswer, submit: submit, ask: coachAsk, askPrompt: askPrompt, newChat: newChat, openChat: openChat,
     selectDepth: selectDepth, confirmDepthSelection: confirmDepthSelection, closeDepthSelector: _closeDepthSelector,
     buildCourseUnit: buildCourseUnit, isBusy: function () { return busy; },
     handleAppDataReset: handleAppDataReset

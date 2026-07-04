@@ -223,11 +223,11 @@
   }
   .nb svg { width: 18px; height: 18px; }
   .nb:hover:not(.active) { color: var(--text); }
-  .nb.active { color: var(--green-text); }
+  .nb.active { color: var(--nav-active); }
   .nb.active svg { opacity: 1; }
   .nb.active::after {
     bottom: -1px; left: 0; width: 100%; height: 2px;
-    transform: none; border-radius: 0; background: var(--green);
+    transform: none; border-radius: 0; background: var(--nav-active);
   }
 
   /* Scrolling content area, centered per page type. */
@@ -1544,7 +1544,7 @@
     white-space: nowrap;
   }
   .workspace-primary-nav button:hover { background: var(--bg2); color: var(--text); }
-  .workspace-primary-nav button.active { background: var(--green-dim); color: var(--green-text); }
+  .workspace-primary-nav button.active { background: var(--nav-active-soft); color: var(--nav-active); }
   .workspace-sidebar-section { padding: 13px 10px; border-top: 1px solid var(--border); }
   .workspace-sidebar-label {
     padding: 0 10px 8px;
@@ -3476,8 +3476,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .nav .nb.active {
-    background: #eef8f2 !important;
-    color: #ffffff !important;
+    background: var(--nav-active-soft) !important;
+    color: var(--nav-active) !important;
   }
 
   .screen:not(#authScreen) {
@@ -3746,4 +3746,151 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
 .ask-floating-button {
   display: none !important;
+}
+
+
+/* ============================================================
+   PHASE 3 — HOME / DAILY BRIEF
+   Reframes Home as a premium, always-dark "daily brief" that matches
+   the Learn/Market/Coach v3 language. Appended last (non-coach) so it
+   wins the cascade over base.css/screens.css home rules. Uses --fl-*
+   surfaces + mint accent (Phase 1–2); market ± uses --mkt-* only.
+   ============================================================ */
+
+/* Force the premium dark canvas regardless of the light/dark toggle,
+   consistent with the always-dark Learn/Market/Coach surfaces. */
+#homeScreen { background: var(--fl-bg); }
+.home-dashboard {
+  background: var(--fl-bg);
+  padding: 26px 18px calc(120px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 26px;
+}
+
+/* ── 1. Daily Brief hero ── */
+.home-brief-hero { margin: 0; padding: 0; }
+.home-brief-hero .home-welcome-kicker {
+  display: block;
+  font: 700 0.68rem/1 var(--font-b);
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--fl-accent);
+  margin-bottom: 12px;
+}
+.home-brief-hero .home-welcome-title {
+  margin: 0; color: var(--fl-heading);
+  font: 700 1.9rem/1.1 var(--font-b); letter-spacing: -0.03em;
+}
+.home-capital {
+  margin-top: 18px; padding: 16px 18px;
+  background: var(--fl-surface-passive);
+  border: 1px solid var(--fl-border);
+  border-left: 2px solid var(--fl-accent);
+  border-radius: var(--fl-radius-control);
+}
+.home-capital-eyebrow {
+  display: block;
+  font: 700 0.62rem/1 var(--font-b);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fl-muted); margin-bottom: 8px;
+}
+.home-capital-stat { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.home-capital-stat .cc-value {
+  color: var(--fl-heading);
+  font: 600 2.3rem/1 var(--font-num); letter-spacing: -0.02em;
+}
+.home-capital-stat .cc-max { color: var(--fl-faint); font: 500 1rem/1 var(--font-num); }
+.home-capital-level {
+  margin-left: auto;
+  padding: 4px 10px; border-radius: var(--fl-radius-pill);
+  background: var(--fl-accent-soft); color: var(--fl-accent);
+  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.04em; text-transform: uppercase;
+  align-self: center;
+}
+
+/* ── Section headers → quiet eyebrows ── */
+.home-dashboard .home-section { margin: 0; }
+.home-dashboard .home-section-head { margin-bottom: 12px; }
+.home-dashboard .home-section-title {
+  margin: 0; color: var(--fl-muted);
+  font: 700 0.72rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* ── Shared card surface ── */
+.home-dashboard .home-simple-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-radius-card);
+  box-shadow: none;
+}
+
+/* ── 2. Continue Learning (focal) ── */
+.home-dashboard .home-hero-card {
+  background: var(--fl-surface-raised);
+  border: 1px solid var(--fl-border-strong);
+  border-radius: var(--fl-radius-card);
+  box-shadow: none; padding: 20px;
+}
+.home-dashboard .hero-eyebrow {
+  color: var(--fl-accent);
+  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.home-dashboard .hero-title { color: var(--fl-heading); font-weight: 700; letter-spacing: -0.02em; }
+.home-dashboard .hero-progress { color: var(--fl-muted); }
+.home-dashboard .hero-sub { color: var(--fl-sub); }
+
+/* ── 3. Today's Market Context ── */
+.home-dashboard .market-read-headline { color: var(--fl-title); }
+.home-dashboard .market-read-copy { color: var(--fl-body); }
+.home-dashboard .market-read-chip.up   { color: var(--mkt-up);   background: rgba(34,240,90,0.10); }
+.home-dashboard .market-read-chip.down { color: var(--mkt-down); background: rgba(248,113,113,0.10); }
+
+/* ── 4. AI Insight card → Coach ── */
+.home-insight-card {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  text-align: left; padding: 15px 16px; cursor: pointer;
+  transition: background var(--fl-dur) var(--fl-ease), border-color var(--fl-dur) var(--fl-ease), transform var(--fl-dur) var(--fl-ease);
+}
+.home-insight-card:hover { background: var(--fl-surface-hover); border-color: var(--fl-border-hover); transform: translateY(-1px); }
+.home-insight-card:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.home-insight-icon {
+  flex: 0 0 auto; width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--fl-radius-chip);
+  background: var(--fl-accent-soft); color: var(--fl-accent);
+}
+.home-insight-icon svg { width: 17px; height: 17px; }
+.home-insight-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.home-insight-eyebrow {
+  font: 700 0.62rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fl-accent);
+}
+.home-insight-text { color: var(--fl-body); font: 400 0.9rem/1.45 var(--font-b); }
+.home-insight-arrow { flex: 0 0 auto; color: var(--fl-faint); display: inline-flex; transition: color var(--fl-dur) var(--fl-ease), transform var(--fl-dur) var(--fl-ease); }
+.home-insight-arrow svg { width: 18px; height: 18px; }
+.home-insight-card:hover .home-insight-arrow { color: var(--fl-accent); transform: translateX(2px); }
+
+/* ── 5. Market Snapshot strip ── */
+.brief-snapshot { padding: 6px; display: flex; flex-direction: column; }
+.brief-ticker {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px;
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 11px 12px; border: 0; background: transparent;
+  border-radius: var(--fl-radius-control);
+  transition: background var(--fl-dur) var(--fl-ease);
+}
+.brief-ticker + .brief-ticker { border-top: 1px solid var(--fl-divider); }
+.brief-ticker:hover { background: var(--fl-surface-hover); }
+.brief-ticker-label { color: var(--fl-title); font: 600 0.9rem/1 var(--font-b); }
+.brief-ticker-value { color: var(--fl-sub); font: 500 0.86rem/1 var(--font-num); font-variant-numeric: tabular-nums; }
+.brief-ticker-change { font: 600 0.82rem/1 var(--font-num); font-variant-numeric: tabular-nums; color: var(--fl-muted); }
+.brief-ticker-up   .brief-ticker-change { color: var(--mkt-up); }
+.brief-ticker-down .brief-ticker-change { color: var(--mkt-down); }
+
+/* ── 6. Mastery Progress card ── */
+.home-dashboard .confidence-compact-score .cc-value { color: var(--fl-heading); font-family: var(--font-num); }
+.home-dashboard .confidence-compact-score .cc-max { color: var(--fl-faint); }
+.home-dashboard .confidence-compact-sub { color: var(--fl-muted); }
+.home-dashboard .confidence-compact-level {
+  background: var(--fl-accent-soft); color: var(--fl-accent);
+  padding: 4px 10px; border-radius: var(--fl-radius-pill);
+  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.04em; text-transform: uppercase;
 }

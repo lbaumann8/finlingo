@@ -8,34 +8,76 @@
    ============================================================================ */
 
 :root {
-  --cl-bg: #0B0D0F;
-  --cl-card: #14171A;
-  --cl-card-2: #0F1215;
-  --cl-border: #23272D;
-  --cl-border-strong: #2C323A;
-  --cl-title: #F5F5F5;
-  --cl-body: #D1D5DB;
-  --cl-muted: #9CA3AF;
-  --cl-eyebrow: #C7CDD6;
+  /* ── Surface system — Phase 8: converged onto the canonical --fl-* charcoal
+     ramp (theme.css) so Classroom shares one surface language with the rest of
+     the app. The layered-charcoal hierarchy is preserved (deep→hover). ── */
+  --cl-bg-page:   var(--fl-bg-deep);        /* outermost page                       */
+  --cl-bg-shell:  var(--fl-bg);             /* classroom workspace / scroll surface  */
+  --cl-bg-card:   var(--fl-surface);        /* content cards                         */
+  --cl-bg-field:  var(--fl-surface-passive);/* inputs, selects, recessed fills       */
+  --cl-bg-hover:  var(--fl-surface-hover);  /* interactive hover surface             */
+
+  /* ── Borders — converged onto the canonical two weights ─────────────── */
+  --cl-border: var(--fl-border);
+  --cl-border-strong: var(--fl-border-strong);
+
+  /* ── One restrained Finlingo accent (soft financial green) ──────────────
+     Aliases the canonical mint accent (--fl-accent* in theme.css) — the
+     shared brand accent across Learn / Market / Classroom. As of Phase 8 the
+     neutral surface/border/text ramp above/below is also converged onto the
+     canonical --fl-* primitives. ── */
+  --cl-accent: var(--fl-accent);
+  --cl-accent-hover: var(--fl-accent-hover);
+  --cl-accent-soft: var(--fl-accent-soft);
+  --cl-accent-border: var(--fl-accent-border);
+
+  /* ── Text hierarchy — Phase 8: converged onto the canonical --fl-* ramp ── */
+  --cl-text-primary: var(--fl-title);
+  --cl-text-secondary: var(--fl-body);
+  --cl-text-muted: var(--fl-muted);
+  --cl-text-faint: var(--fl-faint);
+
+  /* ── Spacing scale (use these instead of one-off margins) ───────────── */
+  --cl-space-1: 4px;
+  --cl-space-2: 8px;
+  --cl-space-3: 12px;
+  --cl-space-4: 16px;
+  --cl-space-5: 24px;
+
+  /* ── Legacy aliases → mapped onto the system above so every existing
+     .cl-* selector inherits the refined theme without per-rule churn. ── */
+  --cl-bg: var(--cl-bg-shell);       /* .cl-screen surface + sticky-fade base */
+  --cl-card: var(--cl-bg-card);
+  --cl-card-2: var(--cl-bg-field);
+  --cl-title: var(--cl-text-primary);
+  --cl-body: var(--cl-text-secondary);
+  --cl-muted: var(--cl-text-muted);
+  --cl-eyebrow: var(--cl-text-secondary);
+
+  /* Semantic outcome colours kept intact (correct/attention/severe). */
   --cl-green: #2bbd6a;
   --cl-green-bright: #22F05A;
   --cl-amber: #d8a23a;
   --cl-red: #c0594f;
-  --cl-radius: 16px;
-  --cl-radius-sm: 12px;
+  --cl-radius: var(--fl-radius-card);      /* 16px — aliased, unchanged */
+  --cl-radius-sm: var(--fl-radius-control); /* 12px — aliased, unchanged */
 }
 
 /* The app shell zeroes `.screen` padding and expects each screen's own content
    wrapper to provide horizontal padding (see .market-learning-shell etc.). The
    large bottom value clears the fixed mobile bottom-nav; the desktop shell
    (min-width:900px) overrides this to a tighter value in refine.css. */
-.cl-screen { display: block; padding: 24px 20px 120px; }
+/* Page is the outermost surface; the classroom workspace (.cl-screen) is a
+   distinct, slightly lighter layer that carries the cards. */
+#classroomScreen { background: var(--cl-bg-page); }
+.cl-screen { display: block; padding: var(--cl-space-5) 20px 120px; background: var(--cl-bg-shell); }
 .cl-center { text-align: center; }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
-.cl-header { margin: 2px 0 18px; }
+/* Title stays visually connected to the content below (scale spacing). */
+.cl-header { margin: var(--cl-space-1) 0 var(--cl-space-4); }
 .cl-header h1 { margin: 0 0 6px; font: 700 1.5rem/1.2 var(--font-d, var(--font-b)); color: var(--cl-title); letter-spacing: -0.01em; }
-.cl-header p { margin: 0; color: var(--cl-muted); font: 400 0.92rem/1.45 var(--font-b); }
+.cl-header p { margin: 0; color: var(--cl-text-secondary); font: 400 0.92rem/1.45 var(--font-b); }
 
 .cl-kicker { font: 700 0.7rem var(--font-b); letter-spacing: 0.09em; text-transform: uppercase; color: var(--cl-eyebrow); margin-bottom: 6px; }
 .cl-section-title { font: 700 0.8rem var(--font-b); letter-spacing: 0.04em; text-transform: uppercase; color: var(--cl-eyebrow); margin: 6px 0 12px; }
@@ -44,17 +86,21 @@
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .cl-card {
-  background: var(--cl-card);
+  background: var(--cl-bg-card);
   border: 1px solid var(--cl-border);
   border-radius: var(--cl-radius);
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: var(--cl-space-4);
+  margin-bottom: var(--cl-space-3);
+  /* Slight inset top highlight + very restrained lift — not a floating panel. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 8px 24px rgba(0, 0, 0, 0.14);
 }
 .cl-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .cl-card-head strong { font: 600 1.02rem var(--font-b); color: var(--cl-title); }
 .cl-card-head-main { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .cl-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 8px; color: var(--cl-muted); font: 400 0.82rem var(--font-b); }
-.cl-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.cl-card-actions { display: flex; gap: var(--cl-space-2); margin-top: var(--cl-space-4); }
 .cl-card-actions .cl-btn { width: auto; flex: 1; }
 
 /* ── Overflow ("•••") menu ───────────────────────────────────────────────── */
@@ -100,16 +146,18 @@
 }
 .cl-btn:active { transform: translateY(1px); }
 .cl-btn:disabled { opacity: 0.55; cursor: default; }
-.cl-btn-primary { background: #ffffff; color: #0b0c0f; }
-.cl-btn-primary:hover:not(:disabled) { background: #eceef0; }
-.cl-btn-line { background: transparent; border-color: var(--cl-border-strong); color: var(--cl-title); }
-.cl-btn-line:hover:not(:disabled) { border-color: rgba(255,255,255,0.4); }
-.cl-btn-ghost { background: transparent; color: var(--cl-muted); }
-.cl-btn-ghost:hover:not(:disabled) { color: var(--cl-title); }
+.cl-btn:focus-visible { outline: 2px solid var(--cl-accent); outline-offset: 2px; }
+/* Primary = the single most important action: restrained financial-green. */
+.cl-btn-primary { background: var(--cl-accent); color: #06130d; }
+.cl-btn-primary:hover:not(:disabled) { background: var(--cl-accent-hover); }
+.cl-btn-line { background: transparent; border-color: var(--cl-border-strong); color: var(--cl-text-primary); }
+.cl-btn-line:hover:not(:disabled) { border-color: var(--cl-border-strong); background: var(--cl-bg-hover); }
+.cl-btn-ghost { background: transparent; color: var(--cl-text-muted); }
+.cl-btn-ghost:hover:not(:disabled) { color: var(--cl-text-primary); background: var(--cl-bg-hover); }
 /* Secondary "+ Create assignment": dark surface + muted border so it stays
    visible but sits below the assignment cards, never a dominant white fill. */
-.cl-btn-create { background: var(--cl-card-2); border-color: var(--cl-border); color: var(--cl-title); font-weight: 600; }
-.cl-btn-create:hover:not(:disabled) { background: var(--cl-card); border-color: var(--cl-border-strong); }
+.cl-btn-create { background: var(--cl-bg-field); border-color: var(--cl-border); color: var(--cl-text-primary); font-weight: 600; }
+.cl-btn-create:hover:not(:disabled) { background: var(--cl-bg-hover); border-color: var(--cl-border-strong); }
 .cl-btn-compact { width: auto; flex: 0 0 auto; padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; }
 
 .cl-stack { display: flex; flex-direction: column; gap: 10px; }
@@ -118,7 +166,7 @@
 .cl-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 2px 0 14px; }
 .cl-detail-head-main { min-width: 0; }
 .cl-detail-head-main h1 { margin: 0 0 4px; font: 700 1.4rem/1.2 var(--font-d, var(--font-b)); color: var(--cl-title); letter-spacing: -0.01em; }
-.cl-detail-head-main p { margin: 0; color: var(--cl-muted); font: 400 0.9rem/1.45 var(--font-b); }
+.cl-detail-head-main p { margin: 0; color: var(--cl-text-secondary); font: 400 0.9rem/1.45 var(--font-b); }
 
 .cl-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .cl-summary-item { background: var(--cl-card); border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm); padding: 11px 12px; }
@@ -176,17 +224,27 @@
 .cl-field { display: block; margin-bottom: 14px; }
 .cl-field-label { display: block; margin-bottom: 6px; font: 600 0.82rem var(--font-b); color: var(--cl-eyebrow); }
 .cl-input {
-  width: 100%; box-sizing: border-box; padding: 12px 13px;
-  background: var(--cl-card-2); border: 1px solid var(--cl-border);
-  border-radius: var(--cl-radius-sm); color: var(--cl-title);
-  font: 500 0.96rem var(--font-b); outline: none; transition: border-color .12s ease;
+  width: 100%; box-sizing: border-box; min-height: 46px; padding: 12px 14px;
+  background: var(--cl-bg-field); border: 1px solid var(--cl-border);
+  border-radius: 12px; color: var(--cl-text-primary);
+  font: 500 0.96rem var(--font-b); outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
 }
-.cl-input:focus { border-color: rgba(255,255,255,0.35); }
-textarea.cl-input { resize: vertical; line-height: 1.5; }
-select.cl-input { appearance: none; -webkit-appearance: none; }
+.cl-input::placeholder { color: var(--cl-text-faint); }
+/* Hover: slightly stronger border, no large colour change. */
+.cl-input:hover:not(:focus) { border-color: var(--cl-border-strong); }
+/* Focus: accent border + soft ring, no browser-default blue outline. */
+.cl-input:focus { border-color: var(--cl-accent); box-shadow: 0 0 0 3px var(--cl-accent-soft); }
+textarea.cl-input { min-height: 92px; resize: vertical; line-height: 1.5; }
+/* Selects share the field system with a subtle custom chevron. */
+select.cl-input {
+  appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center;
+}
 .cl-input-code { letter-spacing: 0.28em; text-transform: uppercase; font-family: var(--font-m, monospace); font-weight: 700; text-align: center; font-size: 1.15rem; }
 .cl-check { display: flex; align-items: center; gap: 9px; color: var(--cl-body); font: 500 0.9rem var(--font-b); margin: 4px 0 4px; cursor: pointer; }
-.cl-check input { width: 16px; height: 16px; accent-color: #fff; }
+.cl-check input { width: 16px; height: 16px; accent-color: var(--cl-accent); }
 
 /* Clearer section spacing in the (denser) assignment form. */
 .cl-form-spaced .cl-form-group { padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--cl-border); }
@@ -209,10 +267,10 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
   border-radius: 50%; background: #c4c9d0; transition: transform .15s ease, background .15s ease;
 }
-/* Active = near-white track with a dark knob (white is the primary "on" colour
-   in the learner/leader assignment flow; green stays reserved for correctness). */
-.cl-toggle-row.is-on .cl-toggle-switch { background: #f1f3f5; border-color: #f1f3f5; }
-.cl-toggle-row.is-on .cl-toggle-switch::after { transform: translateX(18px); background: #0b0c0f; }
+/* Active = restrained accent track with a dark knob (the accent marks the
+   "on"/active state consistently with the rest of the refined system). */
+.cl-toggle-row.is-on .cl-toggle-switch { background: var(--cl-accent); border-color: var(--cl-accent); }
+.cl-toggle-row.is-on .cl-toggle-switch::after { transform: translateX(18px); background: #06130d; }
 
 /* Animated reveal (due-date input under its switch). Off by default; opens with
    a subtle height+fade transition. max-height keeps it Safari-safe. */
@@ -230,8 +288,8 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   border-radius: var(--cl-radius-sm); color: var(--cl-body);
   transition: border-color .12s ease, background .12s ease, transform .06s ease;
 }
-.cl-path-card:hover { border-color: var(--cl-border-strong); background: var(--cl-card); }
-.cl-path-card:focus-visible { outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px; }
+.cl-path-card:hover { border-color: var(--cl-border-strong); background: var(--cl-bg-hover); }
+.cl-path-card:focus-visible { outline: 2px solid var(--cl-accent); outline-offset: 2px; }
 .cl-path-card:active { transform: translateY(1px); }
 .cl-path-icon {
   flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px;
@@ -255,7 +313,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-gen-step:nth-child(1) { animation-delay: 0s; }
 .cl-gen-step:nth-child(2) { animation-delay: 0.45s; }
 .cl-gen-step:nth-child(3) { animation-delay: 0.9s; }
-.cl-gen-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #ffffff; }
+.cl-gen-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--cl-accent); }
 @keyframes cl-gen-reveal { 0%, 70%, 100% { opacity: 0.32; } 25%, 45% { opacity: 1; } }
 .cl-gen-note { margin-top: 22px; color: var(--cl-muted); font: 400 0.84rem var(--font-b); }
 
@@ -321,7 +379,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 
 /* ── Manual question editor: answer-option rows ──────────────────────────── */
 .cl-opt-row { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
-.cl-opt-row input[type="radio"] { flex: 0 0 auto; width: 16px; height: 16px; accent-color: #ffffff; }
+.cl-opt-row input[type="radio"] { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--cl-accent); }
 .cl-opt-row .cl-input { margin: 0; }
 .cl-opt-hint { margin: 2px 0 12px; color: var(--cl-muted); font: 400 0.78rem var(--font-b); }
 
@@ -332,7 +390,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-preview-actions {
   position: sticky; bottom: 0; z-index: 5;
   display: flex; gap: 10px; margin: 16px -20px 0; padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(180deg, rgba(11,13,15,0) 0%, var(--cl-bg) 26%);
+  background: linear-gradient(180deg, rgba(13,16,19,0) 0%, var(--cl-bg) 26%);
 }
 .cl-preview-actions .cl-btn { flex: 1; width: auto; }
 .cl-preview-actions .cl-btn-line { flex: 0 0 96px; }
@@ -355,9 +413,8 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-bar-slim { height: 6px; flex: 1; }
 .cl-bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.34,1.2,.64,1); }
 .cl-bar-good { background: linear-gradient(90deg, var(--cl-green), var(--cl-green-bright)); }
-/* Plain white fill — the learner assignment progress colour (green is reserved
-   for correctness, not progress). */
-.cl-bar-white { background: #ffffff; }
+/* Learner assignment progress uses the restrained accent (flat, no glow). */
+.cl-bar-white { background: var(--cl-accent); }
 .cl-bar-mid { background: linear-gradient(90deg, #b78a2e, var(--cl-amber)); }
 .cl-bar-low { background: linear-gradient(90deg, #a14a42, var(--cl-red)); }
 
@@ -391,7 +448,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   text-decoration: underline; text-underline-offset: 3px;
 }
 .cl-demo-link:hover { color: var(--cl-title); }
-.cl-demo-link:focus-visible { outline: 2px solid var(--cl-border-strong); outline-offset: 2px; }
+.cl-demo-link:focus-visible { outline: 2px solid var(--cl-accent); outline-offset: 2px; }
 
 /* ── Learner player chrome ──────────────────────────────────────────────── */
 .cl-player-top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
@@ -532,7 +589,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   background: transparent; border: 1px solid var(--cl-border-strong);
   color: var(--cl-title); font: 600 0.78rem var(--font-b);
 }
-.cl-action-copy:hover { border-color: rgba(255,255,255,0.4); }
+.cl-action-copy:hover { border-color: var(--cl-border-strong); }
 .cl-action-body { margin: 0 0 8px; color: var(--cl-body); font: 400 0.92rem/1.55 var(--font-b); }
 .cl-action-note { margin-top: 6px; color: var(--cl-muted); font: 400 0.76rem var(--font-b); font-style: italic; }
 .cl-notes {
@@ -604,18 +661,18 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .account-mode-opt strong { color: var(--cl-title); font: 600 0.88rem var(--font-b); }
 .account-mode-opt small { color: var(--cl-muted); font: 400 0.74rem var(--font-b); }
-/* Selected = refined outlined selection: same dark family, a brighter light
-   border, a subtle lighter dark fill — never a white button. */
+/* Selected = refined accent selection: accent border + soft accent fill,
+   same dark family — never a white button. */
 .account-mode-opt.is-active {
-  border-color: rgba(255,255,255,0.62);
-  background: var(--cl-card);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+  border-color: var(--cl-accent-border);
+  background: var(--cl-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--cl-accent-border);
 }
 .account-mode-opt.is-active strong { color: var(--cl-title); }
 .account-mode-opt.is-active small { color: var(--cl-muted); }
 /* Clearly visible keyboard focus on both states. */
 .account-mode-opt:focus-visible {
-  outline: 2px solid #ffffff;
+  outline: 2px solid var(--cl-accent);
   outline-offset: 2px;
 }
 .account-mode-note { margin: 10px 0 0; color: var(--cl-muted); font: 400 .76rem/1.5 var(--font-b); }
@@ -647,7 +704,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-compare-row strong { color: var(--cl-title); text-align: right; font: 700 .84rem var(--font-b); }
 .cl-segments { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-top: 18px; padding: 4px; background: var(--cl-card-2); border: 1px solid var(--cl-border); border-radius: 12px; }
 .cl-segments button { padding: 9px 5px; border: 0; border-radius: 8px; background: transparent; color: var(--cl-muted); font: 700 .76rem var(--font-b); cursor: pointer; }
-.cl-segments button.is-active { background: #fff; color: #0b0c0f; }
+.cl-segments button.is-active { background: var(--cl-accent-soft); color: var(--cl-accent); box-shadow: inset 0 0 0 1px var(--cl-accent-border); }
 .cl-follow-panel[hidden] { display: none; }
 .cl-setting-row { display: flex; justify-content: space-between; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--cl-border); color: var(--cl-muted); font: 500 .88rem var(--font-b); }
 .cl-setting-row strong { color: var(--cl-title); text-transform: capitalize; }
@@ -655,7 +712,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 .cl-draft-tools { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0; }
 .cl-draft-tools > span { width: 100%; color: var(--cl-muted); font: 700 .66rem var(--font-b); letter-spacing: .08em; text-transform: uppercase; }
 .cl-draft-tools button { padding: 8px 10px; border: 1px solid var(--cl-border-strong); border-radius: 9px; background: transparent; color: var(--cl-body); font: 600 .76rem var(--font-b); cursor: pointer; }
-.cl-draft-tools button:hover { color: var(--cl-title); border-color: rgba(255,255,255,.45); }
+.cl-draft-tools button:hover { color: var(--cl-title); border-color: var(--cl-border-strong); }
 .cl-next-action { margin: 0 0 14px; padding: 15px; border: 1px solid rgba(216,162,58,.28); background: rgba(216,162,58,.07); border-radius: var(--cl-radius-sm); }
 .cl-next-kicker,.cl-next-label { color: var(--cl-amber); font: 800 .65rem var(--font-b); letter-spacing: .09em; text-transform: uppercase; }
 .cl-next-action p { margin: 8px 0 12px; color: var(--cl-body); font: 400 .9rem/1.5 var(--font-b); }
@@ -668,30 +725,43 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 }
 .cl-latest-line span { color: var(--cl-muted); font-weight: 700; }
 .cl-click-card {
-  cursor: pointer; padding: 14px; transition: border-color .12s ease, background .12s ease, transform .06s ease;
+  cursor: pointer; padding: 14px;
+  transition: border-color .12s ease, background .12s ease, transform .12s ease, box-shadow .12s ease;
 }
-.cl-click-card:hover { border-color: var(--cl-border-strong); background: #171b1f; }
+/* Hover lift only on pointer-capable devices — never a large floating card. */
+@media (hover: hover) and (pointer: fine) {
+  .cl-click-card:hover {
+    border-color: var(--cl-border-strong); background: var(--cl-bg-hover);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 10px 28px rgba(0, 0, 0, 0.2);
+  }
+  .cl-click-card:hover .cl-card-link span { transform: translateX(2px); }
+}
 .cl-click-card:focus-visible {
-  outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px;
+  outline: 2px solid var(--cl-accent); outline-offset: 2px;
 }
 .cl-click-card:active { transform: translateY(1px); }
 .cl-card-link {
-  margin-top: 12px; color: var(--cl-eyebrow); font: 700 .84rem var(--font-b);
+  margin-top: 12px; color: var(--cl-text-secondary); font: 700 .84rem var(--font-b);
+  display: inline-flex; align-items: center; gap: 6px;
 }
-.cl-card-link span { color: var(--cl-muted); }
+/* Directional arrow carries the restrained accent. */
+.cl-card-link span { color: var(--cl-accent); transition: transform .12s ease; }
 .cl-assignment-card { padding: 13px 14px; }
 .cl-assignment-card .cl-card-head-main { align-items: flex-start; }
 /* Title is the strongest element on the card. */
 .cl-assignment-card .cl-card-head strong { font: 650 1.06rem/1.25 var(--font-b); letter-spacing: -0.01em; }
 .cl-assignment-card .cl-card-meta { margin-top: 5px; font-size: 0.8rem; }
-/* Muted single-line response state. */
-.cl-asg-state { margin-top: 9px; color: var(--cl-muted); font: 500 0.86rem/1.4 var(--font-b); }
+/* Single-line response state — secondary text (a step above muted metadata). */
+.cl-asg-state { margin-top: 9px; color: var(--cl-text-secondary); font: 500 0.86rem/1.4 var(--font-b); }
 /* Thin progress bar — only rendered when the group has ≥1 learner. */
 .cl-asg-progress {
   margin-top: 9px; height: 4px; border-radius: 999px;
-  background: rgba(255,255,255,0.08); overflow: hidden;
+  background: rgba(255,255,255,0.06); overflow: hidden;
 }
-.cl-asg-progress span { display: block; height: 100%; border-radius: inherit; background: var(--cl-green); transition: width .2s ease; }
+.cl-asg-progress span { display: block; height: 100%; border-radius: inherit; background: var(--cl-accent); transition: width .3s ease; }
 .cl-assignment-card .cl-card-link { margin-top: 11px; }
 .cl-assignment-section { margin-top: 12px; }
 .cl-assignment-section-title {
@@ -726,8 +796,10 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   border-radius: 999px; background: transparent; color: var(--cl-muted);
   font: 700 .72rem var(--font-b); cursor: pointer; white-space: nowrap;
 }
-.cl-filter-row button.is-active { background: #fff; border-color: #fff; color: #0b0c0f; }
-.cl-filter-row button:focus-visible { outline: 2px solid rgba(255,255,255,.75); outline-offset: 2px; }
+/* Selected filter = restrained accent (soft fill + accent text), not a solid
+   white pill, so a row of filters never reads as a wall of bright chips. */
+.cl-filter-row button.is-active { background: var(--cl-accent-soft); border-color: var(--cl-accent-border); color: var(--cl-accent); }
+.cl-filter-row button:focus-visible { outline: 2px solid var(--cl-accent); outline-offset: 2px; }
 
 .cl-candidate-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -737,12 +809,12 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   padding: 11px 12px; border: 1px solid var(--cl-border); border-radius: var(--cl-radius-sm);
   background: var(--cl-card); transition: border-color .12s ease, background .12s ease, opacity .12s ease;
 }
-.cl-qc.is-selected { border-color: var(--cl-border-strong); background: #171b1f; }
+.cl-qc.is-selected { border-color: var(--cl-accent-border); background: var(--cl-accent-soft); }
 .cl-qc.is-loading { opacity: .6; }
 .cl-qc.is-dragging { opacity: .4; }
 .cl-qc-top { display: flex; align-items: flex-start; gap: 9px; }
 .cl-qc-check { flex: 0 0 auto; display: flex; align-items: center; cursor: pointer; padding-top: 1px; }
-.cl-qc-check input { width: 17px; height: 17px; accent-color: #fff; cursor: pointer; }
+.cl-qc-check input { width: 17px; height: 17px; accent-color: var(--cl-accent); cursor: pointer; }
 .cl-qc-handle { flex: 0 0 auto; display: flex; align-items: center; color: var(--cl-muted); cursor: grab; opacity: .6; }
 .cl-qc-handle:active { cursor: grabbing; }
 .cl-qc-handle svg { width: 16px; height: 16px; fill: currentColor; }
@@ -767,7 +839,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   padding: 6px 12px; border: 1px solid var(--cl-border-strong); border-radius: 8px;
   background: transparent; color: var(--cl-body); font: 600 .76rem var(--font-b); cursor: pointer;
 }
-.cl-qc-edit:hover { color: var(--cl-title); border-color: rgba(255,255,255,.4); }
+.cl-qc-edit:hover { color: var(--cl-title); border-color: var(--cl-border-strong); }
 /* Refine trigger (AI questions only). Menu reuses .cl-menu-pop / .cl-menu-item. */
 .cl-refine-menu { position: relative; }
 .cl-qc-refine {
@@ -775,7 +847,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   padding: 6px 12px; border: 1px solid var(--cl-border-strong); border-radius: 8px;
   background: transparent; color: var(--cl-body); font: 600 .76rem var(--font-b); cursor: pointer;
 }
-.cl-qc-refine:hover { color: var(--cl-title); border-color: rgba(255,255,255,.4); }
+.cl-qc-refine:hover { color: var(--cl-title); border-color: var(--cl-border-strong); }
 .cl-qc-refine svg { width: 14px; height: 14px; fill: currentColor; }
 .cl-refine-menu .cl-menu-pop { left: 0; right: auto; }
 .cl-qc .cl-menu-btn { margin: -4px -4px 0 0; }
@@ -789,7 +861,7 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin: 14px -20px 0;
   padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(180deg, rgba(11,13,15,0) 0%, var(--cl-bg) 30%);
+  background: linear-gradient(180deg, rgba(13,16,19,0) 0%, var(--cl-bg) 30%);
   border-top: 1px solid var(--cl-border);
 }
 .cl-bottom-bar strong { color: var(--cl-title); font: 700 .9rem var(--font-b); }
@@ -818,7 +890,9 @@ select.cl-input { appearance: none; -webkit-appearance: none; }
 
 /* Respect reduced-motion for the animated reveal / generating steps. */
 @media (prefers-reduced-motion: reduce) {
-  .cl-reveal, .cl-path-card, .cl-qc, .cl-bar-fill { transition: none !important; }
+  .cl-reveal, .cl-path-card, .cl-qc, .cl-bar-fill,
+  .cl-click-card, .cl-card-link span, .cl-asg-progress span { transition: none !important; }
+  .cl-click-card:hover { transform: none !important; }
   .cl-gen-step, .cl-spinner { animation: none !important; opacity: 1 !important; }
 }
 
