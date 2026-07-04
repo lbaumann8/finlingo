@@ -8083,3 +8083,77 @@ body.auth-modal-visible .ask-tutor-backdrop {
   padding: 11px 14px;
   min-height: 0;
 }
+
+
+/* ============================================================
+   PHASE 6.2 — COACH: investor-terminal atmosphere
+   Shifts the empty state from a centered landing hero to a dense,
+   LEFT-aligned app screen with raised charcoal cards and clear
+   section structure (Finlingo Coach / Mentor Brief / Suggested
+   Actions). Layout + surface only — uses existing --fl tokens; no
+   colors invented, no markup/logic/route/API changes.
+   ============================================================ */
+
+/* Content starts higher; left-aligned app-screen feel, not a centered hero. */
+.coach-page-shell.has-composer .coach-hero.coach-mentor-hero {
+  justify-content: flex-start;
+  gap: 24px;
+  padding: clamp(16px, 3.5vh, 30px) 0 16px;
+  text-align: left;
+}
+.coach-page-shell.has-composer .coach-hero-copy { text-align: left; width: 100%; }
+.coach-mentor-hero .coach-mentor-kicker { margin-bottom: 10px; }
+.coach-page-shell.has-composer .coach-hero h1,
+.coach-mentor-hero h1 {
+  font-size: clamp(1.85rem, 7.5vw, 2.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+.coach-page-shell.has-composer .coach-subtitle {
+  margin: 10px 0 0;
+  max-width: 100%;
+  text-align: left;
+  color: var(--fl-muted);
+  font-size: 0.92rem;
+}
+
+/* Section eyebrows — subtle uppercase structure */
+.coach-mentor-hero .coach-insight-eyebrow,
+.coach-mentor-hero .coach-suggest-label {
+  font: 700 0.64rem/1 var(--font-b);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.coach-mentor-hero .coach-suggest-label { color: var(--fl-muted); margin-bottom: 11px; }
+
+/* Mentor Brief — heavier raised-charcoal card */
+.coach-mentor-hero .coach-insight-card {
+  background: var(--fl-surface-raised);
+  border: 1px solid var(--fl-border-strong);
+  border-left: 2px solid var(--fl-accent);
+  box-shadow: var(--fl-inset);
+  border-radius: var(--fl-radius-card);
+  padding: 16px 18px;
+}
+.coach-mentor-hero .coach-insight-text {
+  color: var(--fl-body);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+/* Suggested Actions — premium raised action rows (not plain buttons) */
+.coach-mentor-hero .coach-suggest-grid { gap: 9px; }
+.coach-mentor-hero .coach-suggest-card {
+  background: var(--fl-surface-raised);
+  border: 1px solid var(--fl-border-strong);
+  box-shadow: var(--fl-inset);
+  border-radius: var(--fl-radius-card);
+  padding: 13px 15px;
+}
+.coach-mentor-hero .coach-suggest-card:hover {
+  background: var(--fl-surface-hover);
+  border-color: var(--fl-border-hover);
+  transform: translateY(-1px);
+}
+.coach-mentor-hero .coach-suggest-icon { width: 34px; height: 34px; }
+.coach-mentor-hero .coach-suggest-text { font-weight: 600; color: var(--fl-title); }

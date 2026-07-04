@@ -3044,11 +3044,11 @@
             <p class="coach-subtitle">Your AI mentor for markets, investing, and the language of finance.</p>
           </div>
           <div class="coach-insight-card">
-            <span class="coach-insight-eyebrow">Today’s context</span>
+            <span class="coach-insight-eyebrow">Mentor Brief</span>
             <p class="coach-insight-text">Markets move on expectations, not just headlines. Bring a question and we’ll unpack the “why” behind the move.</p>
           </div>
           <div class="coach-suggest">
-            <div class="coach-suggest-label">Try asking</div>
+            <div class="coach-suggest-label">Suggested Actions</div>
             <div class="coach-suggest-grid">${suggestHtml}</div>
           </div>
         </section>
