@@ -3757,140 +3757,128 @@ body.entry-gate-visible #authScreen.auth-modal-open {
    surfaces + mint accent (Phase 1–2); market ± uses --mkt-* only.
    ============================================================ */
 
-/* Force the premium dark canvas regardless of the light/dark toggle,
-   consistent with the always-dark Learn/Market/Coach surfaces. */
-#homeScreen { background: var(--fl-bg); }
-.home-dashboard {
-  background: var(--fl-bg);
-  padding: 26px 18px calc(120px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: column; gap: 26px;
+/* ============================================================
+   STITCH FIDELITY FOUNDATION — PROGRESS REFINEMENT  (Phase A)
+
+   Retunes the SHARED learning-progress bars to the technical Stitch
+   track: thinner (4px), hairline background, mint fill. These bars
+   previously rendered an 8–9px WHITE fill (legacy var(--green)),
+   which never received the mint migration — mint is the approved
+   functional colour for progress. Presentation only: widths remain
+   JS-driven, all logic untouched. Screen-specific bars (classroom
+   cl-bar, quiz tracks) are left for their own phases.
+   ============================================================ */
+.rail-bar,
+.simple-progress,
+.mastery-current-track {
+  height: var(--fl-track-h);
+  background: var(--fl-track-bg);
+}
+.rail-bar > span,
+.simple-progress span,
+.mastery-current-track span {
+  background: var(--fl-track-fill);
 }
 
-/* ── 1. Daily Brief hero ── */
-.home-brief-hero { margin: 0; padding: 0; }
-.home-brief-hero .home-welcome-kicker {
-  display: block;
-  font: 700 0.68rem/1 var(--font-b);
-  letter-spacing: 0.13em; text-transform: uppercase;
-  color: var(--fl-accent);
-  margin-bottom: 12px;
+
+/* ============================================================
+   STITCH FIDELITY — MASTERY COMPETENCY RINGS  (Phase: Mastery)
+
+   Presentation-only. Mono-labels Mastery's structural text and renders
+   each curriculum unit as a CSS conic-gradient competency ring (no
+   charting dependency). Every ring % is the unit's REAL lessons-complete
+   ratio (getFluencyLadder → lv.pct). State (done/current/partial/zero/
+   locked) is conveyed by ring fill + icon + state word + status text —
+   never by color alone. Preserves Practice.openLevel() clicks.
+   ============================================================ */
+
+/* ── Mono structural labels ── */
+.simple-eyebrow {
+  font-family: var(--fl-font-label);
+  font-size: var(--fl-label-size); font-weight: var(--fl-label-weight);
+  letter-spacing: var(--fl-label-tracking); text-transform: uppercase;
 }
-.home-brief-hero .home-welcome-title {
-  margin: 0; color: var(--fl-heading);
-  font: 700 1.9rem/1.1 var(--font-b); letter-spacing: -0.03em;
+.simple-section-heading > small,
+.mastery-current-kicker {
+  font-family: var(--fl-font-label); letter-spacing: 0.08em; text-transform: uppercase;
 }
-.home-capital {
-  margin-top: 18px; padding: 16px 18px;
-  background: var(--fl-surface-passive);
-  border: 1px solid var(--fl-border);
-  border-left: 2px solid var(--fl-accent);
-  border-radius: var(--fl-radius-control);
+/* Overall mastery label → mono; keep the % immediately legible (display face) */
+.simple-journey-score > div:first-child > span {
+  font-family: var(--fl-font-label);
+  font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fl-faint);
 }
-.home-capital-eyebrow {
-  display: block;
-  font: 700 0.62rem/1 var(--font-b);
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--fl-muted); margin-bottom: 8px;
-}
-.home-capital-stat { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
-.home-capital-stat .cc-value {
-  color: var(--fl-heading);
-  font: 600 2.3rem/1 var(--font-num); letter-spacing: -0.02em;
-}
-.home-capital-stat .cc-max { color: var(--fl-faint); font: 500 1rem/1 var(--font-num); }
-.home-capital-level {
-  margin-left: auto;
-  padding: 4px 10px; border-radius: var(--fl-radius-pill);
-  background: var(--fl-accent-soft); color: var(--fl-accent);
-  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.04em; text-transform: uppercase;
-  align-self: center;
+.simple-journey-score strong { font-family: var(--fl-font-display); }
+.mastery-current-stats span {
+  font-family: var(--fl-font-label); font-size: 0.56rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
 }
 
-/* ── Section headers → quiet eyebrows ── */
-.home-dashboard .home-section { margin: 0; }
-.home-dashboard .home-section-head { margin-bottom: 12px; }
-.home-dashboard .home-section-title {
-  margin: 0; color: var(--fl-muted);
-  font: 700 0.72rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
-}
-
-/* ── Shared card surface ── */
-.home-dashboard .home-simple-card {
-  background: var(--fl-surface);
-  border: 1px solid var(--fl-border);
+/* ── Competency ring list ── */
+.comp-section .simple-section-heading { margin-bottom: 12px; }
+.comp-list { display: flex; flex-direction: column; gap: 8px; }
+.comp-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 12px 14px; cursor: pointer;
+  background: var(--fl-surface); border: 1px solid var(--fl-border);
   border-radius: var(--fl-radius-card);
-  box-shadow: none;
-}
-
-/* ── 2. Continue Learning (focal) ── */
-.home-dashboard .home-hero-card {
-  background: var(--fl-surface-raised);
-  border: 1px solid var(--fl-border-strong);
-  border-radius: var(--fl-radius-card);
-  box-shadow: none; padding: 20px;
-}
-.home-dashboard .hero-eyebrow {
-  color: var(--fl-accent);
-  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
-}
-.home-dashboard .hero-title { color: var(--fl-heading); font-weight: 700; letter-spacing: -0.02em; }
-.home-dashboard .hero-progress { color: var(--fl-muted); }
-.home-dashboard .hero-sub { color: var(--fl-sub); }
-
-/* ── 3. Today's Market Context ── */
-.home-dashboard .market-read-headline { color: var(--fl-title); }
-.home-dashboard .market-read-copy { color: var(--fl-body); }
-.home-dashboard .market-read-chip.up   { color: var(--mkt-up);   background: rgba(34,240,90,0.10); }
-.home-dashboard .market-read-chip.down { color: var(--mkt-down); background: rgba(248,113,113,0.10); }
-
-/* ── 4. AI Insight card → Coach ── */
-.home-insight-card {
-  display: flex; align-items: center; gap: 13px; width: 100%;
-  text-align: left; padding: 15px 16px; cursor: pointer;
   transition: background var(--fl-dur) var(--fl-ease), border-color var(--fl-dur) var(--fl-ease), transform var(--fl-dur) var(--fl-ease);
 }
-.home-insight-card:hover { background: var(--fl-surface-hover); border-color: var(--fl-border-hover); transform: translateY(-1px); }
-.home-insight-card:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.home-insight-icon {
-  flex: 0 0 auto; width: 34px; height: 34px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: var(--fl-radius-chip);
-  background: var(--fl-accent-soft); color: var(--fl-accent);
-}
-.home-insight-icon svg { width: 17px; height: 17px; }
-.home-insight-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.home-insight-eyebrow {
-  font: 700 0.62rem/1 var(--font-b); letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--fl-accent);
-}
-.home-insight-text { color: var(--fl-body); font: 400 0.9rem/1.45 var(--font-b); }
-.home-insight-arrow { flex: 0 0 auto; color: var(--fl-faint); display: inline-flex; transition: color var(--fl-dur) var(--fl-ease), transform var(--fl-dur) var(--fl-ease); }
-.home-insight-arrow svg { width: 18px; height: 18px; }
-.home-insight-card:hover .home-insight-arrow { color: var(--fl-accent); transform: translateX(2px); }
+.comp-row:hover:not(:disabled) { background: var(--fl-surface-hover); border-color: var(--fl-border-strong); transform: translateY(-1px); }
+.comp-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.comp-row:disabled { cursor: default; }
 
-/* ── 5. Market Snapshot strip ── */
-.brief-snapshot { padding: 6px; display: flex; flex-direction: column; }
-.brief-ticker {
-  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px;
-  width: 100%; text-align: left; cursor: pointer;
-  padding: 11px 12px; border: 0; background: transparent;
-  border-radius: var(--fl-radius-control);
-  transition: background var(--fl-dur) var(--fl-ease);
+/* Ring — conic-gradient: mint arc up to --pct, neutral track for the rest */
+.comp-ring {
+  --ring-size: 50px; --ring-stroke: 4px;
+  flex: none; width: var(--ring-size); height: var(--ring-size);
+  border-radius: 50%; display: grid; place-items: center; position: relative;
 }
-.brief-ticker + .brief-ticker { border-top: 1px solid var(--fl-divider); }
-.brief-ticker:hover { background: var(--fl-surface-hover); }
-.brief-ticker-label { color: var(--fl-title); font: 600 0.9rem/1 var(--font-b); }
-.brief-ticker-value { color: var(--fl-sub); font: 500 0.86rem/1 var(--font-num); font-variant-numeric: tabular-nums; }
-.brief-ticker-change { font: 600 0.82rem/1 var(--font-num); font-variant-numeric: tabular-nums; color: var(--fl-muted); }
-.brief-ticker-up   .brief-ticker-change { color: var(--mkt-up); }
-.brief-ticker-down .brief-ticker-change { color: var(--mkt-down); }
+.comp-ring::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  padding: var(--ring-stroke);
+  background: conic-gradient(var(--fl-accent) calc(var(--pct, 0) * 1%), var(--fl-track-bg) 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+.comp-ring-inner {
+  font-family: var(--fl-font-label); font-size: 0.66rem; font-weight: 600;
+  color: var(--fl-title); line-height: 1;
+}
+.comp-ic { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.comp-ic-lock { stroke-width: 1.8; }
 
-/* ── 6. Mastery Progress card ── */
-.home-dashboard .confidence-compact-score .cc-value { color: var(--fl-heading); font-family: var(--font-num); }
-.home-dashboard .confidence-compact-score .cc-max { color: var(--fl-faint); }
-.home-dashboard .confidence-compact-sub { color: var(--fl-muted); }
-.home-dashboard .confidence-compact-level {
-  background: var(--fl-accent-soft); color: var(--fl-accent);
-  padding: 4px 10px; border-radius: var(--fl-radius-pill);
-  font: 700 0.66rem/1 var(--font-b); letter-spacing: 0.04em; text-transform: uppercase;
+.comp-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.comp-name {
+  color: var(--fl-title);
+  font: 600 0.95rem/1.2 var(--fl-font-display); letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.comp-status {
+  font-family: var(--fl-font-label); font-size: 0.6rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--fl-muted);
+}
+.comp-tag {
+  flex: none; font-family: var(--fl-font-label); font-size: 0.55rem;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fl-accent); background: var(--fl-accent-soft);
+  padding: 4px 8px; border-radius: var(--fl-radius-pill);
+}
+.comp-row .fl-chev { flex: none; width: 18px; height: 18px; color: var(--fl-faint); }
+.comp-row .fl-chev svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* ── States — visually distinct beyond colour ── */
+.comp-done .comp-ring-inner { color: var(--fl-accent); }          /* full mint ring + mint check */
+.comp-current { border-color: var(--fl-accent-border); }           /* mint accent border */
+.comp-zero .comp-ring-inner { color: var(--fl-muted); }            /* neutral ring, quiet inner */
+.comp-locked { opacity: 0.55; background: var(--fl-surface-passive); }  /* low-contrast, no mint */
+.comp-locked .comp-ring::before { background: var(--fl-track-bg); }
+.comp-locked .comp-ring-inner { color: var(--fl-faint); }
+.comp-locked .comp-name { color: var(--fl-muted); }
+
+/* ── Mobile — comfortable single column, no tiny labels ── */
+@media (max-width: 560px) {
+  .comp-row { padding: 11px 12px; gap: 12px; }
+  .comp-ring { --ring-size: 46px; }
 }

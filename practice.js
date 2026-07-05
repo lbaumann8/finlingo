@@ -1259,17 +1259,38 @@
       const active = index >= 7 - Math.min(7, streak);
       return `<span class="${active ? 'is-active' : ''}" aria-hidden="true"></span>`;
     }).join('');
-    const upcomingLevels = ladder.levels
-      .filter(level => level.n > currentLevel.n)
-      .map(level => `
-        <button type="button" class="mastery-upcoming-row" ${level.state === 'locked' ? 'disabled aria-disabled="true"' : `onclick="Practice.openLevel(${level.n})"`}>
-          <span class="mastery-upcoming-number">${level.n}</span>
-          <span>
-            <strong>${_escape(level.name)}</strong>
-            <small>${level.state === 'locked' ? `Complete the previous unit to unlock` : `${level.completed} of ${level.total} lessons complete`}</small>
+    // Core competencies — one ring per curriculum unit. Every value is derived
+    // straight from getFluencyLadder(): the ring % is the unit's real
+    // lessons-complete ratio (lv.pct = done/total), and the state
+    // (completed/current/available/locked) drives a visually distinct, non-
+    // color-only treatment (icon + state word + status text). Clicks reuse the
+    // existing Practice.openLevel() handler; locked units stay disabled.
+    const _COMP_CHECK = '<svg class="comp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+    const _COMP_LOCK = '<svg class="comp-ic comp-ic-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+    const competencyList = ladder.levels.map(lv => {
+      const done = lv.state === 'completed';
+      const locked = lv.state === 'locked';
+      const isCurrent = lv.state === 'current';
+      const pct = Math.max(0, Math.min(100, Number(lv.pct) || 0));
+      const stateKey = done ? 'done' : locked ? 'locked' : isCurrent ? 'current' : (pct > 0 ? 'partial' : 'zero');
+      const stateWord = done ? 'Complete' : locked ? 'Locked' : (pct > 0 ? 'In progress' : 'Not started');
+      const inner = done ? _COMP_CHECK : locked ? _COMP_LOCK : `${pct}%`;
+      const status = locked ? 'Complete the previous unit to unlock' : `${lv.completed} of ${lv.total} lessons`;
+      const aria = locked
+        ? `${lv.name}. Locked. Complete the previous unit to unlock.`
+        : `${lv.name}. ${stateWord}. ${lv.completed} of ${lv.total} lessons complete, ${pct} percent.`;
+      const attrs = locked ? 'disabled aria-disabled="true"' : `onclick="Practice.openLevel(${lv.n})"`;
+      return `
+        <button type="button" class="comp-row comp-${stateKey}" ${attrs} style="--pct:${pct}" aria-label="${_escape(aria)}">
+          <span class="comp-ring" aria-hidden="true"><span class="comp-ring-inner">${inner}</span></span>
+          <span class="comp-copy">
+            <span class="comp-name">${_escape(lv.name)}</span>
+            <span class="comp-status">${_escape(status)}</span>
           </span>
-          <span class="fl-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
-        </button>`).join('');
+          ${isCurrent ? '<span class="comp-tag">Current</span>' : ''}
+          ${locked ? '' : '<span class="fl-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>'}
+        </button>`;
+    }).join('');
 
     root.innerHTML = `
       <div class="simple-page-shell simple-journey-shell">
@@ -1291,12 +1312,9 @@
             <div class="simple-progress"><span style="width:${fluency.pct}%"></span></div>
           </section>
 
-          <section class="simple-content-section simple-journey-path">
-            <div class="simple-section-heading"><span>Your journey</span><small>Unit ${currentLevel.n} of ${ladder.levels.length}</small></div>
-            ${journeyPath ? `<div class="fl-journey">${journeyPath}</div>` : ''}
-            <div class="mastery-journey-labels" style="grid-template-columns:repeat(${ladder.levels.length},minmax(0,1fr))">
-              ${ladder.levels.map(level => `<span class="${level.state === 'current' ? 'is-current' : ''}">${_escape(level.name)}</span>`).join('')}
-            </div>
+          <section class="simple-content-section comp-section">
+            <div class="simple-section-heading"><span>Core competencies</span><small>${ladder.levels.length} units</small></div>
+            <div class="comp-list">${competencyList}</div>
           </section>
 
           <section class="mastery-current-card simple-current-level">
@@ -1313,11 +1331,6 @@
             ${currentNext
               ? `<button type="button" class="btn btn-primary mastery-primary-action" onclick="openCourse(${currentNext.id})">Continue unit</button>`
               : `<button type="button" class="btn btn-primary mastery-primary-action" onclick="Practice.startDaily()">Review current unit</button>`}
-          </section>
-
-          <section class="mastery-upcoming simple-content-section">
-            <div class="simple-section-heading"><span>Upcoming units</span></div>
-            <div class="mastery-upcoming-list">${upcomingLevels}</div>
           </section>
         </main>
 

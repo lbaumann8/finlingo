@@ -911,3 +911,86 @@ select.cl-input {
   .cl-menu-btn { width: 40px; height: 40px; }
 }
 
+
+/* ============================================================
+   STITCH FIDELITY — CLASSROOM PREMIUM POLISH  (Phase: Classroom)
+
+   Presentation-only. Brings Classroom to the same language as Learn /
+   Market / Coach / Mastery: mono structural labels + counts + codes,
+   display-font headers/stat values, flat surfaces (no gradients / no
+   deep shadow), thin progress tracks, mint for actionable/success.
+   Reuses the canonical --fl-* layer (Classroom already aliases --cl-*
+   onto it). NO changes to routes/APIs/Supabase/auth/assignment/
+   scoring/aggregation/persistence logic or any renderer markup.
+   Appended last so it wins the cascade.
+   ============================================================ */
+
+/* ── Headers — display face, tighter top rhythm ── */
+.cl-screen { padding-top: var(--cl-space-4); }
+.cl-header { margin-top: 0; }
+.cl-header h1 {
+  font-family: var(--fl-font-display);
+  font-size: 1.6rem; font-weight: 700; line-height: 1.08; letter-spacing: -0.025em;
+}
+.cl-empty h2,
+.cl-card-head strong,
+.cl-summary-val,
+.cl-stat-val,
+.cl-gap-banner-concept { font-family: var(--fl-font-display); }
+
+/* ── Mono structural labels / counts / statuses ──
+   Font-only overrides (no layout impact). */
+.cl-kicker,
+.cl-section-title,
+.cl-card-meta,
+.cl-latest-line,
+.cl-code-label,
+.cl-copy-label,
+.cl-ls-label,
+.cl-field-label,
+.cl-summary-label,
+.cl-stat-label,
+.cl-status-pill,
+.cl-qc-pill,
+.cl-demo-tag,
+.cl-gap-banner-kicker {
+  font-family: var(--fl-font-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cl-kicker,
+.cl-section-title { font-weight: 500; }
+.cl-card-meta,
+.cl-latest-line,
+.cl-summary-label,
+.cl-stat-label { font-weight: 500; letter-spacing: 0.06em; }
+
+/* ── Join / assignment codes → true mono (was Inter via --font-m) ──
+   Findable and copyable, but not allowed to dominate the page. */
+.cl-code-mid {
+  font-family: var(--fl-font-label);
+  font-size: 1.18rem; font-weight: 600; letter-spacing: 0.14em;
+}
+.cl-input-code { font-family: var(--fl-font-label); }
+.cl-code-inline { font-family: var(--fl-font-label); }
+
+/* ── Cards — flat: subtle inset only, no deep drop shadow ── */
+.cl-card { box-shadow: var(--fl-inset); }
+
+/* ── Progress tracks — thin, flat (no gradients) ── */
+.cl-bar { height: 6px; background: var(--fl-track-bg); }
+.cl-bar-slim { height: 4px; }
+.cl-bar-good,
+.cl-bar-white { background: var(--fl-accent); }   /* success / progress = mint */
+.cl-bar-mid { background: var(--cl-amber); }        /* mid performance — flat tone */
+.cl-bar-low { background: var(--cl-red); }          /* low performance — flat tone */
+
+/* ── Status pills — subdued (not decorative); success stays mint-green ── */
+.cl-status-pill { font-weight: 500; letter-spacing: 0.08em; }
+
+/* ── Results — participation / understanding stat cards read as data ── */
+.cl-summary-val,
+.cl-stat-val { letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.cl-summary-label,
+.cl-stat-label { color: var(--fl-faint); }
+

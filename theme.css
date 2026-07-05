@@ -353,3 +353,72 @@ body.theme-transitioning * {
 .theme-toggle .icon-moon { display: block; }
 [data-theme="light"] .theme-toggle .icon-sun  { display: block; }
 [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+
+/* ============================================================
+   STITCH FIDELITY FOUNDATION — TOKENS  (Phase A)
+
+   Presentation-only design language matching the Stitch / Lumina
+   reference (see STITCH_FIDELITY_AUDIT.md). This block adds TOKENS
+   ONLY. The consuming utility classes live in base.css; existing
+   screens are NOT restyled here — later phases (Home/Learn/Market/
+   Mastery/Coach) opt into these primitives. Nothing changes routes,
+   logic, data, APIs, or behavior.
+
+   Namespacing rule: the display + label faces are added as NEW
+   tokens (--fl-font-display / --fl-font-label). The legacy
+   --font-d / --font-b / --font-m are deliberately left untouched so
+   no existing type site shifts until a phase migrates it.
+   ============================================================ */
+:root {
+  /* ── Faces — Stitch pairs Hanken Grotesk (display) with JetBrains
+     Mono (labels/tickers). Inter remains the body workhorse. ── */
+  --fl-font-display: 'Hanken Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fl-font-label:   'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── Mono-label ramp — the primary section-label language.
+     Uppercase, wide-tracked, low-contrast. ── */
+  --fl-label-size:     0.68rem;
+  --fl-label-weight:   500;
+  --fl-label-tracking: 0.14em;
+  --fl-label-color:    var(--fl-faint);   /* default low-contrast */
+  --fl-label-dim:      var(--muted2);      /* extra-quiet */
+  --fl-label-bright:   var(--fl-eyebrow);  /* raised emphasis */
+
+  /* ── Hybrid CTA tokens (approved decision) ──────────────────────
+     Marquee progression actions = WHITE fill / dark ink.
+     Everything else keeps the mint brand accent (--fl-accent).
+     This does NOT revert the mint migration — only marquee CTAs
+     that opt into .btn-marquee become white. ── */
+  --cta-marquee-bg:         #FFFFFF;
+  --cta-marquee-bg-hover:   #ECEEF1;
+  --cta-marquee-text:       #0B0D0F;
+  --cta-secondary-bg:       var(--fl-surface);
+  --cta-secondary-bg-hover: var(--fl-surface-hover);
+  --cta-secondary-text:     var(--fl-title);
+  --cta-secondary-border:   var(--fl-border-strong);
+  --cta-secondary-accent:   var(--fl-accent);
+
+  /* ── Progress track — thin, technical, less gamified.
+     Fill is mint (functional/goal progress); a neutral variant
+     uses white per the Stitch "neutral = white" rule. ── */
+  --fl-track-h:        4px;
+  --fl-track-bg:       rgba(255,255,255,0.08);
+  --fl-track-fill:     var(--fl-accent);
+  --fl-track-fill-neutral: var(--fl-title);
+  --fl-track-radius:   var(--fl-radius-pill);
+
+  /* ── Card elevation ramp (primitives defined in base.css) ── */
+  --fl-card-pad:       var(--fl-space-6);
+}
+
+[data-theme="light"] {
+  /* Marquee CTA in light mode: invert to a dark primary so the
+     "high-impact primary" reading survives on a light canvas.
+     (The Learn/Market/Mastery canvases stay dark regardless — this
+     only matters on any light-themed surface that opts in.) */
+  --cta-marquee-bg:       #0B0D0F;
+  --cta-marquee-bg-hover: #1D222C;
+  --cta-marquee-text:     #FFFFFF;
+  --fl-track-bg:          rgba(11,13,16,0.10);
+}

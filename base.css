@@ -1302,146 +1302,6 @@ body {
 }
 
 
-/* ════════════════════════════════════════════════════════════
-   HOME HERO ACTION CARD
-   The primary CTA on the home screen. Visually dominant —
-   larger padding, green top accent, subtle elevation.
-   ════════════════════════════════════════════════════════════ */
-
-.home-dashboard {
-  width: min(100%, 30rem);
-  margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.home-welcome {
-  padding: 2px 0 0;
-}
-
-.home-welcome-kicker,
-.home-card-kicker {
-  font-family: var(--font-b);
-  font-size: 0.74rem;
-  font-weight: 500;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-.home-welcome-title {
-  font-family: var(--font-d);
-  font-size: 1.45rem;
-  font-weight: 600;
-  letter-spacing: -0.028em;
-  line-height: 1.15;
-  color: var(--text);
-}
-
-.home-welcome-copy {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--text-sub);
-}
-
-.home-simple-card {
-  padding: 14px;
-  border-radius: var(--radius);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-}
-
-.home-card-title {
-  font-family: var(--font-d);
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.014em;
-  line-height: 1.25;
-  color: var(--text);
-}
-
-.home-card-copy {
-  margin-top: 6px;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  color: var(--text-sub);
-}
-
-.home-card-note {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.home-card-action {
-  margin-top: 12px;
-}
-
-.home-market-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.home-market-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.home-market-row:first-child {
-  padding-top: 0;
-}
-
-.home-market-row:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.home-market-label {
-  font-family: var(--font-d);
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.home-market-lesson {
-  margin-top: 3px;
-  font-size: 0.7rem;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.home-market-values {
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.home-market-value,
-.home-progress-percent {
-  font-family: var(--font-num);
-  font-size: 0.94rem;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.home-market-change {
-  margin-top: 3px;
-  font-family: var(--font-m);
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.home-market-change.up { color: var(--green-text); }
-.home-market-change.down { color: var(--red-text); }
 
 /* ── TODAY'S MONEY DECISION ──────────────────────────────────── */
 .decision-card { display: flex; flex-direction: column; }
@@ -2758,3 +2618,153 @@ body {
 [data-theme="light"] .quest-bonus-row-done {
   background: rgba(200,160,32,0.07);
 }
+
+
+/* ============================================================
+   STITCH FIDELITY FOUNDATION — UTILITIES  (Phase A)
+
+   Reusable presentation primitives that later phases apply to the
+   screens. Tokens live in theme.css. Adding these classes changes
+   NOTHING on its own — no existing element carries them yet. They
+   exist so Home/Learn/Market/Mastery/Coach can be recomposed without
+   inventing per-screen styles. No logic / routes / data touched.
+   ============================================================ */
+
+/* ── 1. MONO-LABEL SYSTEM ────────────────────────────────────────
+   The primary section-label language: TODAY · KNOWLEDGE CAPITAL ·
+   TRACK 01 · MENTOR BRIEF · ACTIVE MODULE. Uppercase, mono, small,
+   wide-tracked, low-contrast — consistent across every screen. */
+.mono-label {
+  display: inline-block;
+  font-family: var(--fl-font-label);
+  font-size: var(--fl-label-size);
+  font-weight: var(--fl-label-weight);
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: var(--fl-label-tracking);
+  color: var(--fl-label-color);
+}
+.mono-label--dim    { color: var(--fl-label-dim); }
+.mono-label--bright { color: var(--fl-label-bright); }
+.mono-label--accent { color: var(--fl-accent); }        /* functional / active only */
+.mono-label--block  { display: block; }
+
+/* ── 2. TYPOGRAPHY RAMP ──────────────────────────────────────────
+   Four levels only: display title · section title · body · mono
+   label. Institutional, terminal-like, quiet. Utilities opt in;
+   the global type ramp is unchanged. */
+.t-display {
+  font-family: var(--fl-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--fl-heading);
+}
+.t-display--lg { font-size: 2.4rem; letter-spacing: -0.035em; }
+.t-section {
+  font-family: var(--fl-font-display);
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--fl-title);
+}
+.t-body {
+  font-family: var(--font-b);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--fl-body);
+}
+/* Big focal numeric stat (Knowledge Capital, price, %) */
+.t-stat {
+  font-family: var(--fl-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--fl-heading);
+  font-variant-numeric: tabular-nums;
+}
+.t-stat--sm  { font-size: 1.6rem; }
+.t-stat-unit { color: var(--fl-muted); font-weight: 600; }
+
+/* ── 3. COMPACT PAGE HEAD ────────────────────────────────────────
+   The in-product header that later phases use to REPLACE marketing
+   heroes / oversized greetings. Tight vertical rhythm, one sub-line
+   max. Nothing consumes it yet. */
+.stitch-pagehead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 var(--fl-section-gap);
+}
+.stitch-pagehead-sub {
+  font: 400 0.98rem/1.55 var(--font-b);
+  color: var(--fl-muted);
+  max-width: 44ch;
+}
+
+/* ── 4. PROGRESS TRACK PRIMITIVE ─────────────────────────────────
+   Thin, technical. Fill mint (goal progress) or white (neutral). */
+.fl-track {
+  height: var(--fl-track-h);
+  background: var(--fl-track-bg);
+  border-radius: var(--fl-track-radius);
+  overflow: hidden;
+}
+.fl-track > span,
+.fl-track-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--fl-track-fill);
+  transition: width 0.5s var(--fl-ease);
+}
+.fl-track--neutral > span,
+.fl-track-fill--neutral { background: var(--fl-track-fill-neutral); }
+
+/* ── 5. CARD HIERARCHY PRIMITIVES ────────────────────────────────
+   Passive (recessed/complete) · Raised (default interactive) ·
+   Focal (featured). Tonal layering, hairline borders, no glow —
+   per Obsidian Reserve. */
+.fl-card,
+.fl-card-raised,
+.fl-card-focal {
+  border-radius: var(--fl-radius-card);
+  padding: var(--fl-card-pad);
+  border: 1px solid var(--fl-border);
+}
+.fl-card        { background: var(--fl-surface-passive); }
+.fl-card-raised {
+  background: var(--fl-surface);
+  background-image: var(--fl-overlay);
+  box-shadow: var(--fl-inset);
+}
+.fl-card-focal  {
+  background: var(--fl-surface-raised);
+  background-image: var(--fl-overlay);
+  border-color: var(--fl-border-strong);
+  box-shadow: var(--fl-inset), var(--shadow-md);
+}
+/* Opt-in hover for clickable cards */
+.fl-card-interactive { cursor: pointer; transition: background-color var(--fl-dur) var(--fl-ease), border-color var(--fl-dur) var(--fl-ease); }
+.fl-card-interactive:hover { background-color: var(--fl-surface-hover); border-color: var(--fl-border-strong); }
+
+/* ── 6. HYBRID CTA UTILITIES ─────────────────────────────────────
+   .btn-marquee → white primary for MARQUEE progression actions
+   (Home Continue, Learn/Market/Mastery resume). Applied as
+   `class="btn btn-marquee"`. Mint .btn-primary stays for in-flow /
+   secondary progression. .btn-charcoal → charcoal surface w/ mint
+   accent for secondary actions. */
+.btn-marquee { background: var(--cta-marquee-bg); color: var(--cta-marquee-text); }
+.btn-marquee:hover:not(:disabled) { background: var(--cta-marquee-bg-hover); }
+.btn-charcoal {
+  background: var(--cta-secondary-bg);
+  color: var(--cta-secondary-text);
+  border: 1px solid var(--cta-secondary-border);
+}
+.btn-charcoal:hover:not(:disabled) { background: var(--cta-secondary-bg-hover); border-color: var(--fl-border-hover); }
+.btn-charcoal .btn-accent { color: var(--cta-secondary-accent); }

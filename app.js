@@ -873,95 +873,6 @@ function renderHomeRankProgressCard(summary = null) {
     </div>`;
 }
 
-function renderHomeMomentumCard(summary = null) {
-  const el = document.getElementById('homeMomentumCard');
-  if (!el) return;
-
-  const progress = summary || (typeof getProgressSummary === 'function' ? getProgressSummary() : null);
-  const streak = Math.max(0, Number(S.streak) || 0);
-  const freezes = Math.max(0, Number(S.inventory?.streakSavers) || 0);
-  const dueCount = Math.max(0, Number(progress?.dueReviewCount) || 0);
-  const achievementCount = typeof getAchievements === 'function'
-    ? getAchievements().length
-    : Object.keys(S.achievements || {}).length;
-  const milestones = [7, 14, 30];
-  const nextMilestone = milestones.find(value => streak < value) || null;
-  const leadTitle = streak > 0 ? `${streak}-day streak` : 'Start your streak';
-  const leadSub = dueCount > 0
-    ? `${dueCount} review ${dueCount === 1 ? 'question' : 'questions'} ready`
-    : streak > 0
-      ? (nextMilestone
-          ? `${nextMilestone - streak} ${nextMilestone - streak === 1 ? 'day' : 'days'} to the next streak marker`
-          : 'Core streak milestones completed')
-      : 'Finish one lesson today to build momentum.';
-
-  el.innerHTML = `
-    <div class="home-momentum-card"
-         onclick="showProgress()"
-         role="button"
-         tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' ')showProgress()">
-      <div class="home-momentum-top">
-        <div class="home-momentum-kicker">Momentum</div>
-        <div class="home-momentum-link">Progress</div>
-      </div>
-      <div class="home-momentum-title">${leadTitle}</div>
-      <div class="home-momentum-sub">${leadSub}</div>
-      <div class="home-momentum-meta">
-        <span>${achievementCount} achievement${achievementCount === 1 ? '' : 's'}</span>
-        <span>${freezes} freeze${freezes === 1 ? '' : 's'}</span>
-      </div>
-    </div>`;
-}
-
-function renderHomeMarketShortcutCard(summary = null) {
-  const el = document.getElementById('marketUnlockCard');
-  if (!el) return;
-
-  const progress = summary || (typeof getProgressSummary === 'function' ? getProgressSummary() : null);
-  const portfolioValue = typeof getPortfolioValue === 'function'
-    ? Number(getPortfolioValue() || 0)
-    : Math.max(0, Number(progress?.netWorth || S.cash || 0));
-  const marketFeatures = _getMarketFeatureRegistry();
-  const currentXp = Number(S.xp || 0);
-  const newFeature = marketFeatures
-    .filter(feature => currentXp >= feature.requiredXp)
-    .find(feature => !localStorage.getItem(`finlingo_market_seen_${feature.id}`));
-
-  if (newFeature) {
-    const seenKey = `finlingo_market_seen_${newFeature.id}`;
-    const requiredLevel = typeof getLevelFromXP === 'function' ? getLevelFromXP(newFeature.requiredXp) : null;
-    const featureTitle = typeof newFeature.title === 'function' ? newFeature.title() : newFeature.title;
-    el.innerHTML = `
-      <div class="home-market-shortcut home-market-shortcut-unlock"
-           onclick="localStorage.setItem('${seenKey}','1');renderHomeMarketShortcutCard();showMarket();"
-           role="button"
-           tabindex="0"
-           onkeydown="if(event.key==='Enter'||event.key===' '){localStorage.setItem('${seenKey}','1');renderHomeMarketShortcutCard();showMarket();}">
-        <div class="home-market-shortcut-copy">
-          <div class="home-market-shortcut-kicker">New in Market</div>
-          <div class="home-market-shortcut-title">${featureTitle}</div>
-          <div class="home-market-shortcut-sub">Unlocked at ${requiredLevel ? `Level ${requiredLevel}` : `${newFeature.requiredXp.toLocaleString()} XP`}.</div>
-        </div>
-        <div class="home-market-shortcut-cta">Try Now</div>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = `
-    <div class="home-market-shortcut"
-         onclick="showMarket()"
-         role="button"
-         tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' ')showMarket()">
-      <div class="home-market-shortcut-copy">
-        <div class="home-market-shortcut-kicker">Portfolio</div>
-        <div class="home-market-shortcut-title">${formatDisplayMoney(portfolioValue)}</div>
-        <div class="home-market-shortcut-sub">Open Market for holdings, Blue Chip Picks, and search.</div>
-      </div>
-      <div class="home-market-shortcut-cta">Open</div>
-    </div>`;
-}
 
 function openStreakModal({ variant = 'default', streakValue = Math.max(0, Number(S.streak) || 0), afterClose = null } = {}) {
   const number = Math.max(0, Number(streakValue) || 0);
@@ -2284,73 +2195,6 @@ function cleanGeneratedListItemText(value) {
   return String(value ?? '').trim().replace(/^(?:[•●]\s*|[*]\s+|[-–—]\s+|\d+[.)]\s+)/, '').trim();
 }
 
-function getHomeLearningSummary() {
-  const completedIds = Array.isArray(S.completedIds) ? S.completedIds : [];
-  const completedSet = new Set(completedIds);
-  const next = typeof getNextAvailableLesson === 'function'
-    ? getNextAvailableLesson(completedIds, S.user)
-    : LESSONS.find(lesson => !completedSet.has(lesson.id));
-  const totalLessons = Array.isArray(LESSONS) ? LESSONS.length : 0;
-  const answered = Math.max(0, Number(S.totalAnswered) || 0);
-  const accuracy = answered > 0
-    ? Math.round(((Number(S.totalCorrect) || 0) / answered) * 100)
-    : null;
-  return {
-    completedIds,
-    completedCount: completedIds.length,
-    totalLessons,
-    next,
-    accuracy,
-    progressPct: totalLessons > 0 ? Math.round((completedIds.length / totalLessons) * 100) : 0
-  };
-}
-
-function getHomeIndicatorRows() {
-  const fallbackRows = [
-    {
-      symbol: 'SPY',
-      label: 'S&P 500',
-      value: 'Broad U.S. stocks',
-      change: 'Core benchmark',
-      tone: 'flat',
-      lesson: 'Shows the broad direction of large U.S. companies.'
-    },
-    {
-      symbol: 'QQQ',
-      label: 'Nasdaq 100',
-      value: 'Growth stocks',
-      change: 'Tech-heavy',
-      tone: 'flat',
-      lesson: 'Helps compare growth and technology sentiment with the broader market.'
-    },
-    {
-      symbol: 'BTC',
-      label: 'Bitcoin',
-      value: 'Digital asset',
-      change: 'High volatility',
-      tone: 'flat',
-      lesson: 'Highlights how speculative assets can move differently from stocks.'
-    }
-  ];
-
-  if (typeof PRACTICE_MARKET_ASSETS === 'undefined' || !S.portfolio?.assets) {
-    return fallbackRows;
-  }
-
-  return fallbackRows.map(row => {
-    const asset = PRACTICE_MARKET_ASSETS.find(item => item.symbol === row.symbol);
-    const quote = S.portfolio.assets?.[row.symbol];
-    const price = Number(quote?.price) || Number(asset?.basePrice) || 0;
-    const changePct = Number(quote?.dailyChangePct);
-    const tone = Number.isFinite(changePct) && changePct > 0 ? 'up' : Number.isFinite(changePct) && changePct < 0 ? 'down' : 'flat';
-    return {
-      ...row,
-      value: price > 0 ? formatDisplayMoney(price) : row.value,
-      change: Number.isFinite(changePct) ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : row.change,
-      tone
-    };
-  });
-}
 
 // ════════════════════════════════════════════════════════════
 // TODAY'S MONEY DECISION
@@ -2497,177 +2341,6 @@ function renderHomeMoneyDecision() {
     </div>`;
 }
 
-// ════════════════════════════════════════════════════════════
-// SKILL PROGRESS
-// Six plain-language money skills, each showing a Beginner / Building /
-// Confident stage and a quiet progress bar. Tapping a skill opens Learn.
-// ════════════════════════════════════════════════════════════
-
-function renderSkillProgress(summary) {
-  const el = document.getElementById('skillProgressCard');
-  if (!el) return;
-  if (typeof getFinancialConfidence !== 'function') { el.innerHTML = ''; return; }
-
-  // Compact summary only — overall score + level + one supporting line.
-  // Detailed per-category mastery lives in the Practice tab, not on Home.
-  const confidence = getFinancialConfidence();
-
-  el.innerHTML = `
-    <div class="home-simple-card confidence-compact">
-      <div class="confidence-compact-top">
-        <div class="confidence-compact-score">
-          <span class="cc-value">${confidence.score}</span><span class="cc-max"> / 100</span>
-        </div>
-        <span class="confidence-compact-level cc-level-${confidence.statusKey}">${escapeAppHtml(confidence.statusLabel)}</span>
-      </div>
-      <div class="confidence-compact-sub">Complete lessons and practice to build your confidence.</div>
-    </div>`;
-
-  // Daily Brief hero mirrors the same real score as "Knowledge Capital"
-  // (no separate/fake metric). Guarded — no-op if the hero slot is absent.
-  const capitalEl = document.getElementById('homeCapitalStat');
-  if (capitalEl) {
-    capitalEl.innerHTML =
-      `<span class="cc-value">${confidence.score}</span><span class="cc-max"> / 100</span>` +
-      `<span class="home-capital-level cc-level-${confidence.statusKey}">${escapeAppHtml(confidence.statusLabel)}</span>`;
-  }
-}
-
-function renderHomeMarketSnapshot() {
-  const el = document.getElementById('homeMarketSnapshot');
-  if (!el) return;
-
-  // Read the broad market (S&P 500) and translate it into plain English
-  // rather than overwhelming a beginner with a wall of tickers.
-  const rows = getHomeIndicatorRows();
-  const broad = rows.find(row => row.symbol === 'SPY') || rows[0] || { tone: 'flat' };
-  const tone = broad.tone === 'up' || broad.tone === 'down' ? broad.tone : 'flat';
-
-  const read = {
-    up: {
-      headline: 'Stocks are broadly higher today.',
-      copy: 'Large U.S. companies are gaining value on average. Up days are normal and don’t call for any action — long-term investors simply stay the course.'
-    },
-    down: {
-      headline: 'Stocks are broadly lower today.',
-      copy: 'Large U.S. companies lost value on average. Short-term dips are a normal part of investing, not a signal to panic-sell.'
-    },
-    flat: {
-      headline: 'The market is having a quiet day.',
-      copy: 'Not much is moving in large U.S. stocks right now. Calm stretches are common — most of investing is patient waiting, not constant action.'
-    }
-  }[tone];
-
-  const changeChip = (broad.change && tone !== 'flat')
-    ? `<span class="market-read-chip ${tone}">S&P 500 ${escapeAppHtml(broad.change)}</span>`
-    : '';
-
-  el.innerHTML = `
-    <div class="home-simple-card market-read-card">
-      <div class="market-read-top">
-        <span class="market-read-dot ${tone}"></span>
-        <div class="market-read-headline">${read.headline}</div>
-      </div>
-      ${changeChip}
-      <div class="market-read-copy">${read.copy}</div>
-      <button class="btn btn-secondary home-card-action" onclick="showMarket()">Open Market</button>
-    </div>`;
-
-  // Market Snapshot strip — reuses the same real quote rows already computed
-  // above (no extra fetch/API). Guarded — no-op if the slot is absent.
-  const tickersEl = document.getElementById('homeMarketTickers');
-  if (tickersEl) {
-    tickersEl.innerHTML =
-      `<div class="home-simple-card brief-snapshot">` +
-        rows.map(r => `
-        <button type="button" class="brief-ticker brief-ticker-${r.tone}" onclick="showMarket()">
-          <span class="brief-ticker-label">${escapeAppHtml(r.label)}</span>
-          <span class="brief-ticker-value">${escapeAppHtml(r.value)}</span>
-          <span class="brief-ticker-change">${escapeAppHtml(r.change)}</span>
-        </button>`).join('') +
-      `</div>`;
-  }
-}
-
-/** Re-render all dynamic home screen elements. */
-function updateHome() {
-  const summary = getHomeLearningSummary();
-  const _progressSummary = typeof getProgressSummary === 'function'
-    ? getProgressSummary()
-    : null;
-
-  // Notification prompt — show once if browser supports it and we haven't asked yet
-  const notifPrompt = document.getElementById('notifPrompt');
-  if (notifPrompt) {
-    notifPrompt.classList.remove('show');
-  }
-
-  // Personalized greeting lives in the small kicker; the headline stays a
-  // steady brand statement ("Build your financial confidence.").
-  const firstName = (S.user?.name || '').trim().split(/\s+/)[0];
-  const kickerEl = document.getElementById('homeWelcomeKicker');
-  if (kickerEl) {
-    kickerEl.textContent = firstName ? `Welcome back, ${firstName}` : 'Welcome to Finlingo';
-  }
-
-  const next = summary.next;
-  const btn  = document.getElementById('continueBtn');
-
-  // Update eyebrow label and progress line based on where the user is.
-  const _eyebrowEl  = document.getElementById('heroEyebrow');
-  const _progressEl = document.getElementById('heroProgress');
-  if (_eyebrowEl) {
-    _eyebrowEl.textContent = next ? 'Continue Learning' : 'Curriculum Complete';
-  }
-  // Inject lesson progress line "Lesson X of Y"
-  if (_progressEl && next) {
-    const _unit = typeof getUnitForLesson === 'function' ? getUnitForLesson(next) : null;
-    const _unitProgress = _unit && typeof getUnitProgress === 'function'
-      ? getUnitProgress(_unit, summary.completedIds)
-      : null;
-    _progressEl.textContent = _unit
-      ? `${_unit.title || _unit.name}${_unitProgress ? ` • ${_unitProgress.completedCount}/${_unitProgress.total} complete` : ''}`
-      : next.unit || 'Start your learning path';
-  } else if (_progressEl) {
-    _progressEl.textContent = '';
-  }
-  const _dueReviews = _progressSummary?.dueReviewCount || 0;
-  if (_dueReviews > 0) {
-    document.getElementById('nextTitle').textContent = 'Review key concepts';
-    document.getElementById('nextSub').textContent = `You have ${_dueReviews} concept ${_dueReviews === 1 ? 'review' : 'reviews'} ready. Revisit them before starting something new.`;
-    if (_eyebrowEl) _eyebrowEl.textContent = 'Recommended Review';
-    if (_progressEl) _progressEl.textContent = _progressSummary?.masterySummary?.weakestTopics?.length
-      ? `Focus: ${_progressSummary.masterySummary.weakestTopics.map(topic => topic.label || topic.topicId).join(' · ')}`
-      : 'Short review session';
-    btn.textContent = 'Start Review';
-    btn.style.cssText = '';
-    btn.onclick = () => startReviewSprint(Math.min(5, _dueReviews));
-  } else if (next) {
-    document.getElementById('nextTitle').textContent = next.title;
-    const _sub     = (typeof getPersonalizedContext === 'function' ? getPersonalizedContext(next.id) : null) || next.blurb;
-    const nextSubEl = document.getElementById('nextSub');
-    nextSubEl.textContent = _sub;
-
-    btn.textContent    = summary.completedCount > 0 ? 'Continue' : 'Start Learning';
-    btn.style.cssText  = '';
-    btn.onclick = () => {
-      if (typeof openMicroUnit === 'function') openMicroUnit('preset_unit_1');
-      else showLearn({ resetScroll: true });
-    };
-
-  } else {
-    document.getElementById('nextTitle').textContent = "You've finished every lesson";
-    document.getElementById('nextSub').textContent   = 'Revisit any lesson anytime for a quick refresher.';
-      btn.textContent   = 'Browse Lessons';
-      btn.style.cssText = '';
-      btn.onclick       = showLearn;
-  }
-  // "Today's Money Decision" was removed from Home (it overlapped the Market
-  // Question and Practice). The underlying data/functions remain for reuse.
-  renderSkillProgress(summary);
-  renderHomeMarketSnapshot();
-  maybeShowRefresherQuizPrompt();
-}
 
 
 // ════════════════════════════════════════════════════════════
@@ -3526,48 +3199,93 @@ function renderV3LearnWorkspace(container) {
   const editing = active === 'my' && learnEditMode && customUnits.length > 0;
   if (!customUnits.length) learnEditMode = false; // keep transient flag honest
 
+  // ── Track-card presentation helpers (Stitch curriculum language) ──────
+  // Purely presentational: these build the TRACK / module / progress markup
+  // from the SAME real progress info (_cardInfo). No new data, no deep-links —
+  // the whole card still opens the unit via openMicroUnit (flow unchanged).
+  const _trackPad = n => String(n).padStart(2, '0');
+  const _MODULE_ICON = {
+    done:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
+    active:   '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>',
+    upcoming: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/></svg>'
+  };
+  // Module rows are non-interactive state indicators. Completed = lessons before
+  // the completed count; active = the next lesson; upcoming = the rest. The
+  // "upcoming" marker is a quiet hollow dot (NOT a lock) — nothing is fabricated
+  // as locked.
+  const _moduleRows = card => {
+    const lessons = Array.isArray(card.lessons) ? card.lessons : [];
+    if (!lessons.length) return '';
+    const info = card.info;
+    const rows = lessons.map((ls, i) => {
+      const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
+      const title = escapeAppHtml(cleanGeneratedListItemText(raw));
+      let state;
+      if (info.completed || i < info.completedCount) state = 'done';
+      else if (info.started && i === info.completedCount) state = 'active';
+      else state = 'upcoming';
+      return `<span class="v3-module-row v3-module-${state}"><span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span><span class="v3-module-title">${title}</span></span>`;
+    }).join('');
+    return `<span class="v3-track-modules">${rows}</span>`;
+  };
+  const _trackState = info => {
+    if (info.completed) return { word: 'Complete', cta: 'Review', kind: 'review' };
+    if (info.started)  return { word: `Lesson ${Math.min(info.total, info.currentLessonIndex + 1)} of ${info.total}`, cta: 'Resume', kind: 'resume' };
+    return { word: 'Not started', cta: 'Start', kind: 'start' };
+  };
+  // Shared inner composition for both preset and AI track cards.
+  const _trackInner = (card, opts) => {
+    const info = card.info;
+    const rawTitle = card.kind === 'ai'
+      ? cleanGeneratedListItemText(card.unit.title || 'Generated unit')
+      : (card.title || card.unit.title || card.unit.name || 'Preset unit');
+    const title = escapeAppHtml(rawTitle);
+    const pct = info.completed ? 100 : (info.total ? Math.round((info.completedCount / info.total) * 100) : 0);
+    const st = _trackState(info);
+    const modules = (opts && opts.expanded) ? _moduleRows(card) : '';
+    return `
+        <span class="v3-track-head">
+          <span class="v3-track-eyebrow">Track ${_trackPad(opts ? opts.trackNo : 1)}</span>
+          <span class="v3-track-count">${info.completedCount} / ${info.total} lessons</span>
+        </span>
+        <span class="v3-track-title">${title}</span>
+        <span class="fl-track v3-track-progress" aria-hidden="true"><span style="width:${pct}%"></span></span>
+        ${modules}
+        <span class="v3-track-foot">
+          <span class="v3-track-state">${escapeAppHtml(st.word)}</span>
+          <span class="v3-track-cta v3-track-cta-${st.kind}">${st.cta}${_chevron}</span>
+        </span>`;
+  };
+
   // ── Card markup ──────────────────────────────────────────────────────
   // AI-created cards support swipe-to-delete. Structure: a fixed delete layer
   // sits behind a sliding surface (the normal card content). Swiping left
   // reveals the trash action; a full swipe deletes with Undo. Preset cards
   // (rendered by _presetCard) never get this treatment and are never deletable.
-  const _aiCard = card => {
+  const _aiCard = (card, opts) => {
     const uid = escapeAppHtml(card.unit.id);
     const rawTitle = cleanGeneratedListItemText(card.unit.title || 'Generated unit');
     const title = escapeAppHtml(rawTitle);
     const trashSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     return `
-      <div class="v3-unit-card v3-unit-card-ai${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
+      <div class="v3-unit-card v3-unit-card-ai v3-track-card${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
         <div class="v3-swipe-action" aria-hidden="true">
           <button type="button" class="v3-swipe-trash" tabindex="-1" aria-label="Delete ${title}" onclick="LearnUnitDelete.fromTrash(event, '${uid}')">${trashSvg}</button>
         </div>
         <div class="v3-swipe-surface">
           <button type="button" class="v3-unit-main" aria-label="${escapeAppHtml(_a11y(rawTitle, card.info))}" onclick="openMicroUnit('${uid}')">
-            <span class="v3-unit-icon">${_learnUnitIcon('ai')}</span>
-            <span class="v3-unit-copy">
-              <strong>${title}</strong>
-              <small>${_subtitle(card.info)}</small>
-              ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(card.info)}%"></i></span>` : ''}
-            </span>
-            ${_chevron}
+            ${_trackInner(card, opts)}
           </button>
         </div>
         <button type="button" class="v3-unit-kbd-delete" aria-label="Delete ${title}" onclick="LearnUnitDelete.request('${uid}', { via: 'keyboard' })">Delete unit</button>
       </div>`;
   };
-  const _presetCard = card => {
+  const _presetCard = (card, opts) => {
     const rawTitle = card.title || card.unit.title || card.unit.name || 'Preset unit';
-    const title = escapeAppHtml(rawTitle);
     return `
-      <button type="button" class="v3-unit-card v3-unit-card-preset${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${escapeAppHtml(String(card.unit.id))}"
+      <button type="button" class="v3-unit-card v3-unit-card-preset v3-track-card${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${escapeAppHtml(String(card.unit.id))}"
               aria-label="${escapeAppHtml(_a11y(rawTitle, card.info))}" onclick="openMicroUnit('preset_unit_${Number(card.unit.id)}')">
-        <span class="v3-unit-icon">${_learnUnitIcon('preset')}</span>
-        <span class="v3-unit-copy">
-          <strong>${title}</strong>
-          <small>${_subtitle(card.info)}</small>
-          ${card.info.started && !card.info.completed ? `<span class="v3-unit-progress" aria-hidden="true"><i style="width:${_progressPct(card.info)}%"></i></span>` : ''}
-        </span>
-        ${_chevron}
+        ${_trackInner(card, opts)}
       </button>`;
   };
   // Active units (in-progress + not-started) share one unlabeled list so there
@@ -3578,13 +3296,17 @@ function renderV3LearnWorkspace(container) {
   const _groupedList = (cards, renderCard) => {
     const { inProgress, notStarted, completed } = _splitAndSort(cards);
     const active = inProgress.concat(notStarted);
+    // Progressive disclosure: expand the lead active track's module rows (the
+    // one the learner resumes / starts next); keep the rest header-only.
+    const leadId = active.length ? active[0].unit.id : null;
+    let trackNo = 0;
     let html = '';
     if (active.length) {
-      html += `<div class="v3-unit-list">${active.map(renderCard).join('')}</div>`;
+      html += `<div class="v3-unit-list">${active.map(c => renderCard(c, { trackNo: ++trackNo, expanded: c.unit.id === leadId })).join('')}</div>`;
     }
     if (completed.length) {
       html += `<h3 class="v3-section-heading v3-section-heading-completed">Completed</h3>` +
-        `<div class="v3-unit-list">${completed.map(renderCard).join('')}</div>`;
+        `<div class="v3-unit-list">${completed.map(c => renderCard(c, { trackNo: ++trackNo, expanded: false })).join('')}</div>`;
     }
     return html;
   };
@@ -3592,7 +3314,7 @@ function renderV3LearnWorkspace(container) {
   // My Units (AI-generated only).
   const myCards = customUnits.map(unit => {
     const micro = (_MD && typeof _MD.normalizeUnit === 'function') ? _MD.normalizeUnit(unit) : { id: unit.id, lessons: unit.lessons || [] };
-    return { kind: 'ai', unit, info: _cardInfo(micro) };
+    return { kind: 'ai', unit, lessons: (micro && micro.lessons) || unit.lessons || [], info: _cardInfo(micro) };
   });
   // Empty state: a real AI-unit card in its empty form (same outer
   // .v3-unit-card.v3-unit-card-ai shell + .v3-unit-main layout as a generated
@@ -3616,7 +3338,7 @@ function renderV3LearnWorkspace(container) {
   // Preset Units.
   const presetCards = presetDefs.filter(unit => _hasMicro(unit.id)).map(unit => {
     const micro = (_MD && typeof _MD.getPresetMicroUnitByUnitId === 'function') ? _MD.getPresetMicroUnitByUnitId(unit.id) : null;
-    return { kind: 'preset', unit, title: (micro && micro.title) || unit.title || unit.name, info: _cardInfo(micro) };
+    return { kind: 'preset', unit, title: (micro && micro.title) || unit.title || unit.name, lessons: (micro && micro.lessons) || [], info: _cardInfo(micro) };
   });
   const presetUnits = _groupedList(presetCards, _presetCard);
 
@@ -3626,9 +3348,9 @@ function renderV3LearnWorkspace(container) {
     <div class="v3-learn-shell">
       <header class="v3-learn-header">
         <div>
-          <span class="v3-learn-kicker">Learn</span>
-          <h1>Your learning path,<br>built on demand.</h1>
-          <p>Ask a question to build a focused unit, or explore the preset curriculum.</p>
+          <span class="v3-learn-kicker">Curriculum</span>
+          <h1>Learning tracks.</h1>
+          <p>Focused units that build financial fluency — or generate one from a question.</p>
         </div>
       </header>
 

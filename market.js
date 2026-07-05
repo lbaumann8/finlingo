@@ -839,6 +839,12 @@ function renderMarket() {
     <div class="market-v3-shell">
       <div class="market-v3-grid">
         <div class="market-v3-col market-v3-col-primary">
+          <section class="market-global-section">
+            <div class="mono-label mono-label--block market-global-label">Global Markets</div>
+            <!-- Real per-symbol quotes (SPY/QQQ/BTC/10Y) — reuses the existing
+                 snapshot renderer; painted + refreshed by _paintMarketSnapshot(). -->
+            <div id="marketSnapshotCards" class="snap-cards market-global-grid">${_renderMarketSnapshotCardsInner()}</div>
+          </section>
           <section class="market-v3-hero" id="marketTodayHero">
             ${_renderMarketTodayHeroInner()}
           </section>

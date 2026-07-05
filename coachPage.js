@@ -3217,6 +3217,12 @@
         // so the card reflects the latest server state right away.
         _checkAskInactivity();
         _resumeUnitJobsForActiveChat();
+      } else {
+        // Leaving Ask: stop the placeholder typewriter so it doesn't keep
+        // ticking against the now-hidden #coachInput. It restarts on return via
+        // renderCoach()'s empty-state path. (Unit-job pollers intentionally keep
+        // running — see the note below.)
+        _stopTypewriter();
       }
       // Leaving Ask: do NOT stop the active chat's unit-job pollers — let durable
       // background builds keep advancing so progress never freezes and Learn/Ask

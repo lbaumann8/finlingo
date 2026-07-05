@@ -8157,3 +8157,232 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .coach-mentor-hero .coach-suggest-icon { width: 34px; height: 34px; }
 .coach-mentor-hero .coach-suggest-text { font-weight: 600; color: var(--fl-title); }
+
+
+/* ============================================================
+   STITCH FIDELITY — LEARN CURRICULUM TRACK CARDS  (Phase D)
+
+   Presentation-only. Restyles the existing v3 unit cards into the
+   Stitch curriculum language: mono TRACK 0N eyebrows, display-font
+   track titles, module-count meta, thin mint progress, module rows
+   for the lead active track, and a white "Resume" marquee affordance.
+   All swipe/delete hooks, openMicroUnit, tabs, and grouping preserved.
+   Appended last so it wins the cascade over the earlier v3 rules.
+   ============================================================ */
+
+/* Compact curriculum header — display title + mono kicker, no marketing hero */
+.v3-learn-kicker {
+  font-family: var(--fl-font-label);
+  font-size: var(--fl-label-size); font-weight: var(--fl-label-weight); line-height: 1;
+  letter-spacing: var(--fl-label-tracking); text-transform: uppercase;
+  color: var(--fl-label-color);
+}
+.v3-learn-header h1 {
+  font-family: var(--fl-font-display);
+  font-size: 1.9rem; font-weight: 700; line-height: 1.06; letter-spacing: -0.03em;
+}
+
+/* ── Track card = vertical composition (overrides the row grid) ── */
+.v3-track-card.v3-unit-card-preset,
+.v3-track-card .v3-unit-main {
+  display: flex; flex-direction: column; align-items: stretch; gap: 11px;
+  grid-template-columns: none;
+}
+.v3-track-card.v3-unit-card,
+.v3-track-card.v3-unit-card-preset { min-height: 0; }
+.v3-track-card.v3-unit-card-preset { padding: 16px; }
+.v3-track-card .v3-unit-main { min-height: 0; padding: 16px; align-items: stretch; }
+
+.v3-track-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.v3-track-eyebrow {
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem; font-weight: 500; line-height: 1;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--fl-faint);
+}
+.v3-track-count {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem; font-weight: 500; letter-spacing: 0.06em;
+  color: var(--fl-muted); white-space: nowrap;
+}
+.v3-track-title {
+  font-family: var(--fl-font-display);
+  font-size: 1.12rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em;
+  color: var(--fl-title); white-space: normal;
+}
+.v3-track-progress { width: 100%; margin: 1px 0 0; }
+
+/* ── Module rows (lead active track) — non-interactive state indicators ── */
+.v3-track-modules {
+  display: grid; gap: 1px;
+  margin-top: 3px; padding-top: 11px;
+  border-top: 1px solid var(--fl-divider);
+}
+.v3-module-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; min-width: 0; }
+.v3-module-mark { flex: none; width: 18px; height: 18px; display: grid; place-items: center; }
+.v3-module-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.v3-module-title {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 0.82rem/1.3 var(--font-b); color: var(--fl-body);
+}
+/* completed module — mint check, quiet struck title */
+.v3-module-done .v3-module-mark { color: var(--fl-accent); }
+.v3-module-done .v3-module-title { color: var(--fl-muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.20); }
+/* active module — filled mint marker, emphasized title */
+.v3-module-active .v3-module-mark { color: var(--fl-accent); }
+.v3-module-active .v3-module-mark svg { fill: var(--fl-accent); }
+.v3-module-active .v3-module-title { color: var(--fl-title); font-weight: 600; }
+/* upcoming module — quiet hollow dot (NOT a lock; nothing fabricated) */
+.v3-module-upcoming .v3-module-mark { color: var(--fl-faint); opacity: 0.65; }
+.v3-module-upcoming .v3-module-title { color: var(--fl-faint); }
+
+/* ── Footer: state word + CTA affordance ── */
+.v3-track-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
+.v3-track-state {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--fl-muted);
+}
+.v3-track-cta { display: inline-flex; align-items: center; gap: 5px; font: 600 0.78rem/1 var(--font-b); }
+.v3-track-cta .v3-chevron { width: 15px; height: 15px; color: currentColor; }
+/* Active track resume = WHITE marquee pill (the one strong progression action) */
+.v3-track-cta-resume {
+  background: var(--cta-marquee-bg); color: var(--cta-marquee-text);
+  padding: 7px 12px 7px 14px; border-radius: var(--fl-radius-pill);
+}
+/* Not-started start = mint-soft secondary */
+.v3-track-cta-start {
+  background: var(--fl-accent-soft); color: var(--fl-accent);
+  padding: 7px 12px 7px 14px; border-radius: var(--fl-radius-pill);
+}
+/* Completed review = quiet text affordance */
+.v3-track-cta-review { color: var(--fl-faint); }
+
+/* ── Active track framing — restrained mint accent ── */
+.v3-track-card.is-active { border-color: var(--fl-accent-border); }
+.v3-track-card.is-active .v3-track-eyebrow { color: var(--fl-accent); }
+/* Completed track keeps the recessed passive treatment (from earlier rules);
+   its progress track reads full mint (goal reached). */
+.v3-track-card.is-complete .v3-track-title { color: var(--fl-eyebrow); }
+
+/* Keep the "create your first unit" empty card as a horizontal row */
+.v3-unit-card-empty .v3-unit-main { flex-direction: row; align-items: center; gap: 14px; }
+
+
+/* ============================================================
+   STITCH FIDELITY — MARKET GLOBAL BENTO  (Phase E)
+
+   Presentation-only. Mounts the EXISTING (real-data) snapshot cards
+   as a "Global Markets" bento at the top of Market, mono-labels the
+   market section kickers, and gives the active-module / recommended-
+   next CTA the white marquee treatment. No quote logic, routes, APIs,
+   fetches, or data touched — the snapshot renderer + _paintMarketSnapshot
+   were already built; they were simply never mounted.
+   ============================================================ */
+.market-global-section {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-bottom: var(--fl-section-gap);
+}
+.market-global-label { margin: 0; }
+/* Bento grid overrides the default single-column snapshot stack */
+#marketSnapshotCards.market-global-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+}
+/* Real small screens (the fixed ~440 canvas keeps 2-up) */
+@media (max-width: 360px) {
+  #marketSnapshotCards.market-global-grid { grid-template-columns: 1fr; }
+}
+/* Let each snapshot card stack price over sparkline so 2-up never crowds */
+.market-global-grid .snap-card-body { flex-direction: column; align-items: stretch; gap: 8px; }
+.market-global-grid .snap-spark-wrap { width: 100%; }
+
+/* Mono-label the market section kickers (consistent label language). */
+.market-card-kicker {
+  font-family: var(--fl-font-label) !important;
+  font-size: var(--fl-label-size); font-weight: var(--fl-label-weight);
+  letter-spacing: var(--fl-label-tracking); text-transform: uppercase;
+}
+
+/* NOTE: Market's live progression control (.market-insight-learn) is a
+   STATEFUL Learn-next / Continue / Completed button — per the approved hybrid
+   rule that state is MINT (active/progress/completion), not a white marquee, so
+   it is intentionally left as-is. The dormant .market-personal-card is not
+   mounted, so no white CTA is forced onto the live Market composition. */
+
+
+/* ============================================================
+   STITCH FIDELITY — COACH COMPACTION  (Phase C)
+
+   Presentation-only. Tightens the live renderCoach() composition
+   (coachPage.js:3018) into a focused AI workspace: compact header,
+   mono structural labels, secondary suggested-action rows, tighter
+   messages, less dead space above the conversation. Appended last so
+   it wins the cascade. NO changes to Claude request/response, chat
+   memory, prompts, actions, loading/error, routes, or the composer's
+   mint send (Claude-interaction state). No new gradients/cards.
+   ============================================================ */
+
+/* ── Structural labels → mono (kicker, brief eyebrow, section label) ── */
+.coach-mentor-hero .coach-mentor-kicker,
+.coach-mentor-hero .coach-insight-eyebrow,
+.coach-mentor-hero .coach-suggest-label {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem; font-weight: 500; line-height: 1;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.coach-mentor-hero .coach-suggest-label { color: var(--fl-faint); margin-bottom: 10px; }
+
+/* ── Empty-state header — compact, intentional, not marketing-heavy ── */
+.coach-page-shell.has-composer .coach-hero.coach-mentor-hero {
+  gap: 18px;
+  padding: clamp(14px, 3vh, 26px) 0 14px;
+}
+.coach-page-shell.has-composer .coach-hero h1,
+.coach-mentor-hero h1 {
+  font-size: clamp(1.45rem, 5.5vw, 1.72rem);
+  line-height: 1.08; letter-spacing: -0.025em;
+}
+.coach-page-shell.has-composer .coach-subtitle {
+  margin: 8px 0 0; max-width: 52ch;
+  font-size: 0.9rem; line-height: 1.5; color: var(--fl-muted);
+}
+
+/* ── Mentor Brief — keep the mint-edged Claude card, tighter padding ── */
+.coach-mentor-hero .coach-insight-card { padding: 14px 16px; }
+.coach-mentor-hero .coach-insight-text { font-size: 0.94rem; line-height: 1.5; }
+
+/* ── Suggested actions — visually SECONDARY to composer + brief ── */
+.coach-mentor-hero .coach-suggest-grid { gap: 8px; }
+.coach-mentor-hero .coach-suggest-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  box-shadow: none;
+  padding: 11px 13px;
+}
+.coach-mentor-hero .coach-suggest-card:hover {
+  background: var(--fl-surface-hover);
+  border-color: var(--fl-border-strong);
+  transform: none;
+}
+.coach-mentor-hero .coach-suggest-icon { width: 28px; height: 28px; }
+.coach-mentor-hero .coach-suggest-text { font-weight: 500; color: var(--fl-sub); }
+
+/* ── Conversation — less dead space above the thread, tighter rhythm ── */
+.coach-page-shell.is-conversation { padding-top: 14px; }
+.coach-page-shell.is-conversation .coach-thread { margin-top: 14px; gap: 20px; }
+
+/* ── Messages — readable widths, tighter padding + metadata ── */
+.coach-msg-user {
+  max-width: 76%;
+  padding: 11px 15px;
+  font: 500 0.9rem/1.45 var(--font-b);
+}
+.coach-msg-mark { width: 28px; height: 28px; font-size: 0.9rem; }
+.coach-answer-text { max-width: 600px; font: 400 1.02rem/1.56 var(--font-b); }
+
+/* ── Mobile — keyboard-safe composer + readable message widths ── */
+@media (max-width: 560px) {
+  .coach-page-shell.has-composer .coach-hero h1,
+  .coach-mentor-hero h1 { font-size: clamp(1.4rem, 6vw, 1.6rem); }
+  .coach-msg-user { max-width: 86%; }
+  .coach-answer-text { font-size: 1rem; }
+}
