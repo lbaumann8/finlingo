@@ -3314,8 +3314,15 @@ function _computeMarketSentiment() {
   }[band.key];
   return { available: true, score, band, driver, meaning, factors: factors.slice(0, 4) };
 }
+const _SENTIMENT_INFO = 'An educational market read derived from today’s S&P 500, Nasdaq-100, Bitcoin and 10-year Treasury moves on a defensive-to-risk-on scale. Not investment advice.';
+const _SENTIMENT_INFO_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5"/><path d="M12 8h.01"/></svg>';
 function _renderMarketSentimentInner() {
   const s = _computeMarketSentiment();
+  const head = `
+      <div class="market-sentiment-head">
+        <h3 class="market-sentiment-title">Sentiment</h3>
+        <span class="market-sentiment-info" role="img" tabindex="0" aria-label="${_escapeMarketHtml(_SENTIMENT_INFO)}" title="${_escapeMarketHtml(_SENTIMENT_INFO)}">${_SENTIMENT_INFO_SVG}</span>
+      </div>`;
   if (!s.available) {
     const msg = _marketSnapshot.status === 'error'
       ? 'A market read is unavailable right now — live data could not load.'
@@ -3323,29 +3330,27 @@ function _renderMarketSentimentInner() {
         ? 'A market read is unavailable right now.'
         : 'Reading today’s market…');
     return `
-      <div class="mono-label mono-label--block market-global-label">Market Sentiment</div>
-      <div class="market-sentiment-card">
+      <div class="market-sentiment-card market-sentiment-b-neutral">
+        ${head}
         <p class="market-sentiment-unavail">${msg}</p>
       </div>`;
   }
+  // Left = the low pole (defensive); right = the live band + score, colored by
+  // band via --sent-color. The green fill occupies the positive (right) side up
+  // to the marker, and the marker sits at the real score. Nothing hardcoded.
+  const explain = `${_escapeMarketHtml(s.driver)} ${_escapeMarketHtml(s.meaning)}`;
   return `
-    <div class="mono-label mono-label--block market-global-label">Market Sentiment</div>
-    <div class="market-sentiment-card">
-      <div class="market-sentiment-head">
-        <div>
-          <span class="market-sentiment-state market-sentiment-state-${s.band.key}">${_escapeMarketHtml(s.band.label)}</span>
-          <span class="market-sentiment-tag">Market read · educational signal</span>
-        </div>
+    <div class="market-sentiment-card market-sentiment-b-${s.band.key}">
+      ${head}
+      <div class="market-sentiment-scale-row">
+        <span class="market-sentiment-low">Defensive</span>
+        <span class="market-sentiment-read">${_escapeMarketHtml(s.band.label)} (${s.score})</span>
       </div>
-      <div class="market-sentiment-gauge" role="img" aria-label="Sentiment read: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
-        <span class="market-sentiment-gauge-fill" style="width:${s.score}%"></span>
+      <div class="market-sentiment-gauge" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
+        <span class="market-sentiment-gauge-fill" style="left:${s.score}%"></span>
         <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
       </div>
-      <p class="market-sentiment-driver">${_escapeMarketHtml(s.driver)}</p>
-      <div class="market-sentiment-means">
-        <span class="market-sentiment-means-label">What this means</span>
-        <p>${_escapeMarketHtml(s.meaning)}</p>
-      </div>
+      <p class="market-sentiment-explain">${explain}</p>
     </div>`;
 }
 function _paintMarketSentiment() {

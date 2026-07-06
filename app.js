@@ -3218,56 +3218,66 @@ function renderV3LearnWorkspace(container) {
   // from the SAME real progress info (_cardInfo). No new data, no deep-links —
   // the whole card still opens the unit via openMicroUnit (flow unchanged).
   const _trackPad = n => String(n).padStart(2, '0');
+  // Status marks (circled via CSS border): check / play / lock.
   const _MODULE_ICON = {
     done:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
     active:   '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>',
     upcoming: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/></svg>',
-    locked:   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10" width="12" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>'
+    locked:   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
   };
-  // Module rows are non-interactive state indicators. Completed = lessons before
-  // the completed count; active = the next lesson; upcoming = the rest. The
-  // "upcoming" marker is a quiet hollow dot (NOT a lock) — nothing is fabricated
-  // as locked.
+  // Far-right content-type glyph. Every micro-lesson is a short reading + check,
+  // so a single "reading" mark is honest (no per-lesson type data is invented);
+  // locked rows use a stacked-pages mark, mirroring the reference.
+  const _MODULE_TYPE_ICON = {
+    reading: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h6.5a1.5 1.5 0 0 1 1.5 1.5v12"/><path d="M20 5.5h-6.5a1.5 1.5 0 0 0-1.5 1.5v12"/><path d="M4 5.5v13h6a2 2 0 0 1 2 2 2 2 0 0 1 2-2h6v-13"/></svg>',
+    locked:  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>'
+  };
+  const _lessonTitle = (ls, i) => (typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`));
+  // One module row — a NON-interactive state indicator (status mark, lesson
+  // title, content-type glyph). The whole card still opens the unit via
+  // openMicroUnit; rows never become individual deep-links (behavior preserved).
+  const _moduleRowHtml = (rawTitle, state) => {
+    const title = escapeAppHtml(cleanGeneratedListItemText(rawTitle));
+    const typeIcon = state === 'locked' ? _MODULE_TYPE_ICON.locked : _MODULE_TYPE_ICON.reading;
+    return `<span class="v3-module-row v3-module-${state}">` +
+      `<span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span>` +
+      `<span class="v3-module-title">${title}</span>` +
+      `<span class="v3-module-type" aria-hidden="true">${typeIcon}</span>` +
+    `</span>`;
+  };
+  // Expanded (lead) track shows a small window CENTERED on the current lesson —
+  // the most recent completed lesson, the active lesson, and the next lesson —
+  // matching the reference's completed / current / locked rhythm. The micro
+  // player is sequential (it always resumes at the first incomplete lesson), so
+  // lessons past the current one are genuinely unreachable → shown locked, not
+  // fabricated. All states derive from the real completedCount; nothing invented.
   const _moduleRows = card => {
     const lessons = Array.isArray(card.lessons) ? card.lessons : [];
-    if (!lessons.length) return '';
+    const total = lessons.length;
+    if (!total) return '';
     const info = card.info;
-    const visibleLessons = lessons.slice(0, 3);
-    const rows = visibleLessons.map((ls, i) => {
-      const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
-      const title = escapeAppHtml(cleanGeneratedListItemText(raw));
-      const locked = !!(ls && typeof ls === 'object' && (ls.locked || ls.isLocked || ls.status === 'locked'));
-      const duration = (ls && typeof ls === 'object' && (ls.duration || ls.minutes || ls.estimatedMinutes))
-        ? `${escapeAppHtml(String(ls.duration || ls.minutes || ls.estimatedMinutes).replace(/\s*min(?:utes)?$/i, ''))} min`
-        : '';
+    const done = Math.max(0, Math.min(info.completedCount, total));
+    const cur = info.completed ? total : Math.min(done, total - 1);
+    // Window of up to 3 rows: [current-1, current, current+1], clamped to bounds.
+    let end = Math.min(total, Math.max(0, cur - 1) + 3);
+    let start = Math.max(0, end - 3);
+    let rows = '';
+    for (let i = start; i < end; i++) {
       let state;
-      if (info.completed || i < info.completedCount) state = 'done';
-      else if (locked) state = 'locked';
-      else if (i === Math.min(info.completedCount, Math.max(0, lessons.length - 1))) state = 'active';
-      else state = 'upcoming';
-      return `<span class="v3-module-row v3-module-${state}"><span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span><span class="v3-module-title">${title}</span>${state === 'active' && duration ? `<span class="v3-module-duration">${duration}</span>` : ''}</span>`;
-    }).join('');
-    const disclosure = lessons.length > 3
-      ? `<span class="v3-module-disclosure">View all ${lessons.length} lessons</span>`
-      : '';
-    return `<span class="v3-track-modules">${rows}${disclosure}</span>`;
+      if (info.completed || i < done) state = 'done';
+      else if (i === done) state = 'active';
+      else state = 'locked';
+      rows += _moduleRowHtml(_lessonTitle(lessons[i], i), state);
+    }
+    return `<span class="v3-track-modules">${rows}</span>`;
   };
-  // Collapsed-track preview: keep non-expanded cards informative by surfacing
-  // the single lesson the learner would land on next (real lesson title, never
-  // fabricated). Hidden once a track is complete (the foot already says so).
+  // Collapsed / secondary tracks surface a single row: the lesson the learner
+  // would land on next (real title, never fabricated). Hidden once complete.
   const _nextPreview = card => {
     const lessons = Array.isArray(card.lessons) ? card.lessons : [];
     if (!lessons.length || card.info.completed) return '';
     const idx = card.info.started ? Math.min(card.info.completedCount, lessons.length - 1) : 0;
-    const ls = lessons[idx];
-    const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || '');
-    if (!raw) return '';
-    const label = card.info.started ? 'Next' : 'Starts with';
-    return `<span class="v3-track-next">
-        <span class="v3-track-next-mark" aria-hidden="true">${_MODULE_ICON.active}</span>
-        <span class="v3-track-next-label">${label}</span>
-        <span class="v3-track-next-title">${escapeAppHtml(cleanGeneratedListItemText(raw))}</span>
-      </span>`;
+    return `<span class="v3-track-modules v3-track-modules-single">${_moduleRowHtml(_lessonTitle(lessons[idx], idx), 'active')}</span>`;
   };
   // Concise description, only when the unit genuinely carries one — no filler.
   const _trackDesc = card => {
@@ -3299,7 +3309,7 @@ function renderV3LearnWorkspace(container) {
     return `
         <span class="v3-track-head">
           <span class="v3-track-eyebrow">Track ${_trackPad(opts ? opts.trackNo : 1)}</span>
-          <span class="v3-track-count">${info.completedCount} / ${info.total} lessons</span>
+          <span class="v3-track-count"><b>${info.completedCount}/${info.total}</b> Lessons</span>
         </span>
         <span class="v3-track-title">${title}</span>
         ${desc}
@@ -3311,27 +3321,26 @@ function renderV3LearnWorkspace(container) {
           <span class="v3-track-cta v3-track-cta-${st.kind}">${st.cta}${_chevron}</span>
         </span>`;
   };
-  const _aiUnitInner = card => {
+  const _aiUnitInner = (card, opts) => {
     const info = card.info;
     const rawTitle = cleanGeneratedListItemText(card.unit.title || 'Generated unit');
     const title = escapeAppHtml(rawTitle);
     const desc = _trackDesc(card);
     const pct = info.completed ? 100 : (info.total ? Math.round((info.completedCount / info.total) * 100) : 0);
     const st = _trackState(info);
-    const lessons = Array.isArray(card.lessons) ? card.lessons : [];
-    const preview = lessons.slice(0, 2).map((ls, i) => {
-      const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
-      return `<span>${escapeAppHtml(cleanGeneratedListItemText(raw))}</span>`;
-    }).join('');
+    const expanded = !!(opts && opts.expanded);
+    // Same reference-faithful module rows as preset tracks — window when the
+    // lead card is expanded, a single next-lesson row otherwise.
+    const modules = info.completed ? '' : (expanded ? _moduleRows(card) : _nextPreview(card));
     return `
       <span class="v3-ai-unit-top">
         <span class="v3-ai-unit-badge">Created unit</span>
-        <span class="v3-ai-unit-count">${info.completedCount} / ${info.total} lessons</span>
+        <span class="v3-ai-unit-count"><b>${info.completedCount}/${info.total}</b> Lessons</span>
       </span>
       <span class="v3-ai-unit-title">${title}</span>
       ${desc ? desc.replace('v3-track-desc', 'v3-ai-unit-desc') : ''}
       <span class="fl-track v3-ai-unit-progress" role="progressbar" aria-label="${pct}% complete" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></span>
-      ${preview ? `<span class="v3-ai-unit-preview">${preview}</span>` : ''}
+      ${modules}
       <span class="v3-ai-unit-foot">
         <span class="v3-ai-unit-state">${escapeAppHtml(st.word)}</span>
         <span class="v3-ai-unit-cta v3-ai-unit-cta-${st.kind}">${st.cta}${_chevron}</span>
@@ -3355,7 +3364,7 @@ function renderV3LearnWorkspace(container) {
         </div>
         <div class="v3-swipe-surface">
           <button type="button" class="v3-unit-main" aria-label="${escapeAppHtml(_a11y(rawTitle, card.info))}" onclick="openMicroUnit('${uid}')">
-            ${_aiUnitInner(card)}
+            ${_aiUnitInner(card, opts)}
           </button>
         </div>
         <button type="button" class="v3-unit-kbd-delete" aria-label="Delete ${title}" onclick="LearnUnitDelete.request('${uid}', { via: 'keyboard' })">Delete unit</button>

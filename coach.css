@@ -8198,50 +8198,55 @@ body.auth-modal-visible .ask-tutor-backdrop {
   font-size: 1.9rem; font-weight: 700; line-height: 1.06; letter-spacing: -0.03em;
 }
 
-/* ── Track card = vertical composition (overrides the row grid) ── */
+/* ── Track card = large vertical composition (overrides the row grid) ── */
+.v3-track-card.v3-unit-card,
+.v3-track-card.v3-unit-card-preset { border-radius: 22px; }
 .v3-track-card.v3-unit-card-preset,
 .v3-track-card .v3-unit-main {
-  display: flex; flex-direction: column; align-items: stretch; gap: 11px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 16px;
   grid-template-columns: none;
 }
 .v3-track-card.v3-unit-card,
 .v3-track-card.v3-unit-card-preset { min-height: 0; }
-.v3-track-card.v3-unit-card-preset { padding: 16px; }
-.v3-track-card .v3-unit-main { min-height: 0; padding: 16px; align-items: stretch; }
+.v3-track-card.v3-unit-card-preset { padding: 26px 24px; }
+.v3-track-card .v3-unit-main { min-height: 0; padding: 26px 24px; align-items: stretch; }
 
 .v3-track-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .v3-track-eyebrow {
   font-family: var(--fl-font-label);
-  font-size: 0.64rem; font-weight: 500; line-height: 1;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--fl-faint);
+  font-size: 0.68rem; font-weight: 500; line-height: 1;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--fl-muted);
 }
 .v3-track-count {
   font-family: var(--fl-font-label);
-  font-size: 0.62rem; font-weight: 500; letter-spacing: 0.06em;
-  color: var(--fl-muted); white-space: nowrap;
+  font-size: 0.68rem; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--fl-faint); white-space: nowrap; text-transform: uppercase;
 }
+.v3-track-count b { font-weight: 500; color: var(--fl-eyebrow); }
 .v3-track-title {
   font-family: var(--fl-font-display);
-  font-size: 1.12rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em;
-  color: var(--fl-title); white-space: normal;
+  font-size: 1.72rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.03em;
+  color: var(--fl-heading); white-space: normal;
+  margin-top: -2px;
 }
 .v3-track-progress {
   width: 100%;
-  height: 4px;
-  margin: 2px 0 0;
-  background: rgba(255,255,255,0.075);
+  height: 5px;
+  margin: 4px 0 2px;
+  background: rgba(255,255,255,0.07);
 }
 .v3-track-progress > span {
   min-width: 0;
+  border-radius: inherit;
   background: var(--fl-accent);
 }
 
-/* ── Concise track description (only when the unit carries one) ── */
+/* ── Track description — comfortable body copy, wraps like the reference ── */
 .v3-track-desc {
-  font: 400 0.84rem/1.45 var(--font-b);
+  font: 400 0.98rem/1.5 var(--font-b);
   color: var(--fl-sub);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; margin: -2px 0 1px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden; margin: -4px 0 2px;
 }
 
 /* ── Collapsed-track next-lesson preview — keeps compact tracks informative ── */
@@ -8264,47 +8269,53 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .v3-track-card.is-complete .v3-track-next { display: none; }
 
-/* ── Module rows (lead active track) — non-interactive state indicators ── */
-.v3-track-modules {
-  display: grid; gap: 1px;
-  margin-top: 3px; padding-top: 11px;
+/* ── Module rows — reference-faithful lesson list (non-interactive) ──────
+   Tall rows with a circled status mark, a wrapping title, a hairline
+   divider, and a far-right content-type glyph. Rows are state indicators
+   only; the whole card opens the unit (behavior unchanged). ── */
+.v3-track-modules { display: flex; flex-direction: column; margin-top: 8px; }
+.v3-track-modules-single { margin-top: 10px; }
+.v3-module-row {
+  display: flex; align-items: center; gap: 16px;
+  min-height: 78px; padding: 15px 2px; min-width: 0;
   border-top: 1px solid var(--fl-divider);
 }
-.v3-module-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; min-width: 0; }
+/* Circled status mark — border supplies the ring; icon sits inside. */
 .v3-module-mark {
-  flex: none; width: 18px; height: 18px; display: grid; place-items: center;
-  border-radius: 999px;
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 50%;
 }
-.v3-module-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.v3-module-mark svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .v3-module-title {
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font: 500 0.82rem/1.3 var(--font-b); color: var(--fl-body);
+  flex: 1 1 auto; min-width: 0;
+  font: 500 1.02rem/1.32 var(--font-b); color: var(--fl-body);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-/* completed module — mint check, quiet struck title */
-.v3-module-done .v3-module-mark {
-  color: var(--fl-accent);
-  background: rgba(105,221,165,0.11);
-}
-.v3-module-done .v3-module-title { color: var(--fl-sub); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.22); }
-/* active module — filled mint marker, emphasized title */
-.v3-module-active .v3-module-mark {
-  color: #06130E;
-  background: var(--fl-accent);
-}
-.v3-module-active .v3-module-mark svg { fill: #06130E; stroke: #06130E; }
-.v3-module-active .v3-module-title { color: var(--fl-title); font-weight: 700; }
-/* upcoming module — quiet hollow dot (NOT a lock; nothing fabricated) */
-.v3-module-upcoming .v3-module-mark { color: var(--fl-muted); opacity: 0.95; }
-.v3-module-upcoming .v3-module-title { color: var(--fl-muted); }
-/* locked module — distinct from upcoming, only when data marks a lesson locked */
-.v3-module-locked .v3-module-mark {
-  color: var(--fl-faint);
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.035);
-}
-.v3-module-locked .v3-module-title { color: var(--fl-faint); }
+.v3-module-type { flex: none; width: 22px; height: 22px; display: grid; place-items: center; color: var(--fl-faint); }
+.v3-module-type svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ── Footer: state word + CTA affordance ── */
+/* completed — mint circled check, quiet struck title */
+.v3-module-done .v3-module-mark { color: var(--fl-accent); border: 1.6px solid var(--fl-accent); }
+.v3-module-done .v3-module-title { color: var(--fl-muted); text-decoration: line-through; text-decoration-color: rgba(160,182,214,0.42); }
+.v3-module-done .v3-module-type { color: var(--fl-faint); }
+/* active / current — white circled play, bright title */
+.v3-module-active .v3-module-mark { color: var(--fl-title); border: 1.6px solid rgba(255,255,255,0.5); }
+.v3-module-active .v3-module-mark svg { fill: var(--fl-title); stroke: var(--fl-title); }
+.v3-module-active .v3-module-title { color: var(--fl-title); font-weight: 600; }
+.v3-module-active .v3-module-type { color: var(--fl-muted); }
+/* locked — bare lock (no ring), very low-contrast title + muted glyph */
+.v3-module-locked .v3-module-mark { color: var(--fl-faint); }
+.v3-module-locked .v3-module-mark svg { width: 17px; height: 17px; }
+.v3-module-locked .v3-module-title { color: var(--fl-faint); }
+.v3-module-locked .v3-module-type { color: rgba(86,96,109,0.7); }
+/* upcoming (fallback state) — quiet hollow ring */
+.v3-module-upcoming .v3-module-mark { color: var(--fl-muted); border: 1.6px solid var(--fl-border-strong); }
+.v3-module-upcoming .v3-module-title { color: var(--fl-muted); }
+
+/* ── Footer: hidden to match the reference (card itself is the tap target;
+   the state + action stay in the card's aria-label for assistive tech). ── */
+.v3-track-card .v3-track-foot,
+.v3-ai-unit-card .v3-ai-unit-foot { display: none; }
 .v3-track-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
 .v3-track-state {
   font-family: var(--fl-font-label);
@@ -8326,22 +8337,15 @@ body.auth-modal-visible .ask-tutor-backdrop {
 /* Completed review = quiet text affordance */
 .v3-track-cta-review { color: var(--fl-faint); }
 
-/* ── Active track framing — restrained mint accent ── */
-.v3-track-card.is-active {
-  position: relative;
-  border-color: var(--fl-border);
-}
-.v3-track-card.is-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 16px;
-  bottom: 16px;
-  width: 2px;
-  border-radius: 0 2px 2px 0;
-  background: rgba(105, 221, 165, 0.72);
-}
-.v3-track-card.is-active .v3-track-eyebrow { color: var(--fl-accent); }
+/* ── Active track framing — the reference conveys active-ness through the
+   mint progress fill and the play-circle module row, NOT a card border or
+   colored edge. Keep the card flat; no left edge, no accent eyebrow. ── */
+.v3-track-card.is-active,
+.v3-track-card.is-active:hover { position: relative; border-color: var(--fl-border); box-shadow: inset 0 1px 0 rgba(255,255,255,0.035); }
+.v3-track-card.is-active::before { content: none; }
+/* AI track cards: same flat treatment (no mint inset edge). */
+.v3-ai-unit-card.is-active,
+.v3-ai-unit-card.is-active:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.035); }
 /* Completed track keeps the recessed passive treatment (from earlier rules);
    its progress track reads full mint (goal reached). */
 .v3-track-card.is-complete .v3-track-title { color: var(--fl-eyebrow); }
@@ -8350,14 +8354,17 @@ body.auth-modal-visible .ask-tutor-backdrop {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: 16px;
   min-height: 0;
-  padding: 15px;
+  padding: 26px 24px;
 }
 .v3-ai-unit-card {
   border-color: rgba(124, 139, 160, 0.16);
   background: rgba(11, 13, 16, 0.86);
+  border-radius: 22px;
 }
+.v3-ai-unit-card .v3-swipe-surface,
+.v3-ai-unit-card .v3-swipe-surface .v3-unit-main { border-radius: 22px; }
 .v3-ai-unit-card.is-active {
   border-color: rgba(124, 139, 160, 0.24);
 }
@@ -8379,34 +8386,38 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-ai-unit-count,
 .v3-ai-unit-state {
   font-family: var(--fl-font-label);
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--fl-muted);
+  color: var(--fl-faint);
 }
+.v3-ai-unit-count b { font-weight: 500; color: var(--fl-eyebrow); }
 .v3-ai-unit-title {
   font-family: var(--fl-font-display);
-  font-size: 1.05rem;
+  font-size: 1.72rem;
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-  color: var(--fl-title);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--fl-heading);
+  margin-top: -2px;
 }
 .v3-ai-unit-desc {
-  font: 400 0.82rem/1.45 var(--font-b);
+  font: 400 0.98rem/1.5 var(--font-b);
   color: var(--fl-sub);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: -4px 0 2px;
 }
 .v3-ai-unit-progress {
   width: 100%;
-  height: 4px;
-  margin-top: 1px;
-  background: rgba(255, 255, 255, 0.075);
+  height: 5px;
+  margin: 4px 0 2px;
+  background: rgba(255, 255, 255, 0.07);
 }
+.v3-ai-unit-progress > span { border-radius: inherit; }
 .v3-ai-unit-progress > span { background: var(--fl-accent); }
 .v3-ai-unit-preview {
   display: grid;
@@ -8562,63 +8573,65 @@ body.auth-modal-visible .ask-tutor-backdrop {
    ============================================================ */
 .market-sentiment-section {
   display: flex; flex-direction: column; gap: 10px;
-  margin-bottom: 22px;
+  margin-bottom: var(--fl-section-gap);
 }
 .market-sentiment-card {
+  --sent-color: var(--fl-accent);
   background: var(--fl-surface-passive);          /* near-black over navy */
   border: 1px solid var(--fl-border);
-  border-radius: var(--fl-radius-card);
-  padding: 15px;
-  display: flex; flex-direction: column; gap: 11px;
+  border-radius: 12px;
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 16px;
 }
-.market-sentiment-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.market-sentiment-head > div { display: flex; flex-direction: column; gap: 5px; }
-.market-sentiment-state {
-  font: 700 1.3rem/1 var(--fl-font-display); letter-spacing: -0.01em;
+/* Band accent drives the read label + the gauge fill/marker color. */
+.market-sentiment-b-defensive    { --sent-color: var(--red-text); }
+.market-sentiment-b-cautious     { --sent-color: #E6B872; }
+.market-sentiment-b-neutral      { --sent-color: var(--fl-title); }
+.market-sentiment-b-constructive { --sent-color: var(--fl-accent); }
+.market-sentiment-b-risk-on      { --sent-color: var(--mkt-up, var(--fl-accent)); }
+
+.market-sentiment-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.market-sentiment-title {
+  margin: 0; font: 600 1.14rem/1.2 var(--font-b); letter-spacing: -0.01em;
   color: var(--fl-title);
 }
-.market-sentiment-state-defensive    { color: var(--red-text); }
-.market-sentiment-state-cautious      { color: #E6B872; }
-.market-sentiment-state-neutral       { color: var(--fl-title); }
-.market-sentiment-state-constructive  { color: var(--fl-accent); }
-.market-sentiment-state-risk-on       { color: var(--mkt-up, var(--fl-accent)); }
-.market-sentiment-tag {
+.market-sentiment-info { display: inline-flex; width: 18px; height: 18px; flex: none; color: var(--fl-faint); cursor: help; }
+.market-sentiment-info:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: 50%; }
+.market-sentiment-info svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Fear/Greed-style poles: static low pole (left) + live band + score (right). */
+.market-sentiment-scale-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: -4px; }
+.market-sentiment-low {
   font-family: var(--fl-font-label);
-  font-size: 0.58rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--fl-muted);
+  font-size: 0.74rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fl-faint);
 }
-/* Restrained horizontal gauge: a quiet track, a graded fill, a marker. */
+.market-sentiment-read {
+  font-family: var(--fl-font-label);
+  font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--sent-color);
+}
+/* Horizontal gauge: dark rail, colored fill on the positive (right) side up to
+   the marker, and a bright marker positioned at the real score. */
 .market-sentiment-gauge {
   position: relative; height: 6px; border-radius: var(--fl-radius-pill);
   background: rgba(124, 139, 160, 0.16);
   overflow: visible;
 }
-.market-sentiment-gauge-fill { display: none; }
+.market-sentiment-gauge-fill {
+  position: absolute; top: 0; bottom: 0; right: 0;   /* left set inline to score% */
+  border-radius: var(--fl-radius-pill);
+  background: var(--sent-color);
+}
 .market-sentiment-gauge-marker {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--fl-title); border: 2px solid var(--fl-surface-passive);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--sent-color);
+  box-shadow: 0 0 0 3px var(--fl-surface-passive);
+  z-index: 1;
 }
-.market-sentiment-scale {
-  display: none;
-  justify-content: space-between;
-  font-family: var(--fl-font-label);
-  font-size: 0.54rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--fl-faint); margin-top: -6px;
-}
-.market-sentiment-driver { font: 400 0.86rem/1.45 var(--font-b); color: var(--fl-body); margin: 0; }
-.market-sentiment-means {
-  border-left: 2px solid var(--fl-accent-border);
-  padding-left: 11px; display: flex; flex-direction: column; gap: 4px;
-}
-.market-sentiment-means-label {
-  font-family: var(--fl-font-label);
-  font-size: 0.58rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--fl-accent);
-}
-.market-sentiment-means p { font: 400 0.84rem/1.45 var(--font-b); color: var(--fl-sub); margin: 0; }
-.market-sentiment-unavail { font: 400 0.88rem/1.5 var(--font-b); color: var(--fl-muted); margin: 0; }
+.market-sentiment-explain { font: 400 0.95rem/1.55 var(--font-b); color: var(--fl-sub); margin: 0; }
+.market-sentiment-unavail { font: 400 0.92rem/1.5 var(--font-b); color: var(--fl-muted); margin: 0; }
 
 
 /* ============================================================
