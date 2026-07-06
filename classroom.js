@@ -1421,12 +1421,16 @@
         '<div class="cl-kicker">' + (isFollow ? 'Targeted follow-up' : 'Assignment preview') + '</div>' +
         '<h1 class="cl-preview-title" id="clPreviewTitle">' + esc(unit.title) + '</h1>' +
         '<div class="cl-card-meta">' + meta + '</div>' +
-        '<div class="cl-preview-facts">' +
-          '<div><span>Topic</span><strong>' + esc(unit.topic || 'Assignment') + '</strong></div>' +
-          '<div><span>Difficulty</span><strong>' + esc(unit.difficulty || 'beginner') + '</strong></div>' +
-          '<div><span>Estimated time</span><strong>' + est + ' min</strong></div>' +
-          '<div><span>Questions</span><strong>' + unit.questions.length + '</strong></div>' +
-          '<div><span>Teach-it-back</span><strong>' + (teachCount ? 'Included' : 'Not included') + '</strong></div>' +
+        // One highlighted Teach-it-back indicator replaces the old five-tile
+        // grid (topic/difficulty/time/questions were already in the meta line
+        // above — no need to repeat them as equally-weighted tiles).
+        '<div class="cl-teachback-flag cl-teachback-' + (teachCount ? 'on' : 'off') + '">' +
+          '<span class="cl-teachback-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>' +
+          '<div class="cl-teachback-copy"><strong>Teach-it-back</strong><span>' +
+            (teachCount
+              ? (teachCount + ' written-response ' + plural(teachCount, 'question') + ' — learners explain a concept in their own words')
+              : 'Not included — this assignment is multiple-choice only') +
+          '</span></div>' +
         '</div>' +
         '<div class="cl-preview-list cl-mt">' +
           unit.questions.map(previewQ).join('') +

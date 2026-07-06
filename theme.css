@@ -13,23 +13,23 @@
   /* ── Surfaces ─────────────────────────────────────────────────
      Deliberately near-black, with very small luminance steps so
      elevation reads as structure rather than decoration.        */
-  --bg:       #0a0b0e;          /* page background              */
-  --bg2:      #14171d;          /* card / input surface (filled, no border needed) */
-  --bg3:      #1c2029;          /* hover, inactive fill         */
-  --surface:  #14171d;           /* elevated layers              */
+  --bg:       #0A101B;          /* page background — deep navy   */
+  --bg2:      #10151D;          /* card / input surface (filled, no border needed) */
+  --bg3:      #192230;          /* hover, inactive fill — raised navy */
+  --surface:  #10151D;           /* elevated layers              */
 
   /* ── Borders ─────────────────────────────────────────────────
-     Hairline first, structural second. Not "near-invisible".   */
-  --border:   #1f242e;
-  --border2:  #2c333f;
+     Subtle blue-gray, hairline first. Not neutral gray.        */
+  --border:   #222C39;
+  --border2:  #303D4C;
 
   /* ── Text scale ──────────────────────────────────────────────
-     Off-white primary, no pure white anywhere. Body recedes;
+     Warm-white primary, cool-gray secondary. Body recedes;
      headings hold the column.                                  */
-  --text:       #e6e8ec;
-  --text-sub:   #aab0bb;
-  --muted:      #7d8593;
-  --muted2:     #565d6a;
+  --text:       #F4F6F8;
+  --text-sub:   #B3BBC7;
+  --muted:      #7F8998;
+  --muted2:     #56606D;
 
   /* ── Accents ─────────────────────────────────────────────────
      Emerald is the brand and the only positive signal.         */
@@ -64,11 +64,11 @@
   --boost-icon-border:  rgba(255,255,255,0.16);
   --boost-label:        var(--green-text);
 
-  /* High-contrast neutral surfaces (active tabs, dark chips) */
-  --contrast-strong-bg:       #1d222c;
-  --contrast-strong-bg-hover: #252b37;
+  /* High-contrast navy surfaces (active tabs, dark chips) */
+  --contrast-strong-bg:       #192230;
+  --contrast-strong-bg-hover: #1F2A3A;
   --contrast-strong-text:     #f4f6fa;
-  --contrast-strong-border:   rgba(170,178,191,0.18);
+  --contrast-strong-border:   rgba(170,182,199,0.18);
 
   /* ── Typography ──────────────────────────────────────────────
      Single sans-serif (Inter) for everything textual.
@@ -97,12 +97,12 @@
   --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
 
   /* ── App shell ── */
-  --shell-bg:     #07080a;
+  --shell-bg:     #05080E;
   --shell-shadow: 0 16px 48px rgba(0,0,0,0.55);
 
   /* ── Topbar / Nav ── */
-  --topbar-bg:  #0b0d10;
-  --nav-bg:     #0b0d10;
+  --topbar-bg:  #0B111C;
+  --nav-bg:     #0B111C;
 
   /* ── Primary button — mint brand accent (Phase 2). Brand-constant
      across themes: the accent is the same in light and dark. ── */
@@ -196,40 +196,51 @@
    that will be wired to --fl-accent in Phase 7, not silently altered now.
    ============================================================ */
 :root {
-  /* ── Surfaces — charcoal ramp, deep → raised ── */
-  --fl-bg-deep:         #080A0C;   /* outermost page, below the canvas    */
-  --fl-bg:              #0B0D0F;   /* canvas background                   */
-  --fl-surface-passive: #0F1215;   /* quiet / completed / recessed        */
-  --fl-surface:         #14171A;   /* interactive card base               */
-  --fl-surface-raised:  #15191D;   /* featured / focal card               */
-  --fl-surface-hover:   #161A1E;   /* hover fill                          */
+  /* ── Surfaces — navy ramp, deep → raised. Deliberately tonal:
+     page navy → near-black card → lighter navy raised/hover, so
+     elevation reads as structure, not decoration. ── */
+  --fl-bg-deep:         #070B12;   /* outermost page, below the canvas    */
+  --fl-bg:              #0A101B;   /* canvas background — deep navy        */
+  --fl-surface-passive: #0B0D10;   /* quiet / completed / recessed — near-black */
+  --fl-surface:         #10151D;   /* interactive card base — near-black navy */
+  --fl-surface-raised:  #151C27;   /* featured / focal card — lighter navy */
+  --fl-surface-hover:   #192230;   /* hover fill — raised navy             */
 
-  /* ── Borders ── */
-  --fl-border:          #23272D;
-  --fl-border-strong:   #2C323A;
-  --fl-border-hover:    rgba(255,255,255,0.28);
-  --fl-divider:         rgba(255,255,255,0.06);
+  /* ── Borders — subtle blue-gray, not neutral gray ── */
+  --fl-border:          #222C39;
+  --fl-border-strong:   #303D4C;
+  --fl-border-hover:    rgba(160,182,214,0.30);
+  --fl-divider:         rgba(160,182,214,0.08);
 
   /* ── Shared card treatment (overlay sheen + top inset) ── */
   --fl-overlay:         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
   --fl-overlay-hover:   linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
   --fl-inset:           inset 0 1px 0 rgba(255,255,255,0.04);
 
-  /* ── Text ramp — heading (white) → faint (meta) ── */
+  /* ── Text ramp — warm-white heading → cool-gray faint (meta).
+     Spec-named aliases (--fl-text-*) map onto the same ramp so
+     new markup can use either name. ── */
   --fl-heading:         #FFFFFF;   /* important page headings only        */
-  --fl-title:           #F5F5F5;   /* section + card titles               */
-  --fl-eyebrow:         #C7CDD6;
-  --fl-body:            #D1D5DB;
-  --fl-sub:             #B6BECB;
-  --fl-muted:           #9CA3AF;
-  --fl-faint:           #8A93A1;
+  --fl-title:           #F4F6F8;   /* section + card titles — warm white  */
+  --fl-eyebrow:         #C6CEDA;
+  --fl-body:            #C9D0DB;   /* cool-gray body                      */
+  --fl-sub:             #B3BBC7;   /* cool-gray secondary                 */
+  --fl-muted:           #7F8998;
+  --fl-faint:           #56606D;
+
+  /* Spec canonical text aliases (identical ramp, spec names). */
+  --fl-text-primary:    #F4F6F8;
+  --fl-text-secondary:  #B3BBC7;
+  --fl-text-muted:      #7F8998;
+  --fl-text-faint:      #56606D;
 
   /* ── Mint accent — the single restrained brand accent.
-     Phase 2 wires this into nav / progress / primary CTAs. ── */
-  --fl-accent:          #76D6A2;
-  --fl-accent-hover:    #8BE2B1;
-  --fl-accent-soft:     rgba(118,214,162,0.12);
-  --fl-accent-border:   rgba(118,214,162,0.40);
+     Navy pass tightens it to #69DDA5. Market ± deltas (--mkt-*)
+     stay independent so market-green never bleeds into this. ── */
+  --fl-accent:          #69DDA5;
+  --fl-accent-hover:    #80E8B7;
+  --fl-accent-soft:     rgba(105,221,165,0.10);
+  --fl-accent-border:   rgba(105,221,165,0.30);
 
   /* ── Radii ── */
   --fl-radius-card:     16px;
@@ -381,8 +392,8 @@ body.theme-transitioning * {
   --fl-label-size:     0.68rem;
   --fl-label-weight:   500;
   --fl-label-tracking: 0.14em;
-  --fl-label-color:    var(--fl-faint);   /* default low-contrast */
-  --fl-label-dim:      var(--muted2);      /* extra-quiet */
+  --fl-label-color:    var(--fl-muted);   /* default low-contrast (legible on navy) */
+  --fl-label-dim:      var(--fl-faint);    /* extra-quiet */
   --fl-label-bright:   var(--fl-eyebrow);  /* raised emphasis */
 
   /* ── Hybrid CTA tokens (approved decision) ──────────────────────

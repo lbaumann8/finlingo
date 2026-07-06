@@ -467,7 +467,6 @@ function _broadcastAppDataReset() {
 function _rerenderAfterReset() {
   const safe = fn => { try { if (typeof fn === 'function') fn(); } catch (_) {} };
   safe(window.updateTopbar);     // header progress / accuracy
-  safe(window.updateHome);       // home dashboard cards + rings
   safe(window.renderPath);       // active Learn workspace (lesson cards, completion)
   safe(window.renderProfileScreen); // profile stats summary
   // Practice/review, Market, and the nav-drawer chat list re-render via events.
@@ -706,7 +705,7 @@ function _renderBootFallback(message) {
 //   TOAST     showToast()
 //   MODAL     showAppModal(), closeAppModal()
 //   SHARE     generateShareCard(), downloadShareCard(), nativeShare()
-//   HOME      updateHome(), getGreeting()
+//   HOME      showHome() → showCoach() (Coach is the permanent front door; no Home dashboard)
 //   RANKS     fetchLeaderboard(), renderRanks(), switchRanksTab()
 //   PATH      renderPath()
 //   PWA       manifest injection, service worker, install prompt
@@ -1243,9 +1242,11 @@ function _activateScreen(screenId, navId, onEnter, screenLabel, options = {}) {
   _runScreenEntry(onEnter, screenLabel || screenId);
 }
 
-// The Ask page is the AI-first front door — the default landing after
-// onboarding and the former "home". (updateHome() still safely refreshes the
-// hidden home DOM when called by other flows.)
+// The Ask (Coach) page is the permanent AI-first front door. There is no
+// separate Home dashboard — showHome() delegates to showCoach() so that any
+// "back to home" action lands on the front door. (The former #homeScreen and
+// its updateHome() renderer chain were removed; guarded updateHome() calls that
+// remain in other flows safely no-op.)
 function showHome(options = {}) {
   return showCoach(options);
 }
@@ -1677,8 +1678,8 @@ function generateShareCard() {
   const W = 600, H = 300;
   canvas.width = W; canvas.height = H;
 
-  // Background — matches --bg
-  ctx.fillStyle = '#0b0d10'; ctx.fillRect(0, 0, W, H);
+  // Background — matches --bg (deep navy)
+  ctx.fillStyle = '#0A101B'; ctx.fillRect(0, 0, W, H);
 
   // Top accent bar — matches --green
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, 3);
@@ -3228,6 +3229,32 @@ function renderV3LearnWorkspace(container) {
     }).join('');
     return `<span class="v3-track-modules">${rows}</span>`;
   };
+  // Collapsed-track preview: keep non-expanded cards informative by surfacing
+  // the single lesson the learner would land on next (real lesson title, never
+  // fabricated). Hidden once a track is complete (the foot already says so).
+  const _nextPreview = card => {
+    const lessons = Array.isArray(card.lessons) ? card.lessons : [];
+    if (!lessons.length || card.info.completed) return '';
+    const idx = card.info.started ? Math.min(card.info.completedCount, lessons.length - 1) : 0;
+    const ls = lessons[idx];
+    const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || '');
+    if (!raw) return '';
+    const label = card.info.started ? 'Next' : 'Starts with';
+    return `<span class="v3-track-next">
+        <span class="v3-track-next-mark" aria-hidden="true">${_MODULE_ICON.active}</span>
+        <span class="v3-track-next-label">${label}</span>
+        <span class="v3-track-next-title">${escapeAppHtml(cleanGeneratedListItemText(raw))}</span>
+      </span>`;
+  };
+  // Concise description, only when the unit genuinely carries one — no filler.
+  const _trackDesc = card => {
+    const u = card.unit || {};
+    const raw = card.description || u.subtitle || u.blurb || u.description || u.summary || '';
+    if (!raw) return '';
+    const text = cleanGeneratedListItemText(String(raw)).trim();
+    if (!text) return '';
+    return `<span class="v3-track-desc">${escapeAppHtml(text)}</span>`;
+  };
   const _trackState = info => {
     if (info.completed) return { word: 'Complete', cta: 'Review', kind: 'review' };
     if (info.started)  return { word: `Lesson ${Math.min(info.total, info.currentLessonIndex + 1)} of ${info.total}`, cta: 'Resume', kind: 'resume' };
@@ -3242,15 +3269,20 @@ function renderV3LearnWorkspace(container) {
     const title = escapeAppHtml(rawTitle);
     const pct = info.completed ? 100 : (info.total ? Math.round((info.completedCount / info.total) * 100) : 0);
     const st = _trackState(info);
-    const modules = (opts && opts.expanded) ? _moduleRows(card) : '';
+    const expanded = !!(opts && opts.expanded);
+    const desc = _trackDesc(card);
+    const modules = expanded ? _moduleRows(card) : '';
+    const preview = expanded ? '' : _nextPreview(card);
     return `
         <span class="v3-track-head">
           <span class="v3-track-eyebrow">Track ${_trackPad(opts ? opts.trackNo : 1)}</span>
           <span class="v3-track-count">${info.completedCount} / ${info.total} lessons</span>
         </span>
         <span class="v3-track-title">${title}</span>
+        ${desc}
         <span class="fl-track v3-track-progress" aria-hidden="true"><span style="width:${pct}%"></span></span>
         ${modules}
+        ${preview}
         <span class="v3-track-foot">
           <span class="v3-track-state">${escapeAppHtml(st.word)}</span>
           <span class="v3-track-cta v3-track-cta-${st.kind}">${st.cta}${_chevron}</span>

@@ -3000,6 +3000,130 @@
       { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: 'Connect my lessons to the market', q: 'Connect what I’m learning to current market moves.' }
     ];
   }
+  // ── Today's Coach brief (Phase 6) ───────────────────────────────────
+  // Built from the SAME live market snapshot the Market screen uses. It is
+  // learning-aware (references the learner's current unit, never a fake
+  // portfolio) and market-aware (real moves only). When live data has not
+  // loaded / the market is closed, it says so instead of inventing figures.
+  function _coachCurrentUnitName() {
+    try {
+      const f = (typeof Practice !== 'undefined' && Practice.getFluency) ? Practice.getFluency() : null;
+      if (f && f.levelName) return String(f.levelName);
+    } catch (_) {}
+    return '';
+  }
+  function _coachMarketBrief() {
+    // Kick a fetch if the market module is present (non-blocking).
+    try { if (typeof ensureMarketSnapshot === 'function') ensureMarketSnapshot(); } catch (_) {}
+    const norm = (typeof _normalizedMarketSnapshot === 'function') ? _normalizedMarketSnapshot : null;
+    const ready = (typeof _marketSnapshot !== 'undefined') && _marketSnapshot.status === 'ready';
+    const sp = norm ? norm('sp500') : null;
+    const qq = norm ? norm('qqq') : null;
+    const bt = norm ? norm('btc') : null;
+    const pctOf = s => (s && s.available && Number.isFinite(Number(s.percentChange))) ? Number(s.percentChange) : null;
+    const spPct = pctOf(sp);
+    const unit = _coachCurrentUnitName();
+    const greeting = _coachGreeting().replace(/\.$/, '');
+    if (!ready || spPct == null) {
+      return { available: false, greeting, unit };
+    }
+    const qqPct = pctOf(qq);
+    const btPct = pctOf(bt);
+    // Sentiment band (interpretive) if the market module exposes it.
+    let toneWord = spPct > 0.15 ? 'a firmer' : (spPct < -0.15 ? 'a cautious' : 'a quiet');
+    try {
+      if (typeof _computeMarketSentiment === 'function') {
+        const s = _computeMarketSentiment();
+        if (s && s.available) toneWord = { defensive: 'a defensive', cautious: 'a cautious', neutral: 'a mixed', constructive: 'a constructive', 'risk-on': 'a risk-on' }[s.band.key] || toneWord;
+      }
+    } catch (_) {}
+    // Biggest real mover across the three tracked assets → the day's headline.
+    const movers = [
+      { name: 'the S&P 500', pct: spPct },
+      { name: 'the Nasdaq-100', pct: qqPct },
+      { name: 'Bitcoin', pct: btPct }
+    ].filter(m => m.pct != null).sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
+    const lead = movers[0];
+    const dir = lead.pct > 0.05 ? 'up' : (lead.pct < -0.05 ? 'down' : 'flat');
+    const pctTxt = `${Math.abs(lead.pct).toFixed(2)}%`;
+    const headline = dir === 'flat'
+      ? `${cap(lead.name)} is little changed today.`
+      : `${cap(lead.name)} is ${dir === 'up' ? 'up' : 'down'} ${pctTxt} today.`;
+    const why = dir === 'up'
+      ? 'Days like this usually reflect improving risk appetite — investors willing to pay more for future growth. The useful habit is to ask what changed in expectations, not just to react to the number.'
+      : (dir === 'down'
+        ? 'Pullbacks like this are a normal part of how markets price in new information. The useful habit is to notice which parts of the market moved together — and which didn’t.'
+        : 'Quiet sessions are a reminder that not every day carries a strong signal. They’re a good moment to focus on fundamentals rather than headlines.');
+    const connection = unit
+      ? `You’re currently working through ${unit}. Today is a live example of the ideas in that unit — a good chance to connect what you’re learning to what markets are actually doing.`
+      : 'Bring any concept you’re curious about and we’ll connect it to what markets are doing right now.';
+    // Closed / after-hours note from the real session state.
+    let note = '';
+    const sess = sp && sp.sessionStatus;
+    if (sess === 'closed') note = 'U.S. markets are closed right now, so these are the latest available figures.';
+    else if (sess === 'afterhours') note = 'U.S. markets are in after-hours trading; figures reflect the latest quotes.';
+    else if (sess === 'premarket') note = 'U.S. markets are in the pre-market session; figures reflect the latest quotes.';
+    return { available: true, greeting, toneWord, headline, why, connection, note, unit };
+  }
+  function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function _coachBriefBubbleHtml() {
+    const b = _coachMarketBrief();
+    if (!b.available) {
+      // Evergreen, honest fallback while live data loads (or if it can't).
+      return `
+        <p class="coach-brief-lead">${esc(b.greeting)}. Here’s today’s starting point.</p>
+        <p>Markets move on expectations, not just headlines — the “why” behind a move is usually more useful than the number itself.</p>
+        <p class="coach-brief-note">Reading today’s market data…</p>
+        ${b.unit ? `<div class="coach-brief-connect"><span class="coach-brief-connect-label">Your learning</span><p>You’re working through ${esc(b.unit)} — bring a question and we’ll tie it to a real example.</p></div>` : ''}`;
+    }
+    return `
+      <p class="coach-brief-lead">${esc(b.greeting)}. Markets are showing ${esc(b.toneWord)} tone today.</p>
+      <p>${esc(b.headline)} ${esc(b.why)}</p>
+      <div class="coach-brief-connect">
+        <span class="coach-brief-connect-label">Your learning</span>
+        <p>${esc(b.connection)}</p>
+      </div>
+      ${b.note ? `<p class="coach-brief-note">${esc(b.note)}</p>` : ''}`;
+  }
+  // Follow-up prompts shown as action cards under the opening message.
+  function _coachFollowups() {
+    const b = _coachMarketBrief();
+    const list = [
+      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'Explain today’s market move', q: 'Explain today’s market move in plain English — what’s driving it and why it matters.' },
+      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'How could inflation affect a portfolio?', q: 'How could inflation affect a diversified portfolio?' },
+      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: b.unit ? `Connect this to ${b.unit}` : 'Connect this to my current lesson', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to what I’m currently learning.' },
+      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: 'Quiz me on what I’m learning', q: 'Quiz me on the concepts I’ve been learning.' }
+    ];
+    return list.map(s => `
+      <button type="button" class="coach-suggest-card coach-followup-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
+        <span class="coach-suggest-icon" aria-hidden="true">${s.icon}</span>
+        <span class="coach-suggest-text">${esc(s.label)}</span>
+        <span class="coach-suggest-arrow" aria-hidden="true">${FinLingoIcons.right()}</span>
+      </button>`).join('');
+  }
+  // Repaint the brief + follow-ups in place once live data arrives (no full
+  // re-render, so the composer / typewriter / focus are undisturbed).
+  function _paintCoachBrief() {
+    const briefEl = document.getElementById('coachBrief');
+    if (briefEl) briefEl.innerHTML = _coachBriefBubbleHtml();
+    const fu = document.getElementById('coachFollowups');
+    if (fu) fu.innerHTML = _coachFollowups();
+  }
+  let _coachBriefPoll = null;
+  function _scheduleCoachBriefRefresh() {
+    if (_coachBriefPoll) { clearInterval(_coachBriefPoll); _coachBriefPoll = null; }
+    const ready = () => (typeof _marketSnapshot !== 'undefined') && _marketSnapshot.status === 'ready';
+    if (ready()) return;
+    let ticks = 0;
+    _coachBriefPoll = setInterval(() => {
+      ticks += 1;
+      const stop = ready() || ticks > 14 || !document.getElementById('coachBrief');
+      if (ready() && document.getElementById('coachBrief')) _paintCoachBrief();
+      if (stop) { clearInterval(_coachBriefPoll); _coachBriefPoll = null; }
+    }, 700);
+  }
+
   // A suggested-prompt card fills the composer and sends via the normal ask
   // path (coachAsk). No ChatStore/threading/streaming/persistence change.
   function askPrompt(source) {
@@ -3027,29 +3151,24 @@
     const showHero = isBlank;
     const showCompact = !isBlank;
 
-    const greeting = _coachGreeting();
-    const suggestHtml = showHero ? _coachSuggestions().map(s => `
-            <button type="button" class="coach-suggest-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
-              <span class="coach-suggest-icon" aria-hidden="true">${s.icon}</span>
-              <span class="coach-suggest-text">${esc(s.label)}</span>
-              <span class="coach-suggest-arrow" aria-hidden="true">${FinLingoIcons.right()}</span>
-            </button>`).join('') : '';
-
     root.innerHTML = `
       <div class="coach-page-shell ${isBlank ? 'has-composer' : 'is-conversation'}">
-        ${showHero ? `<section class="coach-hero coach-mentor-hero">
-          <div class="coach-hero-copy">
-            <div class="coach-mentor-kicker">Finlingo Coach</div>
-            <h1>${greeting}</h1>
-            <p class="coach-subtitle">Your AI mentor for markets, investing, and the language of finance.</p>
+        ${showHero ? `<section class="coach-hero coach-convo-intro">
+          <div class="coach-convo-header">
+            <span class="coach-convo-avatar" aria-hidden="true">${_COACH_ICON_MARKET}</span>
+            <span class="coach-convo-id">
+              <span class="coach-convo-name">Finlingo Coach</span>
+              <span class="coach-convo-role">AI mentor · markets, investing &amp; the language of money</span>
+            </span>
           </div>
-          <div class="coach-insight-card">
-            <span class="coach-insight-eyebrow">Mentor Brief</span>
-            <p class="coach-insight-text">Markets move on expectations, not just headlines. Bring a question and we’ll unpack the “why” behind the move.</p>
+          <div class="coach-day-divider"><span>Today</span></div>
+          <div class="coach-msg coach-msg-coach">
+            <span class="coach-msg-avatar" aria-hidden="true">${_COACH_ICON_MARKET}</span>
+            <div class="coach-msg-bubble coach-brief-bubble" id="coachBrief">${_coachBriefBubbleHtml()}</div>
           </div>
-          <div class="coach-suggest">
-            <div class="coach-suggest-label">Suggested Actions</div>
-            <div class="coach-suggest-grid">${suggestHtml}</div>
+          <div class="coach-followups">
+            <div class="coach-followups-label">Try asking</div>
+            <div class="coach-suggest-grid" id="coachFollowups">${_coachFollowups()}</div>
           </div>
         </section>
         <div class="coach-bottom-composer coach-bottom-composer-empty">
@@ -3099,6 +3218,9 @@
         _startTypewriter();
       }
     }
+    // Blank state shows today's brief; if live market data is still loading,
+    // repaint the brief + follow-ups in place once it arrives.
+    if (showHero) _scheduleCoachBriefRefresh();
   }
 
   // ── Multi-chat entry points ─────────────────────────────────────────

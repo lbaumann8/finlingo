@@ -409,7 +409,7 @@ select.cl-input {
 .cl-concept-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .cl-concept-top span { color: var(--cl-body); font: 500 0.9rem var(--font-b); }
 .cl-concept-top strong { color: var(--cl-title); font: 700 0.9rem var(--font-num, var(--font-b)); }
-.cl-bar { height: 8px; border-radius: 999px; background: #1c2029; overflow: hidden; }
+.cl-bar { height: 8px; border-radius: 999px; background: #192230; overflow: hidden; }
 .cl-bar-slim { height: 6px; flex: 1; }
 .cl-bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.34,1.2,.64,1); }
 .cl-bar-good { background: linear-gradient(90deg, var(--cl-green), var(--cl-green-bright)); }
@@ -434,7 +434,7 @@ select.cl-input {
 .cl-demo-tag {
   display: inline-block; margin-bottom: 12px; padding: 4px 10px; border-radius: 999px;
   font: 700 0.68rem var(--font-b); letter-spacing: 0.08em; text-transform: uppercase;
-  color: #0b0c0f; background: var(--cl-amber);
+  color: #070B12; background: var(--cl-amber);
 }
 
 /* ── Demo entry — opt-in, kept clearly apart from real owned groups ──────── */
@@ -887,6 +887,31 @@ select.cl-input {
   font: 700 .64rem var(--font-b); letter-spacing: .08em; text-transform: uppercase;
 }
 .cl-preview-facts strong { color: var(--cl-title); font: 700 .84rem/1.35 var(--font-b); text-transform: capitalize; }
+
+/* Single highlighted Teach-it-back indicator (replaces the redundant 5-tile
+   summary grid — the other facts already live in the compact meta line). */
+.cl-teachback-flag {
+  display: flex; align-items: flex-start; gap: 12px; margin-top: 14px;
+  padding: 13px 14px; border-radius: var(--cl-radius-sm);
+  border: 1px solid var(--cl-border); background: var(--cl-card-2);
+}
+.cl-teachback-flag.cl-teachback-on {
+  border-color: var(--fl-accent-border); background: var(--fl-accent-soft);
+}
+.cl-teachback-ic {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 9px; background: rgba(255,255,255,0.05); color: var(--cl-muted);
+}
+.cl-teachback-on .cl-teachback-ic { background: rgba(105,221,165,0.14); color: var(--fl-accent); }
+.cl-teachback-ic svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.cl-teachback-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cl-teachback-copy strong {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--cl-title);
+}
+.cl-teachback-on .cl-teachback-copy strong { color: var(--fl-accent); }
+.cl-teachback-copy span { font: 400 0.84rem/1.4 var(--font-b); color: var(--cl-body); }
 
 /* Respect reduced-motion for the animated reveal / generating steps. */
 @media (prefers-reduced-motion: reduce) {

@@ -845,12 +845,22 @@ function renderMarket() {
                  snapshot renderer; painted + refreshed by _paintMarketSnapshot(). -->
             <div id="marketSnapshotCards" class="snap-cards market-global-grid">${_renderMarketSnapshotCardsInner()}</div>
           </section>
+
+          <section class="market-watchlist-section">
+            <div class="mono-label mono-label--block market-global-label">Curated Watchlist</div>
+            <div id="marketWatchlist" class="market-watchlist">${_renderMarketWatchlistInner()}</div>
+          </section>
+
           <section class="market-v3-hero" id="marketTodayHero">
             ${_renderMarketTodayHeroInner()}
           </section>
 
           <section class="market-v3-insight" id="marketInsightCard">
             ${_renderMarketInsightInner()}
+          </section>
+
+          <section class="market-sentiment-section" id="marketSentiment">
+            ${_renderMarketSentimentInner()}
           </section>
         </div>
 
@@ -874,7 +884,23 @@ const MARKET_CHART_RANGES = ['1D', '1W', '1M', '3M', 'YTD', '1Y', '5Y'];
 const MARKET_ASSETS = [
   { key: 'sp500', name: 'S&P 500', symbol: 'SPY', kind: 'etf', type: 'ETF', currency: 'USD', description: 'S&P 500 index ETF', tracks: 'S&P 500', badge: 'S&P 500 ETF · SPY' },
   { key: 'qqq', name: 'QQQ', symbol: 'QQQ', kind: 'etf', type: 'ETF', currency: 'USD', description: 'Nasdaq-100 ETF', tracks: 'Nasdaq-100', badge: 'Nasdaq-100 ETF · QQQ' },
-  { key: 'btc', name: 'Bitcoin', symbol: 'BTC-USD', kind: 'crypto', type: 'crypto', currency: 'USD', description: 'Cryptocurrency', badge: 'Crypto · BTC' }
+  { key: 'btc', name: 'Bitcoin', symbol: 'BTC-USD', kind: 'crypto', type: 'crypto', currency: 'USD', description: 'Cryptocurrency', badge: 'Crypto · BTC' },
+  // Curated Watchlist single-stock instruments. These reuse the existing
+  // stock session logic (PRACTICE_MARKET_ASSETS) and the /api/quotes proxy;
+  // adding them here lets the watchlist rows drive the same chart selector.
+  { key: 'aapl', name: 'Apple', symbol: 'AAPL', kind: 'stock', type: 'stock', currency: 'USD', description: 'Apple Inc.', badge: 'Stock · AAPL' },
+  { key: 'nvda', name: 'Nvidia', symbol: 'NVDA', kind: 'stock', type: 'stock', currency: 'USD', description: 'NVIDIA Corp.', badge: 'Stock · NVDA' },
+  { key: 'tsla', name: 'Tesla', symbol: 'TSLA', kind: 'stock', type: 'stock', currency: 'USD', description: 'Tesla, Inc.', badge: 'Stock · TSLA' }
+];
+// Curated Watchlist — ordered instruments with a short sector descriptor.
+// Prices/percentages come ONLY from the live snapshot fetch; a row with no
+// real quote is dropped (never fabricated). assetKey ties a row to the chart.
+const MARKET_WATCHLIST = [
+  { assetKey: 'aapl', symbol: 'AAPL', name: 'Apple',    sector: 'Technology' },
+  { assetKey: 'nvda', symbol: 'NVDA', name: 'Nvidia',   sector: 'Semiconductors' },
+  { assetKey: 'tsla', symbol: 'TSLA', name: 'Tesla',    sector: 'Autos · EV' },
+  { assetKey: 'sp500', symbol: 'SPY', name: 'S&P 500',  sector: 'US large-cap index' },
+  { assetKey: 'btc',  symbol: 'BTC',  name: 'Bitcoin',  sector: 'Crypto' }
 ];
 const MARKET_ASSET_KEY = 'finlingo_selected_market_asset';
 function _normalizeMarketAssetKey(key) {
@@ -1051,7 +1077,7 @@ function _marketDisplayStats() {
 // mix an after-hours price in one place with a regular-session close in
 // another. `available: false` means live data has not loaded; callers should
 // show a delayed/unavailable state rather than invent numbers.
-const _ASSET_QUOTE_SYMBOL = { sp500: 'SPY', qqq: 'QQQ', btc: 'BTC' };
+const _ASSET_QUOTE_SYMBOL = { sp500: 'SPY', qqq: 'QQQ', btc: 'BTC', aapl: 'AAPL', nvda: 'NVDA', tsla: 'TSLA' };
 function _assetQuoteSymbol(asset) {
   const key = (asset && asset.key) || _marketChart.asset;
   return _ASSET_QUOTE_SYMBOL[key] || (asset && asset.symbol) || 'SPY';
@@ -1693,6 +1719,7 @@ function selectMarketAsset(key) {
     _marketChart.status = 'loading';
     _paintMarketChart();
     _paintMarketInsight();
+    _paintMarketWatchlist();
     ensureMarketChart(true);
   }
   const label = document.getElementById('marketAssetLabel');
@@ -2978,6 +3005,19 @@ const MARKET_SNAPSHOT_SYMBOLS = [
 ];
 const MARKET_SNAPSHOT_REFRESH_MS = 60000;
 
+// The union of Global-Markets symbols and Curated-Watchlist symbols. One fetch
+// populates both sections from the same live quotes (no extra request, no
+// fabricated values). Global cards still iterate MARKET_SNAPSHOT_SYMBOLS only.
+function _allSnapshotSymbols() {
+  const seen = new Set();
+  const out = [];
+  MARKET_SNAPSHOT_SYMBOLS.forEach(s => { if (!seen.has(s.symbol)) { seen.add(s.symbol); out.push(s); } });
+  (typeof MARKET_WATCHLIST !== 'undefined' ? MARKET_WATCHLIST : []).forEach(w => {
+    if (!seen.has(w.symbol)) { seen.add(w.symbol); out.push({ symbol: w.symbol, name: w.name }); }
+  });
+  return out;
+}
+
 const _marketSnapshot = {
   status: 'idle',   // idle | loading | ready | error
   error: '',
@@ -3005,7 +3045,7 @@ function _normalizeSnapshotQuotes(payload) {
     : payload;
   const out = {};
   if (!src || typeof src !== 'object') return out;
-  MARKET_SNAPSHOT_SYMBOLS.forEach(({ symbol }) => {
+  _allSnapshotSymbols().forEach(({ symbol }) => {
     const q = src[symbol];
     const price = Number(q?.price);
     if (!Number.isFinite(price) || price <= 0) return;
@@ -3046,7 +3086,7 @@ async function _fetchSnapshotQuotesViaSupabase(symbols) {
 }
 
 async function _fetchSnapshotQuotes() {
-  const symbols = MARKET_SNAPSHOT_SYMBOLS.map(s => s.symbol);
+  const symbols = _allSnapshotSymbols().map(s => s.symbol);
   // 1. Existing local/proxy API (e.g. python3 server.py) — flat payload.
   try {
     const payload = await _fetchMarketJson(
@@ -3124,7 +3164,161 @@ function _paintMarketSnapshot() {
   if (cardsEl) cardsEl.innerHTML = _renderMarketSnapshotCardsInner();
   const statusEl = document.getElementById('marketStatusLabel');
   if (statusEl) statusEl.innerHTML = _renderMarketStatusLabelInner();
+  _paintMarketWatchlist();
+  _paintMarketSentiment();
   _paintMarketInsight();
+}
+
+// ── Curated Watchlist ──────────────────────────────────────────────
+// Clean list of instruments driven ENTIRELY by the live snapshot quotes.
+// A row is rendered only when a real, positive price exists for its symbol;
+// otherwise it is dropped, so the list shrinks rather than showing fake data.
+// Rows are selectable and switch the chart via the existing asset selector.
+function _watchlistTicker(symbol) {
+  return String(symbol || '').replace('-USD', '').slice(0, 4).toUpperCase();
+}
+function _renderMarketWatchlistInner() {
+  const quotes = _marketSnapshot.quotes || {};
+  const rows = MARKET_WATCHLIST.map(w => {
+    const q = quotes[w.symbol];
+    const price = Number(q && q.price);
+    if (!Number.isFinite(price) || price <= 0) return null; // no real quote → skip
+    const pct = Number(q.changePct);
+    const cls = _marketChangeClass(pct);
+    const pctText = `${pct >= 0 ? '+' : ''}${(Number.isFinite(pct) ? pct : 0).toFixed(2)}%`;
+    const sel = w.assetKey === _marketChart.asset;
+    const label = `${w.name}, ${_formatAssetValue(price)}, ${pctText}. View chart.`;
+    return `
+      <button type="button" class="market-wl-row${sel ? ' is-selected' : ''}" aria-pressed="${sel ? 'true' : 'false'}"
+              aria-label="${_escapeMarketHtml(label)}" onclick="selectMarketAsset('${w.assetKey}')">
+        <span class="market-wl-badge" aria-hidden="true">${_escapeMarketHtml(_watchlistTicker(w.symbol))}</span>
+        <span class="market-wl-main">
+          <span class="market-wl-name">${_escapeMarketHtml(w.name)}</span>
+          <span class="market-wl-sector">${_escapeMarketHtml(w.sector)}</span>
+        </span>
+        <span class="market-wl-nums">
+          <span class="market-wl-price">${_escapeMarketHtml(_formatAssetValue(price))}</span>
+          <span class="market-wl-delta ${cls}">${_escapeMarketHtml(pctText)}</span>
+        </span>
+      </button>`;
+  }).filter(Boolean);
+  if (!rows.length) {
+    const msg = _marketSnapshot.status === 'error'
+      ? 'Live quotes are unavailable right now.'
+      : 'Loading live quotes…';
+    return `<div class="market-wl-empty">${msg}</div>`;
+  }
+  return rows.join('');
+}
+function _paintMarketWatchlist() {
+  const el = document.getElementById('marketWatchlist');
+  if (el) el.innerHTML = _renderMarketWatchlistInner();
+}
+
+// ── Market Sentiment (interpretive) ────────────────────────────────
+// An EDUCATIONAL read derived from today's real moves — broad equities,
+// the tech tilt, rate direction and crypto risk appetite. It is a
+// heuristic interpretation, NOT a sourced index, so it is labelled as a
+// "market read" and never shows a fake precise number. When live data is
+// missing the panel says so instead of inventing a reading.
+const _SENTIMENT_BANDS = [
+  { key: 'defensive',    label: 'Defensive',    max: 30 },
+  { key: 'cautious',     label: 'Cautious',     max: 45 },
+  { key: 'neutral',      label: 'Neutral',      max: 55 },
+  { key: 'constructive', label: 'Constructive', max: 70 },
+  { key: 'risk-on',      label: 'Risk-on',      max: 101 }
+];
+function _computeMarketSentiment() {
+  const q = _marketSnapshot.quotes || {};
+  const spy = q.SPY, qqq = q.QQQ, btc = q.BTC, tnx = q['^TNX'];
+  const okPct = v => v && Number.isFinite(Number(v.changePct));
+  if (_marketSnapshot.status !== 'ready' || !okPct(spy)) return { available: false };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const spyPct = Number(spy.changePct);
+  const qqqPct = okPct(qqq) ? Number(qqq.changePct) : spyPct;
+  const btcPct = okPct(btc) ? Number(btc.changePct) : null;
+  const tnxChg = tnx && Number.isFinite(Number(tnx.change)) ? Number(tnx.change) : null; // yield-point move
+  let score = 50;
+  score += clamp(spyPct, -3, 3) * 7;    // broad market direction (dominant)
+  score += clamp(qqqPct, -3, 3) * 4;    // growth / tech tilt
+  if (btcPct != null) score += clamp(btcPct, -6, 6) * 1.4;  // risk appetite
+  if (tnxChg != null) score += clamp(-tnxChg, -0.2, 0.2) * 35; // rising yields = headwind
+  score = clamp(Math.round(score), 3, 97);
+  const band = _SENTIMENT_BANDS.find(b => score < b.max) || _SENTIMENT_BANDS[2];
+  const fmtPct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
+  const tone = v => v == null ? 'flat' : (v > 0.05 ? 'up' : (v < -0.05 ? 'down' : 'flat'));
+  const factors = [
+    { label: 'S&P 500 breadth', value: fmtPct(spyPct), tone: tone(spyPct) },
+    { label: 'Tech (Nasdaq-100)', value: fmtPct(qqqPct), tone: tone(qqqPct) }
+  ];
+  if (tnx && Number.isFinite(Number(tnx.price))) {
+    factors.push({
+      label: '10-year Treasury',
+      value: `${Number(tnx.price).toFixed(2)}%`,
+      tone: tnxChg == null ? 'flat' : (tnxChg > 0.01 ? 'down' : (tnxChg < -0.01 ? 'up' : 'flat'))
+    });
+  }
+  if (btcPct != null) factors.push({ label: 'Crypto appetite (BTC)', value: fmtPct(btcPct), tone: tone(btcPct) });
+  // Driver = the single strongest real signal.
+  const leadUp = spyPct >= 0;
+  const driver = leadUp
+    ? `Broad equities are holding up${qqqPct < spyPct - 0.3 ? ', though growth names lag' : (qqqPct > spyPct + 0.3 ? ', led by technology' : '')}${tnxChg != null && tnxChg > 0.03 ? ' as Treasury yields push higher' : ''}.`
+    : `Equities are under pressure${qqqPct < spyPct - 0.3 ? ', with technology leading the decline' : ''}${tnxChg != null && tnxChg > 0.03 ? ' as rising yields weigh on valuations' : ''}.`;
+  const meaning = {
+    defensive:    'Buyers are stepping back and safer corners are outperforming. Historically this is when diversification and cash cushions matter most — not a signal to act, but a useful moment to notice how different assets behave.',
+    cautious:     'Markets are leaning risk-off but not fearful. This is a good example of why spreading exposure across asset classes can smooth out days when one area weakens.',
+    neutral:      'Signals are mixed and roughly balanced. Quiet, range-bound days like this are normal — they show that not every session carries a strong directional message.',
+    constructive: 'Risk appetite is firm without being euphoric. Broad participation like this is generally healthier than a narrow rally led by only a few names.',
+    'risk-on':    'Investors are reaching for risk today, with growth and crypto leading. Strong up-days feel good, but they are a reminder to check that gains are broad rather than concentrated.'
+  }[band.key];
+  return { available: true, score, band, driver, meaning, factors };
+}
+function _renderMarketSentimentInner() {
+  const s = _computeMarketSentiment();
+  if (!s.available) {
+    const msg = _marketSnapshot.status === 'error'
+      ? 'A market read is unavailable right now — live data could not load.'
+      : (_marketSnapshot.status === 'ready'
+        ? 'A market read is unavailable right now.'
+        : 'Reading today’s market…');
+    return `
+      <div class="mono-label mono-label--block market-global-label">Market Sentiment</div>
+      <div class="market-sentiment-card">
+        <p class="market-sentiment-unavail">${msg}</p>
+      </div>`;
+  }
+  const factorRows = s.factors.map(f => `
+    <div class="market-sentiment-factor">
+      <span class="market-sentiment-factor-label">${_escapeMarketHtml(f.label)}</span>
+      <span class="market-sentiment-factor-value ${f.tone}">${_escapeMarketHtml(f.value)}</span>
+    </div>`).join('');
+  return `
+    <div class="mono-label mono-label--block market-global-label">Market Sentiment</div>
+    <div class="market-sentiment-card">
+      <div class="market-sentiment-head">
+        <div>
+          <span class="market-sentiment-state market-sentiment-state-${s.band.key}">${_escapeMarketHtml(s.band.label)}</span>
+          <span class="market-sentiment-tag">Market read · educational signal</span>
+        </div>
+      </div>
+      <div class="market-sentiment-gauge" role="img" aria-label="Sentiment read: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
+        <span class="market-sentiment-gauge-fill" style="width:${s.score}%"></span>
+        <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
+      </div>
+      <div class="market-sentiment-scale" aria-hidden="true">
+        <span>Defensive</span><span>Neutral</span><span>Risk-on</span>
+      </div>
+      <p class="market-sentiment-driver">${_escapeMarketHtml(s.driver)}</p>
+      <div class="market-sentiment-means">
+        <span class="market-sentiment-means-label">What this means</span>
+        <p>${_escapeMarketHtml(s.meaning)}</p>
+      </div>
+      <div class="market-sentiment-factors">${factorRows}</div>
+    </div>`;
+}
+function _paintMarketSentiment() {
+  const el = document.getElementById('marketSentiment');
+  if (el) el.innerHTML = _renderMarketSentimentInner();
 }
 
 function _renderMarketStatusLabelInner() {
