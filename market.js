@@ -1621,8 +1621,10 @@ function _renderMarketTodayHeroInner() {
       </div>
       ${_marketHeroStatusLine()}
     </div>
-    ${_renderMarketChartGraphic()}
-    ${_renderMarketRangeToggle()}`;
+    <div class="market-chart-card">
+      ${_renderMarketChartGraphic()}
+      ${_renderMarketRangeToggle()}
+    </div>`;
 }
 
 function _marketChangePeriodWord() {
