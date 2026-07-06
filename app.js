@@ -3311,6 +3311,32 @@ function renderV3LearnWorkspace(container) {
           <span class="v3-track-cta v3-track-cta-${st.kind}">${st.cta}${_chevron}</span>
         </span>`;
   };
+  const _aiUnitInner = card => {
+    const info = card.info;
+    const rawTitle = cleanGeneratedListItemText(card.unit.title || 'Generated unit');
+    const title = escapeAppHtml(rawTitle);
+    const desc = _trackDesc(card);
+    const pct = info.completed ? 100 : (info.total ? Math.round((info.completedCount / info.total) * 100) : 0);
+    const st = _trackState(info);
+    const lessons = Array.isArray(card.lessons) ? card.lessons : [];
+    const preview = lessons.slice(0, 2).map((ls, i) => {
+      const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
+      return `<span>${escapeAppHtml(cleanGeneratedListItemText(raw))}</span>`;
+    }).join('');
+    return `
+      <span class="v3-ai-unit-top">
+        <span class="v3-ai-unit-badge">Created unit</span>
+        <span class="v3-ai-unit-count">${info.completedCount} / ${info.total} lessons</span>
+      </span>
+      <span class="v3-ai-unit-title">${title}</span>
+      ${desc ? desc.replace('v3-track-desc', 'v3-ai-unit-desc') : ''}
+      <span class="fl-track v3-ai-unit-progress" role="progressbar" aria-label="${pct}% complete" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></span>
+      ${preview ? `<span class="v3-ai-unit-preview">${preview}</span>` : ''}
+      <span class="v3-ai-unit-foot">
+        <span class="v3-ai-unit-state">${escapeAppHtml(st.word)}</span>
+        <span class="v3-ai-unit-cta v3-ai-unit-cta-${st.kind}">${st.cta}${_chevron}</span>
+      </span>`;
+  };
 
   // ── Card markup ──────────────────────────────────────────────────────
   // AI-created cards support swipe-to-delete. Structure: a fixed delete layer
@@ -3323,13 +3349,13 @@ function renderV3LearnWorkspace(container) {
     const title = escapeAppHtml(rawTitle);
     const trashSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     return `
-      <div class="v3-unit-card v3-unit-card-ai v3-track-card${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
+      <div class="v3-unit-card v3-unit-card-ai v3-ai-unit-card${card.info.completed ? ' is-complete' : ''}${card.info.started && !card.info.completed ? ' is-active' : ''}${card.info.status === 'completed_review' ? ' needs-review' : ''}" data-unit-id="${uid}" data-ai-swipe="1">
         <div class="v3-swipe-action" aria-hidden="true">
           <button type="button" class="v3-swipe-trash" tabindex="-1" aria-label="Delete ${title}" onclick="LearnUnitDelete.fromTrash(event, '${uid}')">${trashSvg}</button>
         </div>
         <div class="v3-swipe-surface">
           <button type="button" class="v3-unit-main" aria-label="${escapeAppHtml(_a11y(rawTitle, card.info))}" onclick="openMicroUnit('${uid}')">
-            ${_trackInner(card, opts)}
+            ${_aiUnitInner(card)}
           </button>
         </div>
         <button type="button" class="v3-unit-kbd-delete" aria-label="Delete ${title}" onclick="LearnUnitDelete.request('${uid}', { via: 'keyboard' })">Delete unit</button>
@@ -3381,27 +3407,13 @@ function renderV3LearnWorkspace(container) {
   ];
   const _emptyAiCard = `
     <div class="v3-empty-unit-state">
-      <div class="v3-unit-list">
-        <div class="v3-unit-card v3-unit-card-ai v3-track-card v3-unit-card-empty">
-          <button type="button" class="v3-unit-main" aria-label="Create your first unit. Ask Finlingo about any finance topic." onclick="startAskForNewUnit()">
-            <span class="v3-track-head">
-              <span class="v3-track-eyebrow">Unit 01</span>
-              <span class="v3-track-count">No lessons yet</span>
-            </span>
-            <span class="v3-track-title">Create your first unit</span>
-            <span class="v3-track-desc">Build a short learning track from any finance question.</span>
-            <span class="fl-track v3-track-progress" role="progressbar" aria-label="0% complete" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span style="width:0%"></span></span>
-            <span class="v3-track-next">
-              <span class="v3-track-next-mark" aria-hidden="true">${_MODULE_ICON.active}</span>
-              <span class="v3-track-next-label">Starts with</span>
-              <span class="v3-track-next-title">Ask Finlingo about a topic</span>
-            </span>
-            <span class="v3-track-foot">
-              <span class="v3-track-state">Not started</span>
-              <span class="v3-track-cta v3-track-cta-start">Create unit${_chevron}</span>
-            </span>
-          </button>
+      <div class="v3-unit-create-card">
+        <div class="v3-unit-create-copy">
+          <h3>Create your first unit</h3>
+          <p>Turn any finance question into a short lesson path you can save and revisit.</p>
+          <span>Ask Finlingo about a topic</span>
         </div>
+        <button type="button" class="v3-unit-create-btn" onclick="startAskForNewUnit()">Create unit${_chevron}</button>
       </div>
       <div class="v3-empty-prompts">
         <div class="v3-empty-prompt-list">

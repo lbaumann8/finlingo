@@ -8327,14 +8327,118 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-track-cta-review { color: var(--fl-faint); }
 
 /* ── Active track framing — restrained mint accent ── */
-.v3-track-card.is-active { border-color: var(--fl-accent-border); }
+.v3-track-card.is-active {
+  position: relative;
+  border-color: var(--fl-border);
+}
+.v3-track-card.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(105, 221, 165, 0.72);
+}
 .v3-track-card.is-active .v3-track-eyebrow { color: var(--fl-accent); }
 /* Completed track keeps the recessed passive treatment (from earlier rules);
    its progress track reads full mint (goal reached). */
 .v3-track-card.is-complete .v3-track-title { color: var(--fl-eyebrow); }
 
-/* Empty My Units uses the same vertical track-card grammar as built units. */
-.v3-unit-card-empty .v3-unit-main { flex-direction: column; align-items: stretch; gap: 11px; }
+.v3-ai-unit-card .v3-unit-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 0;
+  padding: 15px;
+}
+.v3-ai-unit-card {
+  border-color: rgba(124, 139, 160, 0.16);
+  background: rgba(11, 13, 16, 0.86);
+}
+.v3-ai-unit-card.is-active {
+  border-color: rgba(124, 139, 160, 0.24);
+}
+.v3-ai-unit-top,
+.v3-ai-unit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.v3-ai-unit-badge {
+  font-family: var(--fl-font-label);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fl-accent);
+}
+.v3-ai-unit-count,
+.v3-ai-unit-state {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+}
+.v3-ai-unit-title {
+  font-family: var(--fl-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--fl-title);
+}
+.v3-ai-unit-desc {
+  font: 400 0.82rem/1.45 var(--font-b);
+  color: var(--fl-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.v3-ai-unit-progress {
+  width: 100%;
+  height: 4px;
+  margin-top: 1px;
+  background: rgba(255, 255, 255, 0.075);
+}
+.v3-ai-unit-progress > span { background: var(--fl-accent); }
+.v3-ai-unit-preview {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fl-divider);
+}
+.v3-ai-unit-preview span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fl-sub);
+  font: 500 0.8rem/1.25 var(--font-b);
+}
+.v3-ai-unit-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fl-accent);
+  font: 650 0.78rem/1 var(--font-b);
+}
+.v3-ai-unit-cta-resume {
+  padding: 7px 12px 7px 14px;
+  border-radius: var(--fl-radius-pill);
+  background: var(--fl-accent-soft);
+}
+.v3-ai-unit-cta .v3-chevron {
+  width: 15px;
+  height: 15px;
+  color: currentColor;
+}
 
 
 /* ============================================================
@@ -8457,15 +8561,15 @@ body.auth-modal-visible .ask-tutor-backdrop {
    precise score — a labelled band + restrained gauge + real factors.
    ============================================================ */
 .market-sentiment-section {
-  display: flex; flex-direction: column; gap: 12px;
-  margin-bottom: var(--fl-section-gap);
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 22px;
 }
 .market-sentiment-card {
   background: var(--fl-surface-passive);          /* near-black over navy */
   border: 1px solid var(--fl-border);
   border-radius: var(--fl-radius-card);
-  padding: 18px;
-  display: flex; flex-direction: column; gap: 14px;
+  padding: 15px;
+  display: flex; flex-direction: column; gap: 11px;
 }
 .market-sentiment-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .market-sentiment-head > div { display: flex; flex-direction: column; gap: 5px; }
@@ -8486,7 +8590,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 /* Restrained horizontal gauge: a quiet track, a graded fill, a marker. */
 .market-sentiment-gauge {
   position: relative; height: 6px; border-radius: var(--fl-radius-pill);
-  background: linear-gradient(90deg, rgba(192,59,59,0.28), rgba(127,137,152,0.22) 50%, rgba(105,221,165,0.30));
+  background: rgba(124, 139, 160, 0.16);
   overflow: visible;
 }
 .market-sentiment-gauge-fill { display: none; }
@@ -8497,44 +8601,23 @@ body.auth-modal-visible .ask-tutor-backdrop {
   box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
 }
 .market-sentiment-scale {
-  display: flex; justify-content: space-between;
+  display: none;
+  justify-content: space-between;
   font-family: var(--fl-font-label);
   font-size: 0.54rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--fl-faint); margin-top: -6px;
 }
-.market-sentiment-driver { font: 400 0.9rem/1.5 var(--font-b); color: var(--fl-body); margin: 0; }
+.market-sentiment-driver { font: 400 0.86rem/1.45 var(--font-b); color: var(--fl-body); margin: 0; }
 .market-sentiment-means {
   border-left: 2px solid var(--fl-accent-border);
-  padding-left: 12px; display: flex; flex-direction: column; gap: 4px;
+  padding-left: 11px; display: flex; flex-direction: column; gap: 4px;
 }
 .market-sentiment-means-label {
   font-family: var(--fl-font-label);
   font-size: 0.58rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--fl-accent);
 }
-.market-sentiment-means p { font: 400 0.86rem/1.5 var(--font-b); color: var(--fl-sub); margin: 0; }
-.market-sentiment-factors {
-  display: flex; flex-direction: column; gap: 0;
-  padding-top: 8px; border-top: 1px solid var(--fl-divider);
-}
-.market-sentiment-factor {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  min-width: 0;
-  padding: 7px 0;
-  border-top: 1px solid rgba(255,255,255,0.045);
-}
-.market-sentiment-factor:first-child { border-top: 0; }
-.market-sentiment-factor-label {
-  font: 500 0.78rem/1.3 var(--font-b); color: var(--fl-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.market-sentiment-factor-value {
-  min-width: 78px; text-align: right;
-  font: 600 0.82rem/1 var(--font-num); color: var(--fl-sub); flex: none;
-}
-.market-sentiment-factor-value.up   { color: var(--mkt-up, var(--fl-accent)); }
-.market-sentiment-factor-value.down { color: var(--red-text); }
-.market-sentiment-factor-value.flat { color: var(--fl-muted); }
+.market-sentiment-means p { font: 400 0.84rem/1.45 var(--font-b); color: var(--fl-sub); margin: 0; }
 .market-sentiment-unavail { font: 400 0.88rem/1.5 var(--font-b); color: var(--fl-muted); margin: 0; }
 
 
@@ -8701,7 +8784,15 @@ body.auth-modal-visible .ask-tutor-backdrop {
 /* Coach: two compact assistant bubbles, reply-choice suggestions. */
 .coach-convo-intro { gap: 12px; }
 .coach-page-shell.has-composer .coach-hero.coach-convo-intro {
-  padding-top: 0;
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  padding-top: calc(var(--coach-header-overlap, 0px) + 10px) !important;
+  padding-bottom: 18px !important;
+}
+.coach-page-shell.has-composer {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scroll-padding-top: var(--coach-header-overlap, 0px);
 }
 .coach-convo-intro .coach-msg-coach {
   max-width: 92%;
@@ -8786,6 +8877,60 @@ body.auth-modal-visible .ask-tutor-backdrop {
   display: grid;
   gap: 12px;
 }
+.v3-unit-create-card {
+  display: grid;
+  gap: 14px;
+  padding: 17px;
+  border: 1px solid rgba(124, 139, 160, 0.18);
+  border-radius: var(--fl-radius-card);
+  background: rgba(11, 13, 16, 0.88);
+}
+.v3-unit-create-copy {
+  display: grid;
+  gap: 8px;
+}
+.v3-unit-create-copy h3 {
+  margin: 0;
+  color: var(--fl-title);
+  font: 700 1.08rem/1.16 var(--fl-font-display);
+  letter-spacing: -0.02em;
+}
+.v3-unit-create-copy p {
+  margin: 0;
+  color: var(--fl-sub);
+  font: 400 0.86rem/1.48 var(--font-b);
+}
+.v3-unit-create-copy span {
+  color: var(--fl-muted);
+  font: 500 0.78rem/1.3 var(--font-b);
+}
+.v3-unit-create-btn {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 8px 13px 8px 15px;
+  border: 0;
+  border-radius: var(--fl-radius-pill);
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+  font: 650 0.8rem/1 var(--font-b);
+  cursor: pointer;
+}
+.v3-unit-create-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.v3-unit-create-btn:hover {
+  background: rgba(105, 221, 165, 0.13);
+  color: var(--fl-title);
+}
 .v3-empty-prompts {
   display: grid;
   gap: 0;
@@ -8831,24 +8976,22 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 
 /* Market: lighter overview rows and compact integrated chart. */
-.market-global-section,
-.market-watchlist-section {
+.market-global-section {
   gap: 8px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 #marketSnapshotCards.market-global-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  border-top: 1px solid rgba(124, 139, 160, 0.12);
-  border-bottom: 1px solid rgba(124, 139, 160, 0.12);
+  gap: 8px;
+  border: 0;
 }
 .market-global-grid .snap-card.market-summary-item {
   min-height: 0;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: 8px 9px;
+  border: 1px solid rgba(124, 139, 160, 0.12);
+  border-radius: 8px;
+  background: rgba(11, 13, 16, 0.38);
   box-shadow: none;
 }
 .market-global-grid .snap-card.market-summary-item:nth-child(odd) {
@@ -8858,68 +9001,29 @@ body.auth-modal-visible .ask-tutor-backdrop {
   border-top: 1px solid rgba(124, 139, 160, 0.12);
 }
 .market-global-grid .snap-card-head {
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 34px minmax(76px, 1fr) minmax(48px, auto);
+  align-items: baseline;
+  gap: 7px;
 }
 .market-summary-item .snap-id { flex: none; }
 .market-summary-item .snap-sym { font-size: 0.82rem; letter-spacing: 0; }
 .market-summary-item .snap-price {
-  margin-left: auto;
+  margin-left: 0;
   font-size: 0.88rem;
   line-height: 1;
+  text-align: right;
+  white-space: nowrap;
 }
 .market-summary-item .snap-change {
   flex: none;
   margin-top: 0;
   font-size: 0.72rem;
   line-height: 1;
+  text-align: right;
+  white-space: nowrap;
 }
 .market-summary-item .snap-unavailable { margin-left: auto; font-size: 0.68rem; }
-.market-watchlist {
-  background: transparent;
-  border-color: transparent;
-  border-radius: 0;
-}
-.market-wl-row {
-  min-height: 44px;
-  padding: 6px 2px 6px 10px;
-  border-top-color: rgba(124, 139, 160, 0.12);
-}
-.market-wl-row:hover {
-  background: rgba(255, 255, 255, 0.035);
-}
-.market-wl-row.is-selected {
-  background: rgba(105, 221, 165, 0.045);
-  box-shadow: none;
-}
-.market-wl-row.is-selected::before {
-  top: 50%;
-  transform: translateY(-50%);
-  height: 30px;
-}
-.market-wl-badge {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: rgba(11, 13, 16, 0.78);
-  border-color: rgba(124, 139, 160, 0.14);
-}
-.market-wl-sector {
-  display: none;
-}
-.market-wl-disclosure {
-  width: 100%;
-  min-height: 34px;
-  padding: 7px 2px 0 10px;
-  border: 0;
-  border-top: 1px solid rgba(124, 139, 160, 0.12);
-  background: transparent;
-  color: var(--fl-accent);
-  font: 600 0.78rem/1.2 var(--font-b);
-  text-align: left;
-  cursor: pointer;
-}
-.market-wl-disclosure:hover { color: var(--fl-title); }
 .market-v3-hero {
   scroll-margin-top: 18px;
   padding-bottom: 0;
@@ -8957,19 +9061,27 @@ body.auth-modal-visible .ask-tutor-backdrop {
 @media (max-width: 420px) {
   .mkt-chart-canvas { height: 138px; }
   .market-v3-index-value { font-size: 2rem; }
+  .market-global-grid .snap-card.market-summary-item {
+    padding: 8px;
+  }
+  .market-global-grid .snap-card-head {
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 7px;
+    row-gap: 3px;
+  }
+  .market-summary-item .snap-price,
+  .market-summary-item .snap-change {
+    grid-column: 2;
+  }
+  .market-summary-item .snap-change {
+    font-size: 0.7rem;
+  }
 }
-@media (min-width: 601px) {
+@container market (min-width: 700px) {
   #marketSnapshotCards.market-global-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .market-global-grid .snap-card.market-summary-item:nth-child(n) {
-    border-top: 0;
-    border-right: 1px solid rgba(124, 139, 160, 0.12);
-  }
-  .market-global-grid .snap-card.market-summary-item:last-child {
-    border-right: 0;
-  }
-  .market-wl-sector {
-    display: block;
+    border: 1px solid rgba(124, 139, 160, 0.12);
   }
 }

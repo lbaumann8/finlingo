@@ -238,10 +238,34 @@
   }
 
   function _coachPageScrollContainer() {
-    return document.getElementById('coachScreen') || document.querySelector('.app') || document.scrollingElement || document.documentElement;
+    return document.querySelector('.coach-page-shell.has-composer')
+      || document.getElementById('coachScreen')
+      || document.querySelector('.app')
+      || document.scrollingElement
+      || document.documentElement;
+  }
+
+  function _coachHeaderOverlap() {
+    const header = document.getElementById('mainTopbar');
+    const el = _coachPageScrollContainer();
+    if (!header || !el) return 0;
+    const headerStyle = getComputedStyle(header);
+    if (headerStyle.display === 'none' || headerStyle.visibility === 'hidden') return 0;
+    const h = header.getBoundingClientRect();
+    const c = el.getBoundingClientRect();
+    return Math.max(0, Math.round(h.bottom - c.top));
+  }
+
+  function _syncCoachHeaderOffset() {
+    const shell = document.querySelector('.coach-page-shell.has-composer');
+    if (!shell) return 0;
+    const offset = _coachHeaderOverlap();
+    shell.style.setProperty('--coach-header-overlap', `${offset}px`);
+    return offset;
   }
 
   function _anchorCoachBriefTop() {
+    _syncCoachHeaderOffset();
     const el = _coachPageScrollContainer();
     if (el) el.scrollTop = 0;
     try { if (window.scrollY > 0) window.scrollTo(0, 0); } catch (_) {}
@@ -3295,6 +3319,7 @@
     // Blank state shows today's brief; if live market data is still loading,
     // repaint the brief + follow-ups in place once it arrives.
     if (showHero) {
+      _syncCoachHeaderOffset();
       _anchorCoachBriefTop();
       requestAnimationFrame(_anchorCoachBriefTop);
       _scheduleCoachBriefRefresh();

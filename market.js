@@ -846,11 +846,6 @@ function renderMarket() {
             <div id="marketSnapshotCards" class="snap-cards market-global-grid">${_renderMarketSnapshotCardsInner()}</div>
           </section>
 
-          <section class="market-watchlist-section">
-            <div class="mono-label mono-label--block market-global-label">Curated Watchlist</div>
-            <div id="marketWatchlist" class="market-watchlist">${_renderMarketWatchlistInner()}</div>
-          </section>
-
           <section class="market-v3-hero" id="marketTodayHero">
             ${_renderMarketTodayHeroInner()}
           </section>
@@ -3311,11 +3306,11 @@ function _computeMarketSentiment() {
     ? `Broad equities are higher${techLead ? ', with technology adding to the move' : (techLag ? ', though technology is lagging' : '')}${btcSame ? ', and Bitcoin is moving in the same direction' : ''}.`
     : `Broad equities are lower${techLag ? ', with technology under extra pressure' : ''}${btcSame ? ', and Bitcoin is declining alongside stocks' : ''}.`;
   const meaning = {
-    defensive:    'Higher-volatility assets are weakening together, which points to broad caution rather than one isolated headline. That is a useful moment to compare how stocks, crypto, and rates relate.',
-    cautious:     'Risk appetite is softer, but not extreme. If technology shares and Bitcoin keep moving together, it supports the idea that investors are trimming higher-volatility exposure.',
-    neutral:      'Signals are mixed and roughly balanced. Quiet, range-bound days like this are normal — they show that not every session carries a strong directional message.',
-    constructive: 'Risk appetite is firm without looking stretched. Broad participation matters because a move led by several areas is different from a rally concentrated in one corner.',
-    'risk-on':    'Growth and higher-volatility assets are rising together. That shows stronger risk appetite, while still leaving room to check whether the move is broad or concentrated.'
+    defensive:    'Higher-volatility assets are weakening together, suggesting broad caution rather than a single-company issue.',
+    cautious:     'Softer risk appetite means investors may be trimming higher-volatility exposure.',
+    neutral:      'Mixed signals suggest a balanced session rather than a strong directional message.',
+    constructive: 'Firmer risk appetite is more useful when several market areas participate.',
+    'risk-on':    'Growth and higher-volatility assets are rising together, suggesting stronger risk appetite.'
   }[band.key];
   return { available: true, score, band, driver, meaning, factors: factors.slice(0, 4) };
 }
@@ -3333,11 +3328,6 @@ function _renderMarketSentimentInner() {
         <p class="market-sentiment-unavail">${msg}</p>
       </div>`;
   }
-  const factorRows = s.factors.map(f => `
-    <div class="market-sentiment-factor">
-      <span class="market-sentiment-factor-label">${_escapeMarketHtml(f.label)}</span>
-      <span class="market-sentiment-factor-value ${f.tone}">${_escapeMarketHtml(f.value)}</span>
-    </div>`).join('');
   return `
     <div class="mono-label mono-label--block market-global-label">Market Sentiment</div>
     <div class="market-sentiment-card">
@@ -3351,15 +3341,11 @@ function _renderMarketSentimentInner() {
         <span class="market-sentiment-gauge-fill" style="width:${s.score}%"></span>
         <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
       </div>
-      <div class="market-sentiment-scale" aria-hidden="true">
-        <span>Defensive</span><span>Neutral</span><span>Risk-on</span>
-      </div>
       <p class="market-sentiment-driver">${_escapeMarketHtml(s.driver)}</p>
       <div class="market-sentiment-means">
         <span class="market-sentiment-means-label">What this means</span>
         <p>${_escapeMarketHtml(s.meaning)}</p>
       </div>
-      <div class="market-sentiment-factors">${factorRows}</div>
     </div>`;
 }
 function _paintMarketSentiment() {
