@@ -421,6 +421,29 @@ body.theme-transitioning * {
 
   /* ── Card elevation ramp (primitives defined in base.css) ── */
   --fl-card-pad:       var(--fl-space-6);
+
+  /* ── Near-black content-card system (quiet premium surface) ──────
+     Extends the Learn track-card treatment (coach.css:8357, a flat
+     #0f1010 panel over the navy page) into a SHARED token layer so
+     answer cards, content cards, market cards, coach cards, and
+     selectors all read from one neutral near-black surface. No
+     gradients, no glossy inset, no raised blue-gray fills, no heavy
+     shadows — the page and cards separate through hairline borders
+     and spacing, not large color differences.
+
+       black-1  = primary content/interactive card surface
+       black-2  = nested option/row + recessed surface (slightly lighter)
+       black-3  = quiet/disabled surface (lowest, no blue tint)
+     Borders stay neutral white-alpha (not the blue-gray --fl-border)
+     so nothing reads as a raised navy panel. ── */
+  --fl-card-black:          #0f1010;
+  --fl-card-black-nested:   #121416;
+  --fl-card-black-quiet:    #0c0d0d;
+  --fl-card-black-border:        rgba(255,255,255,0.07);
+  --fl-card-black-border-hover:  rgba(255,255,255,0.12);
+  /* Selected = restrained mint border + faint mint tint (not a block) */
+  --fl-card-black-selected-bg:     rgba(105,221,165,0.06);
+  --fl-card-black-selected-border: rgba(105,221,165,0.32);
 }
 
 [data-theme="light"] {

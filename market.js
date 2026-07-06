@@ -850,12 +850,17 @@ function renderMarket() {
             ${_renderMarketTodayHeroInner()}
           </section>
 
-          <section class="market-sentiment-section" id="marketSentiment">
-            ${_renderMarketSentimentInner()}
+          <!-- Section 2: Market read — sentiment + insight condensed into one
+               card (band headline + score + thin scale + one summary + one
+               "What to watch" line). Sentiment/insight computation unchanged;
+               this only merges their presentation. -->
+          <section class="market-read-card" id="marketReadCard">
+            ${_renderMarketReadInner()}
           </section>
 
-          <section class="market-v3-insight" id="marketInsightCard">
-            ${_renderMarketInsightInner()}
+          <!-- Section 3: Learn from today — the single learn-next recommendation. -->
+          <section class="market-learn-section" id="marketLearnCard">
+            ${_renderMarketLearnInner()}
           </section>
         </div>
 
@@ -2241,7 +2246,7 @@ function _renderMarketV3Topics() {
   return `
     <section class="market-v3-topics">
       <div class="market-v3-section-row">
-        <h2><span class="market-v3-section-fire" aria-hidden="true">${_marketThinIcon('flame')}</span>Today’s Key Topics</h2>
+        <h2>Explore related topics</h2>
       </div>
       <div class="market-v3-topic-grid">
         ${_getMarketV3Topics().map((topic, index) => `
@@ -2631,8 +2636,87 @@ function _renderMarketInsightLearn(learn, learnTitle, learnArg) {
 }
 
 function _paintMarketInsight() {
-  const el = document.getElementById('marketInsightCard');
-  if (el) el.innerHTML = _renderMarketInsightInner();
+  // Back-compat entry point: several callers/handlers repaint "the insight".
+  // The insight now lives inside the merged Market-read card plus the separate
+  // Learn-from-today section, so refresh both. (No logic change — same data.)
+  _paintMarketRead();
+  _paintMarketLearn();
+}
+
+// ── Section 2: Market read (merged sentiment + insight) ─────────────
+// Combines the sentiment band/score/scale with the asset insight summary and a
+// single "What to watch" line into ONE card. It reuses the SAME computations
+// (_computeMarketSentiment, _marketAssetInsightSummary/Watch) — nothing about
+// the sentiment math or insight copy changes; only their presentation merges.
+// The old per-asset sentiment "explain" paragraph is dropped to avoid saying
+// the same thing twice (the insight summary carries the explanation).
+function _renderMarketReadInner() {
+  const range = String(_marketChart.range || '1D').toUpperCase();
+  const isDaily = range === '1D';
+  const snap = _marketSnapshot;
+  const move = _marketAssetMove();
+  const hasData = move.available;
+  const eyebrow = `<div class="mono-label mono-label--block market-read-eyebrow">Market read</div>`;
+
+  const loading = isDaily
+    ? (snap.status === 'loading' || snap.status === 'idle')
+    : (_marketChart.status === 'loading' || _marketChart.status === 'idle');
+  if (!hasData && loading) {
+    return `${eyebrow}
+      <div class="market-recap-loading">
+        <span class="market-recap-spinner" aria-hidden="true"></span>
+        <span>Pulling the latest market data…</span>
+      </div>`;
+  }
+  if (!hasData) {
+    const retry = isDaily ? 'ensureMarketSnapshot(true)' : 'ensureMarketChart(true)';
+    return `${eyebrow}
+      <div class="market-recap-unavailable">
+        <p>Live market data is unavailable right now, so there’s no read to show — we won’t guess.</p>
+        <button type="button" class="market-recap-retry" onclick="${retry}">Try again</button>
+      </div>`;
+  }
+
+  const s = _computeMarketSentiment();
+  const summary = _marketAssetInsightSummary();
+  const watch = _marketAssetInsightWatch();
+
+  let headline = '';
+  if (s.available) {
+    headline = `
+      <div class="market-read-head market-sentiment-b-${s.band.key}">
+        <h2 class="market-read-headline">${_escapeMarketHtml(s.band.label)}</h2>
+        <span class="market-read-score">${s.score}<span class="market-read-score-max">/100</span></span>
+      </div>
+      <div class="market-sentiment-gauge market-sentiment-b-${s.band.key}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
+        <span class="market-sentiment-gauge-fill" style="left:${s.score}%"></span>
+        <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
+      </div>`;
+  }
+  return `${eyebrow}
+    ${headline}
+    <p class="market-insight-summary">${_escapeMarketHtml(summary)}</p>
+    <p class="market-read-watch"><span class="market-read-watch-label">What to watch</span> ${_escapeMarketHtml(watch)}</p>`;
+}
+function _paintMarketRead() {
+  const el = document.getElementById('marketReadCard');
+  if (el) el.innerHTML = _renderMarketReadInner();
+}
+
+// ── Section 3: Learn from today (single learn-next recommendation) ───
+function _renderMarketLearnInner() {
+  const move = _marketAssetMove();
+  if (!move.available) return '';   // no fabricated recommendation without data
+  const learn = _marketAssetInsightLearn();
+  const learnArg = String(learn.name).replace(/'/g, "\\'");
+  const learnTitle = _marketAssetInsightLearnTitle();
+  return `
+    <div class="mono-label mono-label--block market-learn-eyebrow">Learn from today</div>
+    ${_renderMarketInsightLearn(learn, learnTitle, learnArg)}`;
+}
+function _paintMarketLearn() {
+  const el = document.getElementById('marketLearnCard');
+  if (el) el.innerHTML = _renderMarketLearnInner();
 }
 
 // ── Learn-next ⇄ lesson-state link ──────────────────────────────────
@@ -3354,8 +3438,8 @@ function _renderMarketSentimentInner() {
     </div>`;
 }
 function _paintMarketSentiment() {
-  const el = document.getElementById('marketSentiment');
-  if (el) el.innerHTML = _renderMarketSentimentInner();
+  // Sentiment now renders inside the merged Market-read card.
+  _paintMarketRead();
 }
 
 function _renderMarketStatusLabelInner() {

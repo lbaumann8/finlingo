@@ -399,29 +399,30 @@
   width: 100%;
   text-align: left;
   padding: 15px 15px;
-  border: 1px solid #232E3B;
+  border: 1px solid var(--fl-card-black-border);
   border-radius: 14px;
-  background: #0F141C;
+  background: var(--fl-card-black);
   color: #f0f1f3;
   font: 500 1rem/1.4 var(--font-b);
   cursor: pointer;
   transition: background .14s ease, border-color .14s ease, color .14s ease;
 }
-.coach-quiz-choice:hover:not(:disabled) { border-color: #303D4C; background: #192230; }
+.coach-quiz-choice:hover:not(:disabled) { border-color: var(--fl-card-black-border-hover); background: var(--fl-card-black-nested); }
 .coach-quiz-choice:disabled { cursor: default; }
 .coach-quiz-letter {
   flex: 0 0 auto;
-  width: 26px; height: 26px;
+  width: 24px; height: 24px;
   border-radius: 50%;
-  background: #1B2431;
+  background: var(--fl-card-black-nested);
+  border: 1px solid rgba(255,255,255,0.08);
   color: #9aa0ab;
   display: inline-flex; align-items: center; justify-content: center;
-  font: 700 0.8rem var(--font-b);
+  font: 700 0.78rem var(--font-b);
 }
 .coach-quiz-choice-text { min-width: 0; }
-/* Selected (before Submit): neutral white outline, not graded. */
-.coach-quiz-choice.is-selected { border-color: #e6e8ec; background: #192230; color: #fff; }
-.coach-quiz-choice.is-selected .coach-quiz-letter { background: #fff; color: #070B12; }
+/* Selected (before Submit): restrained mint border + faint mint tint, not graded. */
+.coach-quiz-choice.is-selected { border-color: var(--fl-card-black-selected-border); background: var(--fl-card-black-selected-bg); color: #fff; }
+.coach-quiz-choice.is-selected .coach-quiz-letter { background: var(--fl-accent-soft); color: var(--fl-accent); }
 /* After Submit — correct answer green, wrong pick red; both shown at once. */
 .coach-quiz-choice.is-correct { border-color: #2bbd6a; background: rgba(43,189,106,0.16); color: #fff; }
 .coach-quiz-choice.is-correct .coach-quiz-letter { background: #2bbd6a; color: #06210f; }
@@ -2489,12 +2490,12 @@ body:not(.entry-gate-visible) #mainNav,
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 5px;
-  border: 1px solid var(--v3-border);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--fl-card-black-border);
   border-radius: var(--v3-radius-card);
-  background: rgba(16, 21, 29, 0.72);
-  backdrop-filter: blur(20px);
+  background: var(--fl-card-black-quiet);
+  backdrop-filter: none;
 }
 
 .v3-learn-tabs button {
@@ -5074,13 +5075,13 @@ body.ch-open { overflow: hidden; }
   letter-spacing: -0.003em;
 }
 .ml-slide {
-  border: 1px solid #222C39;
-  background: #10151D;
+  border: 1px solid var(--fl-card-black-border);
+  background: var(--fl-card-black);
 }
 .ml-instruction-card {
   width: 100%;
   margin-top: 18px;
-  padding: 20px;
+  padding: 18px;
   border-radius: 16px;
 }
 .ml-slide-type {
@@ -5098,8 +5099,8 @@ body.ch-open { overflow: hidden; }
   letter-spacing: -0.003em;
 }
 .ml-key-details {
-  border: 1px solid rgba(255,255,255,0.62);
-  background: transparent;
+  border: 1px solid var(--fl-card-black-border);
+  background: var(--fl-card-black);
 }
 .ml-key-details ul {
   display: grid;
@@ -5114,9 +5115,9 @@ body.ch-open { overflow: hidden; }
 .ml-example {
   margin: 22px 0 0;
   padding: 14px 16px;
-  border: 1px solid #222C39;
+  border: 1px solid var(--fl-card-black-border);
   border-radius: 14px;
-  background: #0F141C;
+  background: var(--fl-card-black-nested);
 }
 .ml-example-label { display: block; color: #7f8794; font: 600 0.66rem var(--font-b); letter-spacing: 0.06em; text-transform: uppercase; }
 .ml-example p { margin: 5px 0 0; color: #b9bdc6; font: 400 0.92rem/1.55 var(--font-b); }
@@ -5137,8 +5138,8 @@ body.ch-open { overflow: hidden; }
    eyebrow so the question area reads as the focal task (Phase 8). */
 .ml-check {
   flex: 0 0 auto;
-  background: var(--fl-surface-passive);
-  border: 1px solid var(--fl-border);
+  background: var(--fl-card-black);
+  border: 1px solid var(--fl-card-black-border);
   border-radius: var(--fl-radius-card);
   padding: 18px 16px;
 }
@@ -5160,26 +5161,30 @@ body.ch-open { overflow: hidden; }
   width: 100%;
   text-align: left;
   padding: 15px 15px;
-  border: 1px solid #2A3646;
+  border: 1px solid var(--fl-card-black-border);
   border-radius: 14px;
-  background: #131A24;
+  background: var(--fl-card-black);
   color: #f0f1f3;
   font: 500 1rem/1.4 var(--font-b);
   cursor: pointer;
   transition: border-color .14s ease, background .14s ease;
 }
-.ml-choice:hover:not(:disabled) { border-color: #3A4759; background: #192230; }
-.ml-choice.is-selected { border-color: #e6e8ec; background: #192230; color: #fff; }
-.ml-choice.is-selected .ml-choice-letter { background: #fff; color: #070B12; }
+.ml-choice:hover:not(:disabled) { border-color: var(--fl-card-black-border-hover); background: var(--fl-card-black-nested); }
+/* Selected (pre-grade): restrained mint border + faint mint tint, not a fill. */
+.ml-choice.is-selected { border-color: var(--fl-card-black-selected-border); background: var(--fl-card-black-selected-bg); color: #fff; }
+.ml-choice.is-selected .ml-choice-letter { background: var(--fl-accent-soft); color: var(--fl-accent); }
 .ml-choice:disabled { cursor: default; }
+/* Letter badge: small, dark neutral fill, subtle border. No strong colour
+   until the answer is graded (correct/wrong rules below override). */
 .ml-choice-letter {
   flex: 0 0 auto;
-  width: 26px; height: 26px;
+  width: 24px; height: 24px;
   border-radius: 50%;
-  background: #1B2431;
+  background: var(--fl-card-black-nested);
+  border: 1px solid rgba(255,255,255,0.08);
   color: #9aa0ab;
   display: inline-flex; align-items: center; justify-content: center;
-  font: 700 0.8rem var(--font-b);
+  font: 700 0.78rem var(--font-b);
 }
 /* After submit: correct row = subtle green border, very dark green-tinted fill,
    green letter circle. Text stays white for readability (not green). */
@@ -7987,11 +7992,14 @@ body.auth-modal-visible .ask-tutor-backdrop {
    touched — this is CSS + the is-active class only.
    ============================================================ */
 
-/* Segmented My/Preset tabs — mint-tinted active segment (was solid white) */
+/* Segmented My/Preset tabs — quiet near-black active segment.
+   Understated: a slightly lighter near-black surface + hairline
+   white-alpha border and a white label. Not a mint block, not a
+   white CTA — recognizable without reading as a primary action. */
 .v3-learn-tabs button.active {
-  background: var(--fl-accent-soft);
-  color: var(--fl-accent);
-  box-shadow: inset 0 0 0 1px var(--fl-accent-border);
+  background: var(--fl-card-black-nested);
+  color: var(--fl-title);
+  box-shadow: inset 0 0 0 1px var(--fl-card-black-border-hover);
 }
 
 /* Module progress fill — mint (was white) */
@@ -8362,9 +8370,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-ai-unit-card.is-active,
 .v3-ai-unit-card.is-active:hover,
 .v3-ai-unit-card.is-complete {
-  background: #0f1010;
+  background: var(--fl-card-black);
   background-image: none;
-  border-color: rgba(255, 255, 255, 0.07);
+  border-color: var(--fl-card-black-border);
   box-shadow: none;
 }
 /* Hover keeps the same flat near-black surface; only the border brightens
@@ -8373,9 +8381,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-track-card.is-complete:hover,
 .v3-ai-unit-card.v3-unit-card:hover,
 .v3-ai-unit-card.is-complete:hover {
-  background: #0f1010;
+  background: var(--fl-card-black);
   background-image: none;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--fl-card-black-border-hover);
   box-shadow: none;
 }
 /* Completed track keeps the recessed passive treatment (from earlier rules);
@@ -8783,10 +8791,18 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .coach-msg-avatar svg { width: 16px; height: 16px; }
 .coach-brief-bubble {
   flex: 1; min-width: 0;
-  background: var(--fl-surface); border: 1px solid var(--fl-border);
-  border-radius: 4px 16px 16px 16px; padding: 16px 16px 14px;
-  display: flex; flex-direction: column; gap: 10px;
+  background: var(--fl-card-black); border: 1px solid var(--fl-card-black-border);
+  border-radius: var(--fl-radius-card); padding: 16px 16px 14px;
+  display: flex; flex-direction: column; gap: 14px;
 }
+/* Merged brief: two text blocks in one card, separated by a hairline
+   instead of two stacked cards. */
+.coach-brief-part { display: flex; flex-direction: column; gap: 10px; }
+.coach-brief-part-secondary {
+  padding-top: 14px;
+  border-top: 1px solid var(--fl-divider);
+}
+.coach-brief-part:empty { display: none; }
 .coach-brief-bubble p { margin: 0; font: 400 0.92rem/1.55 var(--font-b); color: var(--fl-body); }
 .coach-brief-lead { color: var(--fl-title) !important; font-weight: 600 !important; }
 .coach-brief-connect {
@@ -8799,7 +8815,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .coach-brief-connect p { font-size: 0.86rem !important; color: var(--fl-sub) !important; }
 .coach-brief-note { font-size: 0.78rem !important; color: var(--fl-muted) !important; }
-.coach-followups { display: flex; flex-direction: column; gap: 10px; padding-left: 42px; }
+.coach-followups { display: flex; flex-direction: column; gap: 10px; padding-left: 0; }
 .coach-followups-label {
   font-family: var(--fl-font-label); font-size: 0.58rem; font-weight: 500;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--fl-muted);
@@ -8851,17 +8867,13 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .coach-brief-bubble {
   flex: 0 1 auto;
-  max-width: 560px;
-  padding: 13px 14px 12px;
-  background: #0B0D10;
-  border-color: rgba(124, 139, 160, 0.16);
-}
-.coach-brief-bubble-secondary {
   max-width: 590px;
-  background: rgba(11, 13, 16, 0.82);
+  padding: 15px 16px 14px;
+  background: var(--fl-card-black);
+  border-color: var(--fl-card-black-border);
 }
 .coach-brief-status {
-  margin: -2px 0 0 42px;
+  margin: 4px 0 0 2px;
   color: var(--fl-faint);
   font-family: var(--fl-font-label);
   font-size: 0.58rem;
@@ -8872,32 +8884,34 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .coach-brief-status:empty { display: none; }
 .coach-followups {
   gap: 8px;
-  padding-left: 42px;
-  margin-top: 2px;
+  padding-left: 0;
+  margin-top: 6px;
 }
+/* Three compact near-black buttons, stacked vertically. No icons. */
 .coach-followups .coach-suggest-grid {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 .coach-followups .coach-suggest-card {
-  width: auto;
-  min-height: 34px;
-  padding: 7px 10px;
-  gap: 8px;
-  border-radius: var(--fl-radius-pill);
-  background: transparent;
-  border-color: rgba(124, 139, 160, 0.18);
-  color: var(--fl-sub);
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 15px;
+  gap: 0;
+  border-radius: var(--fl-radius-control);
+  background: var(--fl-card-black);
+  border: 1px solid var(--fl-card-black-border);
+  color: var(--fl-body);
   box-shadow: none;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 .coach-followups .coach-suggest-card:hover {
-  background: rgba(105, 221, 165, 0.07);
-  border-color: rgba(105, 221, 165, 0.22);
+  background: var(--fl-card-black-nested);
+  border-color: var(--fl-card-black-border-hover);
   color: var(--fl-title);
   transform: none;
 }
+.coach-followups .coach-suggest-text { min-width: 0; }
 .coach-followups .coach-suggest-icon {
   display: none;
 }
@@ -9130,3 +9144,156 @@ body.auth-modal-visible .ask-tutor-backdrop {
     border: 1px solid rgba(124, 139, 160, 0.12);
   }
 }
+
+
+/* ============================================================
+   MARKET SIMPLIFICATION — 3-section recompose (near-black)
+   Section 1 Selected market (compact ticker strip + hero),
+   Section 2 Market read (merged sentiment + insight, one card),
+   Section 3 Learn from today, then a compact "Explore related
+   topics" list. Presentation only — quote/chart/sentiment/insight
+   computation and learn links are untouched (see market.js).
+   Appended last so it wins over the earlier Market rules.
+   ============================================================ */
+
+/* ── Section 1: global ticker → one compact, horizontally-scrollable
+   strip (SPY +0.87%  QQQ +1.43%  BTC +0.28%  10Y 4.48%). No boxes;
+   items separated by a hairline + spacing. Price hidden on the strip
+   (the selected asset carries the full price in the hero). ── */
+#marketSnapshotCards.market-global-grid {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0;
+  border: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+#marketSnapshotCards.market-global-grid::-webkit-scrollbar { display: none; }
+.market-global-grid .snap-card.market-summary-item:nth-child(n) {
+  flex: 0 0 auto;
+  min-height: 0;
+  margin-right: 15px;
+  padding: 3px 15px 3px 0;
+  border: 0;
+  border-right: 1px solid var(--fl-card-black-border);
+  border-radius: 0;
+  background: transparent;
+}
+.market-global-grid .snap-card.market-summary-item:last-child:nth-child(n) {
+  margin-right: 0;
+  padding-right: 0;
+  border-right: 0;
+}
+.market-global-grid .snap-card-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  grid-template-columns: none;
+}
+.market-global-grid .snap-card .snap-price { display: none; }
+.market-global-grid .snap-card .snap-change { font-size: 0.74rem; }
+
+/* ── Section 2: Market read — one near-black card ── */
+.market-read-card {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--fl-card-black-border);
+  border-radius: var(--fl-radius-card);
+  background: var(--fl-card-black);
+}
+.market-read-eyebrow { color: var(--fl-muted); margin: 0 0 12px; }
+.market-read-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.market-read-headline {
+  margin: 0;
+  color: var(--sent-color, var(--fl-title));
+  font: 780 1.5rem/1.1 var(--fl-font-display, var(--font-b));
+  letter-spacing: -0.02em;
+}
+.market-read-score {
+  flex: none;
+  color: var(--fl-title);
+  font: 600 1.02rem/1 var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+.market-read-score-max { color: var(--fl-faint); font-size: 0.76rem; }
+.market-read-card .market-sentiment-gauge { margin-top: 13px; }
+.market-read-card .market-insight-summary { margin-top: 15px; }
+.market-read-watch {
+  margin: 13px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--fl-divider);
+  color: var(--fl-body);
+  font: 400 0.9rem/1.5 var(--font-b);
+}
+.market-read-watch-label {
+  margin-right: 7px;
+  color: var(--fl-muted);
+  font: 700 0.62rem/1 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Section 3: Learn from today ── */
+.market-learn-section { margin-top: 14px; }
+.market-learn-section:empty { display: none; }
+.market-learn-eyebrow { color: var(--fl-muted); margin: 0 0 10px; }
+.market-learn-section .market-insight-learn {
+  margin-top: 0;
+  border: 1px solid var(--fl-card-black-border);
+  background: var(--fl-card-black);
+}
+.market-learn-section .market-insight-learn:hover {
+  border-color: var(--fl-card-black-border-hover);
+  background: var(--fl-card-black-nested);
+}
+
+/* ── Explore related topics → compact hairline list, not 3 big cards ── */
+.market-v3-col-secondary { margin-top: 14px; }
+.market-v3-topics .market-v3-section-row { margin-bottom: 6px; }
+.market-v3-topics .market-v3-section-row h2 {
+  margin: 0;
+  color: var(--fl-muted);
+  font: 600 0.72rem/1.2 var(--font-b);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.market-v3-topics .market-v3-topic-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0;
+  overflow: visible;
+}
+.market-v3-topics .market-v3-topic-card {
+  flex-direction: row;
+  align-items: center;
+  min-height: 0;
+  padding: 13px 2px;
+  border: 0;
+  border-top: 1px solid var(--fl-divider);
+  border-radius: 0;
+  background: transparent;
+}
+.market-v3-topics .market-v3-topic-card:first-child { border-top: 0; }
+.market-v3-topics .market-v3-topic-card:hover {
+  transform: none;
+  background: transparent;
+}
+.market-v3-topics .market-v3-topic-head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.market-v3-topics .market-v3-topic-card small,
+.market-v3-topics .market-v3-topic-card .market-v3-topic-meta { display: none; }

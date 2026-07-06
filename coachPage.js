@@ -3167,16 +3167,13 @@
   function _coachFollowups() {
     const b = _coachMarketBrief();
     const list = [
-      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'Explain today’s market move', q: 'Explain today’s market move in plain English — what’s driving it and why it matters.' },
-      { kind: 'market', icon: _COACH_ICON_MARKET, label: 'How could inflation affect a portfolio?', q: 'How could inflation affect a diversified portfolio?' },
-      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: b.unit ? `Connect this to ${b.unit}` : 'Connect this to my current lesson', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to what I’m currently learning.' },
-      { kind: 'learn',  icon: _COACH_ICON_LEARN,  label: 'Quiz me on what I’m learning', q: 'Quiz me on the concepts I’ve been learning.' }
+      { kind: 'market', label: 'Explain today’s market move', q: 'Explain today’s market move in plain English — what’s driving it and why it matters.' },
+      { kind: 'learn',  label: b.unit ? `Connect this to ${b.unit}` : 'Connect this to what I’m learning', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to what I’m currently learning.' },
+      { kind: 'learn',  label: 'Quiz me on this topic', q: 'Quiz me on the concepts I’ve been learning.' }
     ];
     return list.map(s => `
       <button type="button" class="coach-suggest-card coach-followup-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
-        <span class="coach-suggest-icon" aria-hidden="true">${s.icon}</span>
         <span class="coach-suggest-text">${esc(s.label)}</span>
-        <span class="coach-suggest-arrow" aria-hidden="true">${FinLingoIcons.right()}</span>
       </button>`).join('');
   }
   // Repaint the brief + follow-ups in place once live data arrives (no full
@@ -3246,7 +3243,6 @@
       <div class="coach-page-shell ${isBlank ? 'has-composer' : 'is-conversation'}">
         ${showHero ? `<section class="coach-hero coach-convo-intro">
           <div class="coach-convo-header">
-            <span class="coach-convo-avatar" aria-hidden="true">${_COACH_ICON_MARKET}</span>
             <span class="coach-convo-id">
               <span class="coach-convo-name">Finlingo Coach</span>
               <span class="coach-convo-role">AI mentor · markets, investing &amp; the language of money</span>
@@ -3254,12 +3250,10 @@
           </div>
           <div class="coach-day-divider"><span>Today</span></div>
           <div class="coach-msg coach-msg-coach coach-msg-first">
-            <span class="coach-msg-avatar" aria-hidden="true">${_COACH_ICON_MARKET}</span>
-            <div class="coach-msg-bubble coach-brief-bubble" id="coachBriefOne">${_coachBriefBubbleHtml('first')}</div>
-          </div>
-          <div class="coach-msg coach-msg-coach coach-msg-continuation">
-            <span class="coach-msg-avatar-placeholder" aria-hidden="true"></span>
-            <div class="coach-msg-bubble coach-brief-bubble coach-brief-bubble-secondary" id="coachBriefTwo">${_coachBriefBubbleHtml('second')}</div>
+            <div class="coach-msg-bubble coach-brief-bubble">
+              <div class="coach-brief-part" id="coachBriefOne">${_coachBriefBubbleHtml('first')}</div>
+              <div class="coach-brief-part coach-brief-part-secondary" id="coachBriefTwo">${_coachBriefBubbleHtml('second')}</div>
+            </div>
           </div>
           <p class="coach-brief-status" id="coachBriefStatus">${_coachBriefStatusHtml()}</p>
           <div class="coach-followups">
