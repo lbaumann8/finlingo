@@ -8345,7 +8345,39 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-track-card.is-active::before { content: none; }
 /* AI track cards: same flat treatment (no mint inset edge). */
 .v3-ai-unit-card.is-active,
-.v3-ai-unit-card.is-active:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.035); }
+.v3-ai-unit-card.is-active:hover { box-shadow: none; }
+
+/* ── Learn track cards: cohesive near-black surface (Stitch reference) ──
+   The shared .v3-unit-card base layers a white gradient + inset highlight
+   over the navy --v3-surface, which reads too light and glossy at track-card
+   scale. Flatten the whole card (preset + AI variants, all states) to one
+   neutral near-black panel, distinguished from the deep-navy page only by a
+   hairline border. Scoped to Learn track cards — Coach, Market, and Classroom
+   use other classes and are untouched. */
+.v3-track-card.v3-unit-card,
+.v3-track-card.is-active,
+.v3-track-card.is-active:hover,
+.v3-track-card.is-complete,
+.v3-ai-unit-card.v3-unit-card,
+.v3-ai-unit-card.is-active,
+.v3-ai-unit-card.is-active:hover,
+.v3-ai-unit-card.is-complete {
+  background: #0f1010;
+  background-image: none;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+/* Hover keeps the same flat near-black surface; only the border brightens
+   slightly and the existing lift transform remains as the affordance. */
+.v3-track-card.v3-unit-card:hover,
+.v3-track-card.is-complete:hover,
+.v3-ai-unit-card.v3-unit-card:hover,
+.v3-ai-unit-card.is-complete:hover {
+  background: #0f1010;
+  background-image: none;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
 /* Completed track keeps the recessed passive treatment (from earlier rules);
    its progress track reads full mint (goal reached). */
 .v3-track-card.is-complete .v3-track-title { color: var(--fl-eyebrow); }
