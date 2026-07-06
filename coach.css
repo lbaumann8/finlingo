@@ -8225,7 +8225,16 @@ body.auth-modal-visible .ask-tutor-backdrop {
   font-size: 1.12rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em;
   color: var(--fl-title); white-space: normal;
 }
-.v3-track-progress { width: 100%; margin: 1px 0 0; }
+.v3-track-progress {
+  width: 100%;
+  height: 4px;
+  margin: 2px 0 0;
+  background: rgba(255,255,255,0.075);
+}
+.v3-track-progress > span {
+  min-width: 0;
+  background: var(--fl-accent);
+}
 
 /* ── Concise track description (only when the unit carries one) ── */
 .v3-track-desc {
@@ -8262,22 +8271,38 @@ body.auth-modal-visible .ask-tutor-backdrop {
   border-top: 1px solid var(--fl-divider);
 }
 .v3-module-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; min-width: 0; }
-.v3-module-mark { flex: none; width: 18px; height: 18px; display: grid; place-items: center; }
+.v3-module-mark {
+  flex: none; width: 18px; height: 18px; display: grid; place-items: center;
+  border-radius: 999px;
+}
 .v3-module-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .v3-module-title {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font: 500 0.82rem/1.3 var(--font-b); color: var(--fl-body);
 }
 /* completed module — mint check, quiet struck title */
-.v3-module-done .v3-module-mark { color: var(--fl-accent); }
-.v3-module-done .v3-module-title { color: var(--fl-muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.20); }
+.v3-module-done .v3-module-mark {
+  color: var(--fl-accent);
+  background: rgba(105,221,165,0.11);
+}
+.v3-module-done .v3-module-title { color: var(--fl-sub); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.22); }
 /* active module — filled mint marker, emphasized title */
-.v3-module-active .v3-module-mark { color: var(--fl-accent); }
-.v3-module-active .v3-module-mark svg { fill: var(--fl-accent); }
-.v3-module-active .v3-module-title { color: var(--fl-title); font-weight: 600; }
+.v3-module-active .v3-module-mark {
+  color: #06130E;
+  background: var(--fl-accent);
+}
+.v3-module-active .v3-module-mark svg { fill: #06130E; stroke: #06130E; }
+.v3-module-active .v3-module-title { color: var(--fl-title); font-weight: 700; }
 /* upcoming module — quiet hollow dot (NOT a lock; nothing fabricated) */
-.v3-module-upcoming .v3-module-mark { color: var(--fl-faint); opacity: 0.65; }
-.v3-module-upcoming .v3-module-title { color: var(--fl-faint); }
+.v3-module-upcoming .v3-module-mark { color: var(--fl-muted); opacity: 0.95; }
+.v3-module-upcoming .v3-module-title { color: var(--fl-muted); }
+/* locked module — distinct from upcoming, only when data marks a lesson locked */
+.v3-module-locked .v3-module-mark {
+  color: var(--fl-faint);
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.035);
+}
+.v3-module-locked .v3-module-title { color: var(--fl-faint); }
 
 /* ── Footer: state word + CTA affordance ── */
 .v3-track-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
@@ -8375,16 +8400,26 @@ body.auth-modal-visible .ask-tutor-backdrop {
   background: transparent; border: 0;
   border-top: 1px solid var(--fl-divider);
   text-align: left; cursor: pointer;
-  transition: background var(--fl-dur-fast) var(--fl-ease);
+  transition: background var(--fl-dur-fast) var(--fl-ease), border-color var(--fl-dur-fast) var(--fl-ease);
 }
 .market-wl-row:first-child { border-top: 0; }
 .market-wl-row:hover { background: var(--fl-surface-hover); }
-.market-wl-row.is-selected { background: var(--fl-accent-soft); }
+.market-wl-row:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
+.market-wl-row.is-selected {
+  background: rgba(105,221,165,0.035);
+  box-shadow: inset 0 0 0 1px rgba(105,221,165,0.10);
+}
 .market-wl-row.is-selected::before {
-  content: ""; position: absolute; left: 0; width: 3px; height: 34px;
+  content: ""; position: absolute; left: 0; width: 3px; height: 32px;
   background: var(--fl-accent); border-radius: 0 2px 2px 0;
 }
 .market-wl-row { position: relative; }
+.market-wl-row.is-selected .market-wl-name,
+.market-wl-row.is-selected .market-wl-price { color: #F4F8F5; }
+.market-wl-row.is-selected .market-wl-badge {
+  border-color: rgba(105,221,165,0.28);
+  color: var(--fl-accent);
+}
 .market-wl-badge {
   flex: none; width: 38px; height: 38px; display: grid; place-items: center;
   border-radius: 10px;
@@ -8479,25 +8514,28 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .market-sentiment-means p { font: 400 0.86rem/1.5 var(--font-b); color: var(--fl-sub); margin: 0; }
 .market-sentiment-factors {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
-  padding-top: 12px; border-top: 1px solid var(--fl-divider);
+  display: flex; flex-direction: column; gap: 0;
+  padding-top: 8px; border-top: 1px solid var(--fl-divider);
 }
 .market-sentiment-factor {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   min-width: 0;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255,255,255,0.045);
 }
+.market-sentiment-factor:first-child { border-top: 0; }
 .market-sentiment-factor-label {
-  font: 500 0.74rem/1.3 var(--font-b); color: var(--fl-muted);
+  font: 500 0.78rem/1.3 var(--font-b); color: var(--fl-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.market-sentiment-factor-value { font: 600 0.8rem/1 var(--font-num); color: var(--fl-sub); flex: none; }
+.market-sentiment-factor-value {
+  min-width: 78px; text-align: right;
+  font: 600 0.82rem/1 var(--font-num); color: var(--fl-sub); flex: none;
+}
 .market-sentiment-factor-value.up   { color: var(--mkt-up, var(--fl-accent)); }
 .market-sentiment-factor-value.down { color: var(--red-text); }
 .market-sentiment-factor-value.flat { color: var(--fl-muted); }
 .market-sentiment-unavail { font: 400 0.88rem/1.5 var(--font-b); color: var(--fl-muted); margin: 0; }
-@media (max-width: 360px) {
-  .market-sentiment-factors { grid-template-columns: 1fr; }
-}
 
 
 /* ============================================================

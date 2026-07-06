@@ -855,12 +855,12 @@ function renderMarket() {
             ${_renderMarketTodayHeroInner()}
           </section>
 
-          <section class="market-v3-insight" id="marketInsightCard">
-            ${_renderMarketInsightInner()}
-          </section>
-
           <section class="market-sentiment-section" id="marketSentiment">
             ${_renderMarketSentimentInner()}
+          </section>
+
+          <section class="market-v3-insight" id="marketInsightCard">
+            ${_renderMarketInsightInner()}
           </section>
         </div>
 
@@ -2428,19 +2428,19 @@ function _marketAssetInsightSummary() {
   const during = isDaily ? 'during the session' : 'across the period';
   if (move.dir === 'flat') {
     return {
-      broad: `${subject} was little changed ${phrase}, holding close to where it started across the broad market.`,
-      tech: `${subject} was little changed ${phrase}, with the Nasdaq-100’s large technology names holding steady.`,
-      crypto: `${subject} was little changed ${phrase}, trading within a narrow range.`,
-      yield: `${subject} was little changed ${phrase}, signaling steady rate expectations.`
+      broad: `${subject} was little changed ${phrase}, which means the broad index is not giving a strong directional signal on its own.`,
+      tech: `${subject} was little changed ${phrase}, so large technology shares are not clearly leading or dragging the tape right now.`,
+      crypto: `${subject} was little changed ${phrase}, trading in a narrow range rather than breaking away from recent levels.`,
+      yield: `${subject} was little changed ${phrase}, suggesting rate expectations were steady in the latest available data.`
     }[flavor];
   }
   const up = move.dir === 'up';
   const dirWord = up ? 'higher' : 'lower';
   const tail = {
-    broad: `reflecting a ${up ? 'steadier' : 'cautious'} ${span} across large U.S. companies.`,
-    tech: `as the Nasdaq-100’s large technology companies ${up ? 'gained ground' : 'came under pressure'}.`,
-    crypto: up ? `as risk appetite improved ${during}.` : `as traders reduced risk ${during}.`,
-    yield: `indicating ${up ? 'a shift toward higher' : 'softer'} rate expectations.`
+    broad: `${up ? 'showing buyers were willing to pay more for a broad basket of large U.S. companies' : 'showing broad U.S. stocks weakened rather than only one company pulling the index down'}.`,
+    tech: `${up ? 'showing large technology shares added support to the Nasdaq-100' : 'showing large technology shares were a visible source of pressure in the Nasdaq-100'}.`,
+    crypto: up ? `which can happen when appetite for higher-volatility assets improves ${during}.` : `alongside weaker risk assets, suggesting investors were reducing exposure to higher-volatility assets rather than reacting only to a crypto-specific event.`,
+    yield: `${up ? 'which can tighten financial conditions because higher yields raise the hurdle for future earnings' : 'which can ease pressure on valuations when investors accept lower bond yields'}.`
   }[flavor];
   return `${subject} moved ${dirWord} ${phrase}, ${tail}`;
 }
@@ -2455,23 +2455,23 @@ function _marketAssetInsightWatch() {
   if (flavor === 'yield') {
     // Yields are driven by rate expectations, so the watch points at the signals
     // that move them rather than at price-style buyers/sellers.
-    return 'Watch upcoming inflation, labor-market, and Federal Reserve signals for further direction.';
+    return 'Watch whether upcoming inflation, labor-market, or Federal Reserve signals push the 10-year yield outside its recent range.';
   }
   if (!move.available || move.dir === 'flat') {
-    if (flavor === 'crypto') return `Watch whether ${a.name} breaks out of its recent range ${horizon}.`;
-    return `Watch whether ${subjLower} begins to trend in either direction ${horizon}.`;
+    if (flavor === 'crypto') return `Watch whether ${a.name} breaks above or below its recent range ${horizon}; a breakout would carry more information than another quiet session.`;
+    return `Watch whether ${subjLower} closes outside its recent range ${horizon}; that would show a clearer directional signal.`;
   }
   const up = move.dir === 'up';
   return {
     broad: up
-      ? `Watch whether buying continues or sellers step in ${horizon}.`
-      : `Watch whether selling pressure continues or buyers return ${horizon}.`,
+      ? `Watch whether gains broaden beyond a small set of large companies ${horizon}. Broader participation would make the move more durable as a market read.`
+      : `Watch whether declines remain broad across sectors ${horizon}. Narrower weakness would point to a more specific issue than a broad market pullback.`,
     tech: up
-      ? `Watch whether large technology names keep leading or the move broadens ${horizon}.`
-      : `Watch whether large technology names keep weighing on the index or stabilize ${horizon}.`,
+      ? `Watch whether technology keeps leading while the broader market also participates ${horizon}. A tech-only move is a narrower signal.`
+      : `Watch whether technology shares keep falling faster than the broad market ${horizon}. Continued underperformance would support a growth-stock pressure read.`,
     crypto: up
-      ? `Watch whether ${a.name} holds this move or gives some back ${horizon}.`
-      : `Watch whether ${a.name} stabilizes near its recent range or continues lower ${horizon}.`
+      ? `Watch whether ${a.name} keeps moving with technology shares ${horizon}. Continued correlation would support a broader risk-appetite interpretation.`
+      : `Watch whether ${a.name} begins moving independently from technology shares ${horizon}. Continued correlation would support a broader risk-off interpretation.`
   }[flavor];
 }
 
@@ -3235,12 +3235,12 @@ function _computeMarketSentiment() {
   if (_marketSnapshot.status !== 'ready' || !okPct(spy)) return { available: false };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const spyPct = Number(spy.changePct);
-  const qqqPct = okPct(qqq) ? Number(qqq.changePct) : spyPct;
+  const qqqPct = okPct(qqq) ? Number(qqq.changePct) : null;
   const btcPct = okPct(btc) ? Number(btc.changePct) : null;
   const tnxChg = tnx && Number.isFinite(Number(tnx.change)) ? Number(tnx.change) : null; // yield-point move
   let score = 50;
   score += clamp(spyPct, -3, 3) * 7;    // broad market direction (dominant)
-  score += clamp(qqqPct, -3, 3) * 4;    // growth / tech tilt
+  if (qqqPct != null) score += clamp(qqqPct, -3, 3) * 4;    // growth / tech tilt
   if (btcPct != null) score += clamp(btcPct, -6, 6) * 1.4;  // risk appetite
   if (tnxChg != null) score += clamp(-tnxChg, -0.2, 0.2) * 35; // rising yields = headwind
   score = clamp(Math.round(score), 3, 97);
@@ -3248,9 +3248,10 @@ function _computeMarketSentiment() {
   const fmtPct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
   const tone = v => v == null ? 'flat' : (v > 0.05 ? 'up' : (v < -0.05 ? 'down' : 'flat'));
   const factors = [
-    { label: 'S&P 500 breadth', value: fmtPct(spyPct), tone: tone(spyPct) },
-    { label: 'Tech (Nasdaq-100)', value: fmtPct(qqqPct), tone: tone(qqqPct) }
+    { label: 'S&P 500', value: fmtPct(spyPct), tone: tone(spyPct) }
   ];
+  if (qqqPct != null) factors.push({ label: 'Nasdaq-100', value: fmtPct(qqqPct), tone: tone(qqqPct) });
+  if (btcPct != null) factors.push({ label: 'Bitcoin', value: fmtPct(btcPct), tone: tone(btcPct) });
   if (tnx && Number.isFinite(Number(tnx.price))) {
     factors.push({
       label: '10-year Treasury',
@@ -3258,20 +3259,22 @@ function _computeMarketSentiment() {
       tone: tnxChg == null ? 'flat' : (tnxChg > 0.01 ? 'down' : (tnxChg < -0.01 ? 'up' : 'flat'))
     });
   }
-  if (btcPct != null) factors.push({ label: 'Crypto appetite (BTC)', value: fmtPct(btcPct), tone: tone(btcPct) });
   // Driver = the single strongest real signal.
   const leadUp = spyPct >= 0;
+  const techLag = qqqPct != null && qqqPct < spyPct - 0.3;
+  const techLead = qqqPct != null && qqqPct > spyPct + 0.3;
+  const btcSame = btcPct != null && tone(btcPct) === tone(spyPct) && tone(spyPct) !== 'flat';
   const driver = leadUp
-    ? `Broad equities are holding up${qqqPct < spyPct - 0.3 ? ', though growth names lag' : (qqqPct > spyPct + 0.3 ? ', led by technology' : '')}${tnxChg != null && tnxChg > 0.03 ? ' as Treasury yields push higher' : ''}.`
-    : `Equities are under pressure${qqqPct < spyPct - 0.3 ? ', with technology leading the decline' : ''}${tnxChg != null && tnxChg > 0.03 ? ' as rising yields weigh on valuations' : ''}.`;
+    ? `Broad equities are higher${techLead ? ', with technology adding to the move' : (techLag ? ', though technology is lagging' : '')}${btcSame ? ', and Bitcoin is moving in the same direction' : ''}.`
+    : `Broad equities are lower${techLag ? ', with technology under extra pressure' : ''}${btcSame ? ', and Bitcoin is declining alongside stocks' : ''}.`;
   const meaning = {
-    defensive:    'Buyers are stepping back and safer corners are outperforming. Historically this is when diversification and cash cushions matter most — not a signal to act, but a useful moment to notice how different assets behave.',
-    cautious:     'Markets are leaning risk-off but not fearful. This is a good example of why spreading exposure across asset classes can smooth out days when one area weakens.',
+    defensive:    'Higher-volatility assets are weakening together, which points to broad caution rather than one isolated headline. That is a useful moment to compare how stocks, crypto, and rates relate.',
+    cautious:     'Risk appetite is softer, but not extreme. If technology shares and Bitcoin keep moving together, it supports the idea that investors are trimming higher-volatility exposure.',
     neutral:      'Signals are mixed and roughly balanced. Quiet, range-bound days like this are normal — they show that not every session carries a strong directional message.',
-    constructive: 'Risk appetite is firm without being euphoric. Broad participation like this is generally healthier than a narrow rally led by only a few names.',
-    'risk-on':    'Investors are reaching for risk today, with growth and crypto leading. Strong up-days feel good, but they are a reminder to check that gains are broad rather than concentrated.'
+    constructive: 'Risk appetite is firm without looking stretched. Broad participation matters because a move led by several areas is different from a rally concentrated in one corner.',
+    'risk-on':    'Growth and higher-volatility assets are rising together. That shows stronger risk appetite, while still leaving room to check whether the move is broad or concentrated.'
   }[band.key];
-  return { available: true, score, band, driver, meaning, factors };
+  return { available: true, score, band, driver, meaning, factors: factors.slice(0, 4) };
 }
 function _renderMarketSentimentInner() {
   const s = _computeMarketSentiment();

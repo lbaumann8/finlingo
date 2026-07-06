@@ -166,6 +166,7 @@
   let composerVisible = true;
   let activeChatId = null;
   let depthSelector = null;
+  const conversationScrollByChat = new Map();
   const unitJobPollers = new Map();
   // Monotonic generation/session token. Bumped on a full app-data reset so any
   // in-flight poll started before the reset is recognised as stale and refuses
@@ -236,6 +237,16 @@
     return document.getElementById('coachThread');
   }
 
+  function _coachPageScrollContainer() {
+    return document.getElementById('coachScreen') || document.querySelector('.app') || document.scrollingElement || document.documentElement;
+  }
+
+  function _anchorCoachBriefTop() {
+    const el = _coachPageScrollContainer();
+    if (el) el.scrollTop = 0;
+    try { if (window.scrollY > 0) window.scrollTo(0, 0); } catch (_) {}
+  }
+
   function _hasActiveUnitJob() {
     return thread.some(entry => entry?.kind === 'unit_job' && UNIT_JOB_ACTIVE_STATUSES.has(entry.status));
   }
@@ -256,6 +267,20 @@
     const el = _coachScrollContainer();
     if (!el || !snapshot) return;
     el.scrollTop = Math.max(0, Math.min(snapshot.scrollTop, el.scrollHeight - el.clientHeight));
+  }
+
+  function _rememberConversationScroll() {
+    const el = _coachScrollContainer();
+    if (!el || !activeChatId || !thread.length) return;
+    conversationScrollByChat.set(activeChatId, el.scrollTop);
+  }
+
+  function _restoreConversationScroll(chatId) {
+    const el = _coachScrollContainer();
+    if (!el || !chatId || !conversationScrollByChat.has(chatId)) return false;
+    const top = conversationScrollByChat.get(chatId);
+    el.scrollTop = Math.max(0, Math.min(top, el.scrollHeight - el.clientHeight));
+    return true;
   }
 
   function _revealThreadEntry(messageId, behavior) {
@@ -1270,8 +1295,15 @@
     composerVisible = false;
     _stopTypewriter();
     _finishActiveReveal();              // finalize any answer still streaming
-    if (wasBlankBefore) renderCoach();
-    else _renderThread({ allowAutoscroll: !revealActionResult && submitScroll?.nearBottom });
+    if (wasBlankBefore) {
+      renderCoach();
+      requestAnimationFrame(() => {
+        const el = _coachScrollContainer();
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    } else {
+      _renderThread({ allowAutoscroll: !revealActionResult && submitScroll?.nearBottom });
+    }
 
     const topic = effectiveText || lastTopic;
     const contextOverride = opts.context || opts.contextText || '';
@@ -1439,7 +1471,7 @@
         if (requestChatId === activeChatId) {
           _renderThread({
             revealEntryId: pendingRevealEntryId,
-            allowAutoscroll: !pendingRevealEntryId && !revealActionResult && submitScroll?.nearBottom
+            allowAutoscroll: !pendingRevealEntryId && !revealActionResult && (wasBlankBefore || submitScroll?.nearBottom)
           });
           if (revealAnswerEntry && revealAnswerEntry._needsReveal && !revealAnswerEntry._revealDone) {
             _beginAnswerReveal(revealAnswerEntry);
@@ -3037,25 +3069,29 @@
         if (s && s.available) toneWord = { defensive: 'a defensive', cautious: 'a cautious', neutral: 'a mixed', constructive: 'a constructive', 'risk-on': 'a risk-on' }[s.band.key] || toneWord;
       }
     } catch (_) {}
-    // Biggest real mover across the three tracked assets → the day's headline.
+    // Biggest real mover across the tracked assets -> the day's headline.
     const movers = [
       { name: 'the S&P 500', pct: spPct },
       { name: 'the Nasdaq-100', pct: qqPct },
       { name: 'Bitcoin', pct: btPct }
     ].filter(m => m.pct != null).sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
     const lead = movers[0];
+    const secondary = movers.find(m => m.name !== lead.name && Math.abs(m.pct) >= 0.05);
     const dir = lead.pct > 0.05 ? 'up' : (lead.pct < -0.05 ? 'down' : 'flat');
     const pctTxt = `${Math.abs(lead.pct).toFixed(2)}%`;
+    const secondaryText = secondary
+      ? `, while ${secondary.name} is ${secondary.pct > 0 ? 'also higher' : 'also lower'}`
+      : '';
     const headline = dir === 'flat'
       ? `${cap(lead.name)} is little changed today.`
-      : `${cap(lead.name)} is ${dir === 'up' ? 'up' : 'down'} ${pctTxt} today.`;
+      : `${cap(lead.name)} is ${dir === 'up' ? 'up' : 'down'} ${pctTxt}${secondaryText} today.`;
     const why = dir === 'up'
-      ? 'Days like this usually reflect improving risk appetite — investors willing to pay more for future growth. The useful habit is to ask what changed in expectations, not just to react to the number.'
+      ? 'That can suggest investors are more willing to own assets tied to future growth.'
       : (dir === 'down'
-        ? 'Pullbacks like this are a normal part of how markets price in new information. The useful habit is to notice which parts of the market moved together — and which didn’t.'
-        : 'Quiet sessions are a reminder that not every day carries a strong signal. They’re a good moment to focus on fundamentals rather than headlines.');
+        ? 'That can suggest investors are reducing exposure to higher-volatility assets rather than reacting to one company or coin.'
+        : 'Quiet sessions are a reminder that not every day carries a strong signal.');
     const connection = unit
-      ? `You’re currently working through ${unit}. Today is a live example of the ideas in that unit — a good chance to connect what you’re learning to what markets are actually doing.`
+      ? `Since you’re studying ${unit}, today is a useful live example of how market tone, risk, and expectations show up in prices.`
       : 'Bring any concept you’re curious about and we’ll connect it to what markets are doing right now.';
     // Closed / after-hours note from the real session state.
     let note = '';
@@ -3073,7 +3109,7 @@
       // Evergreen, honest fallback while live data loads (or if it can't).
       return `
         <p class="coach-brief-lead">${esc(b.greeting)}. Here’s today’s starting point.</p>
-        <p>Markets move on expectations, not just headlines — the “why” behind a move is usually more useful than the number itself.</p>
+        <p>Markets move on expectations, not just headlines. Once live data loads, I’ll ground this brief in the latest available market moves.</p>
         <p class="coach-brief-note">Reading today’s market data…</p>
         ${b.unit ? `<div class="coach-brief-connect"><span class="coach-brief-connect-label">Your learning</span><p>You’re working through ${esc(b.unit)} — bring a question and we’ll tie it to a real example.</p></div>` : ''}`;
     }
@@ -3105,10 +3141,13 @@
   // Repaint the brief + follow-ups in place once live data arrives (no full
   // re-render, so the composer / typewriter / focus are undisturbed).
   function _paintCoachBrief() {
+    const scrollEl = _coachPageScrollContainer();
+    const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
     const briefEl = document.getElementById('coachBrief');
     if (briefEl) briefEl.innerHTML = _coachBriefBubbleHtml();
     const fu = document.getElementById('coachFollowups');
     if (fu) fu.innerHTML = _coachFollowups();
+    if (scrollEl) scrollEl.scrollTop = scrollTop;
   }
   let _coachBriefPoll = null;
   function _scheduleCoachBriefRefresh() {
@@ -3122,6 +3161,12 @@
       if (ready() && document.getElementById('coachBrief')) _paintCoachBrief();
       if (stop) { clearInterval(_coachBriefPoll); _coachBriefPoll = null; }
     }, 700);
+  }
+
+  function _stopCoachTransientWork() {
+    _stopTypewriter();
+    _stopAnswerReveal();
+    if (_coachBriefPoll) { clearInterval(_coachBriefPoll); _coachBriefPoll = null; }
   }
 
   // A suggested-prompt card fills the composer and sends via the normal ask
@@ -3193,11 +3238,13 @@
       </div>`;
 
     _renderThread();
+    if (showCompact) requestAnimationFrame(() => _restoreConversationScroll(activeChatId));
     _resumeUnitJobsForActiveChat();
     const threadEl = document.getElementById('coachThread');
     if (threadEl && !threadEl.dataset.scrollLockBound) {
       threadEl.dataset.scrollLockBound = 'true';
       threadEl.addEventListener('scroll', () => {
+        _rememberConversationScroll();
         if (_hasActiveUnitJob()) userScrollLockedDuringGeneration = true;
       }, { passive: true });
     }
@@ -3220,7 +3267,11 @@
     }
     // Blank state shows today's brief; if live market data is still loading,
     // repaint the brief + follow-ups in place once it arrives.
-    if (showHero) _scheduleCoachBriefRefresh();
+    if (showHero) {
+      _anchorCoachBriefTop();
+      requestAnimationFrame(_anchorCoachBriefTop);
+      _scheduleCoachBriefRefresh();
+    }
   }
 
   // ── Multi-chat entry points ─────────────────────────────────────────
@@ -3287,9 +3338,7 @@
     _resetEpoch++;
     _stopAllUnitJobPolls();
     _stopUnitJobTicker();
-    // Stop any streamed-answer reveal timer (its target thread is being wiped).
-    if (answerReveal && answerReveal.timer) { try { clearInterval(answerReveal.timer); } catch (_) {} }
-    answerReveal = null;
+    _stopCoachTransientWork();
     // Drop the in-flight coach request handle. Its requestId no longer matches,
     // so a late response is ignored by the id guards in the request handlers.
     activeCoachRequest = null;
@@ -3323,7 +3372,7 @@
     global.ChatStore.setActive(id, { silent: true });
     _ensureActiveLoaded(true);
     if (typeof showCoach === 'function') showCoach(); else renderCoach();
-    setTimeout(() => { const el = document.getElementById('coachThread'); if (el) el.scrollTop = el.scrollHeight; }, 70);
+    setTimeout(() => _restoreConversationScroll(id), 70);
   }
 
   // External active-chat changes (e.g. deleting the active chat reassigns it).
@@ -3341,10 +3390,9 @@
         _resumeUnitJobsForActiveChat();
       } else {
         // Leaving Ask: stop the placeholder typewriter so it doesn't keep
-        // ticking against the now-hidden #coachInput. It restarts on return via
-        // renderCoach()'s empty-state path. (Unit-job pollers intentionally keep
-        // running — see the note below.)
-        _stopTypewriter();
+        // ticking against the now-hidden #coachInput, and cancel any brief
+        // repaint/reveal timers targeting DOM that is no longer active.
+        _stopCoachTransientWork();
       }
       // Leaving Ask: do NOT stop the active chat's unit-job pollers — let durable
       // background builds keep advancing so progress never freezes and Learn/Ask

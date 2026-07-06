@@ -3169,9 +3169,8 @@ function renderV3LearnWorkspace(container) {
     if (info.started) return `Lesson ${Math.min(info.total, info.currentLessonIndex + 1)} of ${info.total}`;
     return `${info.total} lesson${info.total === 1 ? '' : 's'} · Not started`;
   };
-  // Progress fill = current lesson / total, so it stays in lockstep with the
-  // "Lesson X of Y" line: Lesson 1 of 5 is exactly 20%, not 0%. We intentionally
-  // do NOT gate this on a lesson being marked complete.
+  // Resume-position helper for older card affordances. Track-card progress below
+  // uses completed lessons / total so zero-progress units still read as 0%.
   const _progressPct = info => {
     if (!info.started || info.completed) return 0;
     const lesson = Math.min(info.total, info.currentLessonIndex + 1);
@@ -3208,7 +3207,8 @@ function renderV3LearnWorkspace(container) {
   const _MODULE_ICON = {
     done:     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
     active:   '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>',
-    upcoming: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/></svg>'
+    upcoming: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/></svg>',
+    locked:   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="10" width="12" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>'
   };
   // Module rows are non-interactive state indicators. Completed = lessons before
   // the completed count; active = the next lesson; upcoming = the rest. The
@@ -3221,9 +3221,11 @@ function renderV3LearnWorkspace(container) {
     const rows = lessons.map((ls, i) => {
       const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
       const title = escapeAppHtml(cleanGeneratedListItemText(raw));
+      const locked = !!(ls && typeof ls === 'object' && (ls.locked || ls.isLocked || ls.status === 'locked'));
       let state;
       if (info.completed || i < info.completedCount) state = 'done';
-      else if (info.started && i === info.completedCount) state = 'active';
+      else if (locked) state = 'locked';
+      else if (i === Math.min(info.completedCount, Math.max(0, lessons.length - 1))) state = 'active';
       else state = 'upcoming';
       return `<span class="v3-module-row v3-module-${state}"><span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span><span class="v3-module-title">${title}</span></span>`;
     }).join('');
@@ -3280,7 +3282,7 @@ function renderV3LearnWorkspace(container) {
         </span>
         <span class="v3-track-title">${title}</span>
         ${desc}
-        <span class="fl-track v3-track-progress" aria-hidden="true"><span style="width:${pct}%"></span></span>
+        <span class="fl-track v3-track-progress" role="progressbar" aria-label="${pct}% complete" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></span>
         ${modules}
         ${preview}
         <span class="v3-track-foot">
