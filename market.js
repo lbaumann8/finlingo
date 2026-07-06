@@ -2696,7 +2696,7 @@ function _renderMarketReadInner() {
         <h2 class="market-read-headline">${_escapeMarketHtml(s.band.label)}</h2>
         <span class="market-read-score">${s.score}<span class="market-read-score-max">/100</span></span>
       </div>
-      <div class="market-sentiment-gauge market-sentiment-b-${s.band.key}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
+      <div class="market-sentiment-gauge market-sentiment-b-${s.band.key}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} out of 100 on a fear-to-greed scale.">
         <span class="market-sentiment-gauge-fill" style="left:${s.score}%"></span>
         <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
       </div>`;
@@ -3352,11 +3352,11 @@ function _paintMarketWatchlist() {
 // "market read" and never shows a fake precise number. When live data is
 // missing the panel says so instead of inventing a reading.
 const _SENTIMENT_BANDS = [
-  { key: 'defensive',    label: 'Defensive',    max: 30 },
-  { key: 'cautious',     label: 'Cautious',     max: 45 },
-  { key: 'neutral',      label: 'Neutral',      max: 55 },
-  { key: 'constructive', label: 'Constructive', max: 70 },
-  { key: 'risk-on',      label: 'Risk-on',      max: 101 }
+  { key: 'extreme-fear',  label: 'Extreme Fear',  max: 24 },
+  { key: 'fear',          label: 'Fear',          max: 44 },
+  { key: 'neutral',       label: 'Neutral',       max: 55 },
+  { key: 'greed',         label: 'Greed',         max: 75 },
+  { key: 'extreme-greed', label: 'Extreme Greed', max: 100 }
 ];
 function _computeMarketSentiment() {
   const q = _marketSnapshot.quotes || {};
@@ -3374,7 +3374,7 @@ function _computeMarketSentiment() {
   if (btcPct != null) score += clamp(btcPct, -6, 6) * 1.4;  // risk appetite
   if (tnxChg != null) score += clamp(-tnxChg, -0.2, 0.2) * 35; // rising yields = headwind
   score = clamp(Math.round(score), 3, 97);
-  const band = _SENTIMENT_BANDS.find(b => score < b.max) || _SENTIMENT_BANDS[2];
+  const band = _SENTIMENT_BANDS.find(b => score <= b.max) || _SENTIMENT_BANDS[2];
   const fmtPct = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`;
   const tone = v => v == null ? 'flat' : (v > 0.05 ? 'up' : (v < -0.05 ? 'down' : 'flat'));
   const factors = [
@@ -3398,15 +3398,15 @@ function _computeMarketSentiment() {
     ? `Broad equities are higher${techLead ? ', with technology adding to the move' : (techLag ? ', though technology is lagging' : '')}${btcSame ? ', and Bitcoin is moving in the same direction' : ''}.`
     : `Broad equities are lower${techLag ? ', with technology under extra pressure' : ''}${btcSame ? ', and Bitcoin is declining alongside stocks' : ''}.`;
   const meaning = {
-    defensive:    'Higher-volatility assets are weakening together, suggesting broad caution rather than a single-company issue.',
-    cautious:     'Softer risk appetite means investors may be trimming higher-volatility exposure.',
-    neutral:      'Mixed signals suggest a balanced session rather than a strong directional message.',
-    constructive: 'Firmer risk appetite is more useful when several market areas participate.',
-    'risk-on':    'Growth and higher-volatility assets are rising together, suggesting stronger risk appetite.'
+    'extreme-fear':  'Higher-volatility assets are weakening together, suggesting broad caution rather than a single-company issue.',
+    fear:            'Softer risk appetite means investors may be trimming higher-volatility exposure.',
+    neutral:         'Mixed signals suggest a balanced session rather than a strong directional message.',
+    greed:           'Firmer risk appetite is more useful when several market areas participate.',
+    'extreme-greed': 'Growth and higher-volatility assets are rising together, suggesting stronger risk appetite.'
   }[band.key];
   return { available: true, score, band, driver, meaning, factors: factors.slice(0, 4) };
 }
-const _SENTIMENT_INFO = 'An educational market read derived from today’s S&P 500, Nasdaq-100, Bitcoin and 10-year Treasury moves on a defensive-to-risk-on scale. Not investment advice.';
+const _SENTIMENT_INFO = 'An educational market read derived from today’s S&P 500, Nasdaq-100, Bitcoin and 10-year Treasury moves on a fear-to-greed scale. Not investment advice.';
 const _SENTIMENT_INFO_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5"/><path d="M12 8h.01"/></svg>';
 function _renderMarketSentimentInner() {
   const s = _computeMarketSentiment();
@@ -3427,7 +3427,7 @@ function _renderMarketSentimentInner() {
         <p class="market-sentiment-unavail">${msg}</p>
       </div>`;
   }
-  // Left = the low pole (defensive); right = the live band + score, colored by
+  // Left = the low pole (fear); right = the live band + score, colored by
   // band via --sent-color. The green fill occupies the positive (right) side up
   // to the marker, and the marker sits at the real score. Nothing hardcoded.
   const explain = `${_escapeMarketHtml(s.driver)} ${_escapeMarketHtml(s.meaning)}`;
@@ -3435,10 +3435,10 @@ function _renderMarketSentimentInner() {
     <div class="market-sentiment-card market-sentiment-b-${s.band.key}">
       ${head}
       <div class="market-sentiment-scale-row">
-        <span class="market-sentiment-low">Defensive</span>
+        <span class="market-sentiment-low">Extreme Fear</span>
         <span class="market-sentiment-read">${_escapeMarketHtml(s.band.label)} (${s.score})</span>
       </div>
-      <div class="market-sentiment-gauge" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} of 100 on a defensive-to-risk-on scale">
+      <div class="market-sentiment-gauge" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.score}" aria-label="Market sentiment: ${_escapeMarketHtml(s.band.label)}, ${s.score} out of 100 on a fear-to-greed scale.">
         <span class="market-sentiment-gauge-fill" style="left:${s.score}%"></span>
         <span class="market-sentiment-gauge-marker" style="left:${s.score}%"></span>
       </div>
@@ -3569,7 +3569,7 @@ function _getSimpleMarketIndicators() {
       symbol: 'SCHD',
       name: 'Dividend Equity ETF',
       fallbackValue: 'Income stocks',
-      fallbackChange: 'Defensive',
+      fallbackChange: 'Steady',
       lesson: 'This is a simple contrast for steadier, dividend-paying companies.'
     },
     {
