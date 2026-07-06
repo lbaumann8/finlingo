@@ -840,9 +840,10 @@ function renderMarket() {
       <div class="market-v3-grid">
         <div class="market-v3-col market-v3-col-primary">
           <section class="market-global-section">
-            <div class="mono-label mono-label--block market-global-label">Global Markets</div>
             <!-- Real per-symbol quotes (SPY/QQQ/BTC/10Y) — reuses the existing
-                 snapshot renderer; painted + refreshed by _paintMarketSnapshot(). -->
+                 snapshot renderer; painted + refreshed by _paintMarketSnapshot().
+                 Heading removed: a single hairline-separated indicator row that
+                 reads as context, not a titled section. -->
             <div id="marketSnapshotCards" class="snap-cards market-global-grid">${_renderMarketSnapshotCardsInner()}</div>
           </section>
 
@@ -1185,7 +1186,7 @@ function _setMarketHeroDisplay(value, change, pct, suffix) {
     const cls = _marketChangeClass(change);
     const pctText = `${pct >= 0 ? '+' : '-'}${Math.abs(pct || 0).toFixed(2)}%`;
     changeEl.className = `market-v3-change ${cls}`;
-    changeEl.innerHTML = `${_escapeMarketHtml(_formatAssetChange(change))} (${_escapeMarketHtml(pctText)})`;
+    changeEl.innerHTML = `${_escapeMarketHtml(_formatAssetChange(change))} <span>${_escapeMarketHtml(pctText)}</span>`;
   }
 }
 
@@ -1603,19 +1604,22 @@ function _renderMarketTodayHeroInner() {
   const changeText = useSnap
     ? (Number.isFinite(snap.absoluteChange) ? _formatAssetChange(snap.absoluteChange) : '—')
     : (stats ? _formatAssetChange(stats.change) : '—');
+  const displaySymbol = String(a.symbol || '').replace(/-USD$/i, '') || a.name;
+  const assetTitle = a.name === displaySymbol ? a.name : `${a.name} · ${displaySymbol}`;
   return `
     <div class="market-v3-hero-copy">
-      <div class="market-v3-index-select">
-        <button type="button" class="market-v3-index-label" id="marketAssetLabel" aria-haspopup="listbox" aria-expanded="${_marketAssetMenuOpen ? 'true' : 'false'}" aria-label="Selected market: ${_escapeMarketHtml(a.name)}. Change market." onclick="toggleMarketAssetMenu(event)">${_escapeMarketHtml(a.name)} <span class="${_marketAssetMenuOpen ? 'is-open' : ''}">⌄</span></button>
-        ${_renderMarketAssetMenu()}
+      <div class="market-v3-asset-row">
+        <div class="market-v3-index-select">
+          <button type="button" class="market-v3-index-label" id="marketAssetLabel" aria-haspopup="listbox" aria-expanded="${_marketAssetMenuOpen ? 'true' : 'false'}" aria-label="Selected market: ${_escapeMarketHtml(assetTitle)}. Change market." onclick="toggleMarketAssetMenu(event)">${_escapeMarketHtml(assetTitle)} <span class="${_marketAssetMenuOpen ? 'is-open' : ''}">⌄</span></button>
+          ${_renderMarketAssetMenu()}
+        </div>
+        ${_marketHeroSessionBadge()}
       </div>
-      ${a.badge ? `<div class="market-v3-index-sub">${_escapeMarketHtml(a.badge)}</div>` : ''}
-      ${_marketHeroStatusLine()}
       <h1 class="market-v3-index-value" id="marketHeroValue">${_escapeMarketHtml(priceText)}</h1>
       <div class="market-v3-change-line">
-        <span class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</span>
-        <span class="market-v3-change-context" id="marketHeroChangeContext">${_escapeMarketHtml(_marketChangeContextLabel())}</span>
+        <span class="market-v3-change ${tone}" id="marketHeroChange">${_escapeMarketHtml(changeText)} <span>${_escapeMarketHtml(pctText)}</span></span>
       </div>
+      ${_marketHeroStatusLine()}
     </div>
     ${_renderMarketChartGraphic()}
     ${_renderMarketRangeToggle()}`;
@@ -1639,28 +1643,27 @@ function _marketChangeContextLabel() {
   }[String(_marketChart.range || '1D').toUpperCase()] || 'Today';
 }
 
-// Compact "Market open · Updated 1:41 PM ET" line shown beneath the headline.
-// Reuses the real session status for the selected asset and the live snapshot
-// timestamp — never hardcoded. The status dot colour follows the same tones.
-function _marketHeroStatusLine() {
+function _marketHeroSessionBadge() {
   const status = _getAssetMarketStatus(_currentAsset());
   const phraseBySession = {
-    open: 'Market open',
+    open: 'Open',
     premarket: 'Pre-market',
-    afterhours: 'After-hours',
-    closed: 'Market closed',
-    crypto: 'Trading 24/7'
+    afterhours: 'After hours',
+    closed: 'Closed',
+    crypto: '24/7'
   };
   const phrase = phraseBySession[status.session] || status.label || '';
+  if (!phrase) return '';
+  return `<span class="market-v3-session-badge market-v3-session-${status.tone}" id="marketHeroSession">${_escapeMarketHtml(phrase)}</span>`;
+}
+
+// Quiet "Updated 1:41 PM ET" line shown below the price movement. Reuses the
+// live snapshot timestamp and keeps the separate session badge current.
+function _marketHeroStatusLine() {
   const ts = _marketRecapTimestamp();
   const updated = ts ? `Updated ${ts} ET` : '';
-  const text = [phrase, updated].filter(Boolean).join(' · ');
-  if (!text) return '';
-  return `
-    <div class="market-v3-status" id="marketHeroStatus">
-      <span class="market-v3-status-dot market-v3-status-dot-${status.tone}" aria-hidden="true"></span>
-      <span>${_escapeMarketHtml(text)}</span>
-    </div>`;
+  if (!updated) return '';
+  return `<div class="market-v3-status" id="marketHeroStatus">${_escapeMarketHtml(updated)}</div>`;
 }
 
 // ── Asset selector (compact dropdown beneath the label) ─────────────
@@ -2448,19 +2451,19 @@ function _marketAssetInsightSummary() {
   const during = isDaily ? 'during the session' : 'across the period';
   if (move.dir === 'flat') {
     return {
-      broad: `${subject} was little changed ${phrase}, which means the broad index is not giving a strong directional signal on its own.`,
-      tech: `${subject} was little changed ${phrase}, so large technology shares are not clearly leading or dragging the tape right now.`,
-      crypto: `${subject} was little changed ${phrase}, trading in a narrow range rather than breaking away from recent levels.`,
-      yield: `${subject} was little changed ${phrase}, suggesting rate expectations were steady in the latest available data.`
+      broad: `${subject} was little changed ${phrase}, leaving the broad market without a clear directional signal.`,
+      tech: `${subject} was little changed ${phrase}, so large technology shares are not clearly leading or dragging the tape.`,
+      crypto: `${subject} was little changed ${phrase}, trading inside its recent range.`,
+      yield: `${subject} was little changed ${phrase}, suggesting rate expectations were steady.`
     }[flavor];
   }
   const up = move.dir === 'up';
   const dirWord = up ? 'higher' : 'lower';
   const tail = {
-    broad: `${up ? 'showing buyers were willing to pay more for a broad basket of large U.S. companies' : 'showing broad U.S. stocks weakened rather than only one company pulling the index down'}.`,
-    tech: `${up ? 'showing large technology shares added support to the Nasdaq-100' : 'showing large technology shares were a visible source of pressure in the Nasdaq-100'}.`,
-    crypto: up ? `which can happen when appetite for higher-volatility assets improves ${during}.` : `alongside weaker risk assets, suggesting investors were reducing exposure to higher-volatility assets rather than reacting only to a crypto-specific event.`,
-    yield: `${up ? 'which can tighten financial conditions because higher yields raise the hurdle for future earnings' : 'which can ease pressure on valuations when investors accept lower bond yields'}.`
+    broad: `${up ? 'showing buyers paid more for a broad basket of large U.S. companies' : 'showing broad U.S. stocks weakened'}.`,
+    tech: `${up ? 'showing large technology shares supported the Nasdaq-100' : 'showing large technology shares pressured the Nasdaq-100'}.`,
+    crypto: up ? `as appetite for higher-volatility assets improved ${during}.` : `as investors reduced exposure to higher-volatility assets.`,
+    yield: `${up ? 'which can tighten financial conditions' : 'which can ease pressure on valuations'}.`
   }[flavor];
   return `${subject} moved ${dirWord} ${phrase}, ${tail}`;
 }
@@ -2475,23 +2478,23 @@ function _marketAssetInsightWatch() {
   if (flavor === 'yield') {
     // Yields are driven by rate expectations, so the watch points at the signals
     // that move them rather than at price-style buyers/sellers.
-    return 'Watch whether upcoming inflation, labor-market, or Federal Reserve signals push the 10-year yield outside its recent range.';
+    return 'Whether upcoming inflation, labor-market, or Federal Reserve signals push the 10-year yield outside its recent range.';
   }
   if (!move.available || move.dir === 'flat') {
-    if (flavor === 'crypto') return `Watch whether ${a.name} breaks above or below its recent range ${horizon}; a breakout would carry more information than another quiet session.`;
-    return `Watch whether ${subjLower} closes outside its recent range ${horizon}; that would show a clearer directional signal.`;
+    if (flavor === 'crypto') return `Whether ${a.name} breaks above or below its recent range ${horizon}.`;
+    return `Whether ${subjLower} closes outside its recent range ${horizon}.`;
   }
   const up = move.dir === 'up';
   return {
     broad: up
-      ? `Watch whether gains broaden beyond a small set of large companies ${horizon}. Broader participation would make the move more durable as a market read.`
-      : `Watch whether declines remain broad across sectors ${horizon}. Narrower weakness would point to a more specific issue than a broad market pullback.`,
+      ? `Whether gains broaden beyond a small set of large companies ${horizon}.`
+      : `Whether declines remain broad across sectors ${horizon}.`,
     tech: up
-      ? `Watch whether technology keeps leading while the broader market also participates ${horizon}. A tech-only move is a narrower signal.`
-      : `Watch whether technology shares keep falling faster than the broad market ${horizon}. Continued underperformance would support a growth-stock pressure read.`,
+      ? `Whether technology keeps leading while the broader market also participates ${horizon}.`
+      : `Whether technology shares keep falling faster than the broad market ${horizon}.`,
     crypto: up
-      ? `Watch whether ${a.name} keeps moving with technology shares ${horizon}. Continued correlation would support a broader risk-appetite interpretation.`
-      : `Watch whether ${a.name} begins moving independently from technology shares ${horizon}. Continued correlation would support a broader risk-off interpretation.`
+      ? `Whether ${a.name} keeps moving with technology shares ${horizon}.`
+      : `Whether ${a.name} begins moving independently from technology shares ${horizon}.`
   }[flavor];
 }
 

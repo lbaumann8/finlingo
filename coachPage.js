@@ -3021,7 +3021,7 @@
     tw.active = false;
     if (tw.timer) { clearTimeout(tw.timer); tw.timer = null; }
     const input = document.getElementById('coachInput');
-    if (input) input.setAttribute('placeholder', 'Ask anything about money or markets…');
+    if (input) input.setAttribute('placeholder', 'Ask about markets or your lessons…');
   }
 
   // ── Submit ──────────────────────────────────────────────────────────
@@ -3115,15 +3115,46 @@
         ? 'That can suggest investors are reducing exposure to higher-volatility assets rather than reacting to one company or coin.'
         : 'Quiet sessions are a reminder that not every day carries a strong signal.');
     const connection = unit
-      ? `Since you’re studying ${unit}, today is a useful live example of how market tone, risk, and expectations show up in prices.`
-      : 'Bring any concept you’re curious about and we’ll connect it to what markets are doing right now.';
+      ? `Since you’re studying ${unit}, this is a useful example of how market sentiment shows up in prices.`
+      : 'This is a useful, low-stakes example of how sentiment shows up in day-to-day prices.';
+    // ── Compressed brief copy (one interpretive lead + one market sentence +
+    // one muted learning tie). Built from the same real movers; deliberately
+    // non-redundant so the three lines never restate the same interpretation. ──
+    // Interpretive lead word: prefer the real sentiment band, else derive from
+    // the broad-market move.
+    let moodWord = spPct > 0.15 ? 'constructive' : (spPct < -0.15 ? 'cautious' : 'quiet');
+    try {
+      if (typeof _computeMarketSentiment === 'function') {
+        const s = _computeMarketSentiment();
+        if (s && s.available) moodWord = { defensive: 'defensive', cautious: 'cautious', neutral: 'mixed', constructive: 'constructive', 'risk-on': 'risk-on' }[s.band.key] || moodWord;
+      }
+    } catch (_) {}
+    const leadSentence = `Markets are ${moodWord} today.`;
+    const higher = movers.filter(m => m.pct > 0.05);
+    const lower = movers.filter(m => m.pct < -0.05);
+    const joinNames = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+    let marketLine;
+    if (higher.length >= 2) {
+      const names = higher.slice(0, 3).map(m => m.name);
+      marketLine = `${cap(joinNames(names))} are ${names.length >= 3 ? 'all' : 'both'} higher, suggesting investors are more comfortable owning growth-tied assets.`;
+    } else if (lower.length >= 2) {
+      const names = lower.slice(0, 3).map(m => m.name);
+      marketLine = `${cap(joinNames(names))} are ${names.length >= 3 ? 'all' : 'both'} lower, suggesting investors are trimming exposure to higher-volatility assets.`;
+    } else if (higher.length === 1 && lower.length >= 1) {
+      marketLine = `${cap(higher[0].name)} is higher while ${lower[0].name} is lower — a more mixed session.`;
+    } else if (lead) {
+      const d = lead.pct > 0.05 ? 'higher' : (lead.pct < -0.05 ? 'lower' : 'little changed');
+      marketLine = `${cap(lead.name)} is ${d} today, without a strong signal from the other assets.`;
+    } else {
+      marketLine = 'The major assets are little changed today.';
+    }
     // Closed / after-hours note from the real session state.
     let note = '';
     const sess = sp && sp.sessionStatus;
     if (sess === 'closed') note = 'U.S. markets are closed right now, so these are the latest available figures.';
     else if (sess === 'afterhours') note = 'U.S. markets are in after-hours trading; figures reflect the latest quotes.';
     else if (sess === 'premarket') note = 'U.S. markets are in the pre-market session; figures reflect the latest quotes.';
-    return { available: true, greeting, toneWord, headline, why, connection, note, unit };
+    return { available: true, greeting, toneWord, headline, why, leadSentence, marketLine, connection, note, unit };
   }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -3134,23 +3165,18 @@
       return {
         first: `
           <p class="coach-brief-lead">${esc(b.greeting)}. Here’s today’s starting point.</p>
-          <p>Markets move on expectations, not just headlines.</p>`,
-        second: `
-          <p>Once live data loads, I’ll ground this brief in the latest available market moves.</p>
-          ${b.unit ? `<div class="coach-brief-connect"><span class="coach-brief-connect-label">Your learning</span><p>You’re working through ${esc(b.unit)}. Bring a question and we’ll tie it to a real example.</p></div>` : ''}`,
+          <p>Markets move on expectations, not just headlines — bring a question and we’ll ground it in a real example.</p>`,
+        second: b.unit
+          ? `<p>Since you’re studying ${esc(b.unit)}, we can tie today’s market to what you’re learning as soon as live data loads.</p>`
+          : '',
         note: 'Reading today’s market data…'
       };
     }
     return {
       first: `
-        <p class="coach-brief-lead">${esc(b.greeting)}. Markets are showing ${esc(b.toneWord)} tone today.</p>
-        <p>${esc(b.headline)}</p>`,
-      second: `
-        <p>${esc(b.why)}</p>
-        <div class="coach-brief-connect">
-          <span class="coach-brief-connect-label">Your learning</span>
-          <p>${esc(b.connection)}</p>
-        </div>`,
+        <p class="coach-brief-lead">${esc(b.leadSentence)}</p>
+        <p>${esc(b.marketLine)}</p>`,
+      second: `<p>${esc(b.connection)}</p>`,
       note: b.note || ''
     };
   }
@@ -3168,12 +3194,13 @@
     const b = _coachMarketBrief();
     const list = [
       { kind: 'market', label: 'Explain today’s market move', q: 'Explain today’s market move in plain English — what’s driving it and why it matters.' },
-      { kind: 'learn',  label: b.unit ? `Connect this to ${b.unit}` : 'Connect this to what I’m learning', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to what I’m currently learning.' },
+      { kind: 'learn',  label: 'Connect this to Money & Markets', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to Money & Markets.' },
       { kind: 'learn',  label: 'Quiz me on this topic', q: 'Quiz me on the concepts I’ve been learning.' }
     ];
     return list.map(s => `
       <button type="button" class="coach-suggest-card coach-followup-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
         <span class="coach-suggest-text">${esc(s.label)}</span>
+        <span class="coach-followup-chev" aria-hidden="true">›</span>
       </button>`).join('');
   }
   // Repaint the brief + follow-ups in place once live data arrives (no full
@@ -3245,7 +3272,7 @@
           <div class="coach-convo-header">
             <span class="coach-convo-id">
               <span class="coach-convo-name">Finlingo Coach</span>
-              <span class="coach-convo-role">AI mentor · markets, investing &amp; the language of money</span>
+              <span class="coach-convo-role">Ask about markets, investing, or your lessons.</span>
             </span>
           </div>
           <div class="coach-day-divider"><span>Today</span></div>
@@ -3255,15 +3282,14 @@
               <div class="coach-brief-part coach-brief-part-secondary" id="coachBriefTwo">${_coachBriefBubbleHtml('second')}</div>
             </div>
           </div>
-          <p class="coach-brief-status" id="coachBriefStatus">${_coachBriefStatusHtml()}</p>
           <div class="coach-followups">
-            <div class="coach-followups-label">Try asking</div>
             <div class="coach-suggest-grid" id="coachFollowups">${_coachFollowups()}</div>
           </div>
+          <p class="coach-brief-status" id="coachBriefStatus">${_coachBriefStatusHtml()}</p>
         </section>
         <div class="coach-bottom-composer coach-bottom-composer-empty">
           <form class="coach-input-form" onsubmit="return CoachPage.submit(event)">
-            <input id="coachInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask anything about money or markets…" aria-label="Ask anything about money, investing, or today’s market"/>
+            <input id="coachInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask about markets or your lessons…" aria-label="Ask about markets, investing, or your lessons"/>
             <button type="submit" class="coach-send" aria-label="Ask">
               ${FinLingoIcons.right()}
             </button>
