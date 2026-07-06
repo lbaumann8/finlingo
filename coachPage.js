@@ -3103,24 +3103,41 @@
   }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
-  function _coachBriefBubbleHtml() {
+  function _coachBriefParts() {
     const b = _coachMarketBrief();
     if (!b.available) {
       // Evergreen, honest fallback while live data loads (or if it can't).
-      return `
-        <p class="coach-brief-lead">${esc(b.greeting)}. Here’s today’s starting point.</p>
-        <p>Markets move on expectations, not just headlines. Once live data loads, I’ll ground this brief in the latest available market moves.</p>
-        <p class="coach-brief-note">Reading today’s market data…</p>
-        ${b.unit ? `<div class="coach-brief-connect"><span class="coach-brief-connect-label">Your learning</span><p>You’re working through ${esc(b.unit)} — bring a question and we’ll tie it to a real example.</p></div>` : ''}`;
+      return {
+        first: `
+          <p class="coach-brief-lead">${esc(b.greeting)}. Here’s today’s starting point.</p>
+          <p>Markets move on expectations, not just headlines.</p>`,
+        second: `
+          <p>Once live data loads, I’ll ground this brief in the latest available market moves.</p>
+          ${b.unit ? `<div class="coach-brief-connect"><span class="coach-brief-connect-label">Your learning</span><p>You’re working through ${esc(b.unit)}. Bring a question and we’ll tie it to a real example.</p></div>` : ''}`,
+        note: 'Reading today’s market data…'
+      };
     }
-    return `
-      <p class="coach-brief-lead">${esc(b.greeting)}. Markets are showing ${esc(b.toneWord)} tone today.</p>
-      <p>${esc(b.headline)} ${esc(b.why)}</p>
-      <div class="coach-brief-connect">
-        <span class="coach-brief-connect-label">Your learning</span>
-        <p>${esc(b.connection)}</p>
-      </div>
-      ${b.note ? `<p class="coach-brief-note">${esc(b.note)}</p>` : ''}`;
+    return {
+      first: `
+        <p class="coach-brief-lead">${esc(b.greeting)}. Markets are showing ${esc(b.toneWord)} tone today.</p>
+        <p>${esc(b.headline)}</p>`,
+      second: `
+        <p>${esc(b.why)}</p>
+        <div class="coach-brief-connect">
+          <span class="coach-brief-connect-label">Your learning</span>
+          <p>${esc(b.connection)}</p>
+        </div>`,
+      note: b.note || ''
+    };
+  }
+  function _coachBriefBubbleHtml(part) {
+    const parts = _coachBriefParts();
+    if (part === 'second') return parts.second;
+    return parts.first;
+  }
+  function _coachBriefStatusHtml() {
+    const note = _coachBriefParts().note;
+    return note ? esc(note) : '';
   }
   // Follow-up prompts shown as action cards under the opening message.
   function _coachFollowups() {
@@ -3143,8 +3160,12 @@
   function _paintCoachBrief() {
     const scrollEl = _coachPageScrollContainer();
     const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
-    const briefEl = document.getElementById('coachBrief');
-    if (briefEl) briefEl.innerHTML = _coachBriefBubbleHtml();
+    const firstEl = document.getElementById('coachBriefOne') || document.getElementById('coachBrief');
+    if (firstEl) firstEl.innerHTML = _coachBriefBubbleHtml('first');
+    const secondEl = document.getElementById('coachBriefTwo');
+    if (secondEl) secondEl.innerHTML = _coachBriefBubbleHtml('second');
+    const statusEl = document.getElementById('coachBriefStatus');
+    if (statusEl) statusEl.textContent = _coachBriefStatusHtml();
     const fu = document.getElementById('coachFollowups');
     if (fu) fu.innerHTML = _coachFollowups();
     if (scrollEl) scrollEl.scrollTop = scrollTop;
@@ -3157,8 +3178,9 @@
     let ticks = 0;
     _coachBriefPoll = setInterval(() => {
       ticks += 1;
-      const stop = ready() || ticks > 14 || !document.getElementById('coachBrief');
-      if (ready() && document.getElementById('coachBrief')) _paintCoachBrief();
+      const hasBrief = document.getElementById('coachBriefOne') || document.getElementById('coachBrief');
+      const stop = ready() || ticks > 14 || !hasBrief;
+      if (ready() && hasBrief) _paintCoachBrief();
       if (stop) { clearInterval(_coachBriefPoll); _coachBriefPoll = null; }
     }, 700);
   }
@@ -3207,10 +3229,15 @@
             </span>
           </div>
           <div class="coach-day-divider"><span>Today</span></div>
-          <div class="coach-msg coach-msg-coach">
+          <div class="coach-msg coach-msg-coach coach-msg-first">
             <span class="coach-msg-avatar" aria-hidden="true">${_COACH_ICON_MARKET}</span>
-            <div class="coach-msg-bubble coach-brief-bubble" id="coachBrief">${_coachBriefBubbleHtml()}</div>
+            <div class="coach-msg-bubble coach-brief-bubble" id="coachBriefOne">${_coachBriefBubbleHtml('first')}</div>
           </div>
+          <div class="coach-msg coach-msg-coach coach-msg-continuation">
+            <span class="coach-msg-avatar-placeholder" aria-hidden="true"></span>
+            <div class="coach-msg-bubble coach-brief-bubble coach-brief-bubble-secondary" id="coachBriefTwo">${_coachBriefBubbleHtml('second')}</div>
+          </div>
+          <p class="coach-brief-status" id="coachBriefStatus">${_coachBriefStatusHtml()}</p>
           <div class="coach-followups">
             <div class="coach-followups-label">Try asking</div>
             <div class="coach-suggest-grid" id="coachFollowups">${_coachFollowups()}</div>

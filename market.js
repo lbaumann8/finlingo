@@ -1722,8 +1722,22 @@ function selectMarketAsset(key) {
     _paintMarketWatchlist();
     ensureMarketChart(true);
   }
+  _revealMarketSelectedAsset();
   const label = document.getElementById('marketAssetLabel');
   if (label) label.focus();
+}
+
+function _revealMarketSelectedAsset() {
+  const hero = document.getElementById('marketTodayHero');
+  if (!hero) return;
+  const reduce = typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try {
+    hero.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  } catch (_) {
+    hero.scrollIntoView();
+  }
 }
 
 function _marketThinIcon(kind) {

@@ -3094,6 +3094,20 @@ function startAskForNewUnit() {
 }
 if (typeof window !== 'undefined') window.startAskForNewUnit = startAskForNewUnit;
 
+function startAskForSuggestedUnit(prompt) {
+  const text = String(prompt || '').trim();
+  startAskForNewUnit();
+  if (!text) return;
+  setTimeout(() => {
+    const input = document.getElementById('coachInput');
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+  }, 140);
+}
+if (typeof window !== 'undefined') window.startAskForSuggestedUnit = startAskForSuggestedUnit;
+
 function openPresetUnit(unitId) {
   if (LEGACY_PRESET_UNIT_IDS.has(Number(unitId))) {
     if (typeof showLearn === 'function') showLearn({ resetScroll: true });
@@ -3218,18 +3232,25 @@ function renderV3LearnWorkspace(container) {
     const lessons = Array.isArray(card.lessons) ? card.lessons : [];
     if (!lessons.length) return '';
     const info = card.info;
-    const rows = lessons.map((ls, i) => {
+    const visibleLessons = lessons.slice(0, 3);
+    const rows = visibleLessons.map((ls, i) => {
       const raw = typeof ls === 'string' ? ls : ((ls && (ls.title || ls.name)) || `Lesson ${i + 1}`);
       const title = escapeAppHtml(cleanGeneratedListItemText(raw));
       const locked = !!(ls && typeof ls === 'object' && (ls.locked || ls.isLocked || ls.status === 'locked'));
+      const duration = (ls && typeof ls === 'object' && (ls.duration || ls.minutes || ls.estimatedMinutes))
+        ? `${escapeAppHtml(String(ls.duration || ls.minutes || ls.estimatedMinutes).replace(/\s*min(?:utes)?$/i, ''))} min`
+        : '';
       let state;
       if (info.completed || i < info.completedCount) state = 'done';
       else if (locked) state = 'locked';
       else if (i === Math.min(info.completedCount, Math.max(0, lessons.length - 1))) state = 'active';
       else state = 'upcoming';
-      return `<span class="v3-module-row v3-module-${state}"><span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span><span class="v3-module-title">${title}</span></span>`;
+      return `<span class="v3-module-row v3-module-${state}"><span class="v3-module-mark" aria-hidden="true">${_MODULE_ICON[state]}</span><span class="v3-module-title">${title}</span>${state === 'active' && duration ? `<span class="v3-module-duration">${duration}</span>` : ''}</span>`;
     }).join('');
-    return `<span class="v3-track-modules">${rows}</span>`;
+    const disclosure = lessons.length > 3
+      ? `<span class="v3-module-disclosure">View all ${lessons.length} lessons</span>`
+      : '';
+    return `<span class="v3-track-modules">${rows}${disclosure}</span>`;
   };
   // Collapsed-track preview: keep non-expanded cards informative by surfacing
   // the single lesson the learner would land on next (real lesson title, never
@@ -3353,16 +3374,32 @@ function renderV3LearnWorkspace(container) {
   // Empty state: a real AI-unit card in its empty form (same outer
   // .v3-unit-card.v3-unit-card-ai shell + .v3-unit-main layout as a generated
   // unit). The whole card is clickable and opens a brand-new Ask Finlingo chat.
+  const emptyPrompts = [
+    'Teach me how interest rates affect stocks',
+    'Build a unit on reading financial statements',
+    'Explain options for a beginner'
+  ];
   const _emptyAiCard = `
-    <div class="v3-unit-list">
-      <div class="v3-unit-card v3-unit-card-ai v3-unit-card-empty">
-        <button type="button" class="v3-unit-main" aria-label="Create your first AI-generated unit. Ask Finlingo about any finance topic." onclick="startAskForNewUnit()">
-          <span class="v3-unit-icon">${_learnUnitIcon('ai')}</span>
-          <span class="v3-unit-copy">
-            <strong>Create your first AI-generated unit</strong>
-            <small>Ask Finlingo about any finance topic</small>
-          </span>
-        </button>
+    <div class="v3-empty-unit-state">
+      <div class="v3-unit-list">
+        <div class="v3-unit-card v3-unit-card-ai v3-unit-card-empty">
+          <button type="button" class="v3-unit-main" aria-label="Create your first AI-generated unit. Ask Finlingo about any finance topic." onclick="startAskForNewUnit()">
+            <span class="v3-unit-icon">${_learnUnitIcon('ai')}</span>
+            <span class="v3-unit-copy">
+              <strong>Create your first AI-generated unit</strong>
+              <small>Ask Finlingo about any finance topic</small>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div class="v3-empty-prompts">
+        <p>Turn a question into a short lesson path you can save and review.</p>
+        <span class="v3-empty-prompts-label">Try asking</span>
+        <div class="v3-empty-prompt-list">
+          ${emptyPrompts.map(prompt => `
+            <button type="button" onclick="startAskForSuggestedUnit('${escapeAppHtml(prompt).replace(/'/g, "\\'")}')">${escapeAppHtml(prompt)}</button>
+          `).join('')}
+        </div>
       </div>
     </div>`;
   const myUnits = customUnits.length
