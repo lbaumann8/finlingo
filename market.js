@@ -2247,10 +2247,12 @@ function askMarketTopic(index) {
 
 function _renderMarketV3Topics() {
   return `
-    <section class="market-v3-topics">
-      <div class="market-v3-section-row">
-        <h2>Explore related topics</h2>
-      </div>
+    <section class="market-v3-topics" aria-label="Related market topics">
+      <details class="market-v3-topics-disclosure">
+        <summary class="market-v3-topics-summary">
+          <span>Explore related topics</span>
+          <span class="market-v3-topic-arrow" aria-hidden="true">${_marketThinIcon('chevron')}</span>
+        </summary>
       <div class="market-v3-topic-grid">
         ${_getMarketV3Topics().map((topic, index) => `
           <button type="button" class="market-v3-topic-card" onclick="askMarketTopic(${index})">
@@ -2263,6 +2265,7 @@ function _renderMarketV3Topics() {
           </button>
         `).join('')}
       </div>
+      </details>
     </section>`;
 }
 

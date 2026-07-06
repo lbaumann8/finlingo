@@ -9618,3 +9618,435 @@ body.auth-modal-visible .ask-tutor-backdrop {
   .mkt-chart-canvas { height: 124px; }
   .market-v3-index-value { font-size: 2rem; }
 }
+
+/* ============================================================
+   FINAL POLISH 1 — Coach, Learn, Market
+   Presentation-only refinements: spacing, wrapping, tap targets and hierarchy.
+   Logic, data fetching, progress, charting and navigation remain untouched.
+   ============================================================ */
+
+/* Shared width discipline inside the fixed phone canvas. */
+.coach-page-shell.has-composer .coach-hero.coach-convo-intro,
+.coach-brief-bubble,
+.coach-followups,
+.coach-brief-status,
+.v3-learn-tabs,
+.v3-empty-unit-state,
+.market-v3-hero,
+.market-read-card,
+.market-learn-section,
+.market-v3-topics {
+  max-width: min(100%, 610px);
+}
+
+/* Coach */
+.coach-page-shell.has-composer .coach-hero.coach-convo-intro {
+  gap: 9px !important;
+  width: min(610px, 100%) !important;
+  max-width: 100% !important;
+}
+.coach-convo-header {
+  margin-bottom: 1px;
+}
+.coach-convo-id {
+  gap: 1px;
+}
+.coach-convo-name {
+  font-size: 0.98rem;
+  letter-spacing: 0;
+}
+.coach-convo-role {
+  font-size: 0.85rem;
+  line-height: 1.28;
+}
+.coach-day-divider {
+  justify-content: center;
+  gap: 0;
+  margin: 3px 0 2px;
+}
+.coach-day-divider::before,
+.coach-day-divider::after {
+  display: none;
+}
+.coach-day-divider span {
+  color: var(--fl-faint);
+  font: 500 0.55rem/1 var(--font-b);
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+.coach-brief-bubble {
+  width: min(610px, 100%) !important;
+  max-width: 100% !important;
+  padding: 16px 16px 15px !important;
+  gap: 7px;
+  border-radius: 8px;
+  overflow: visible;
+}
+.coach-brief-part {
+  gap: 7px;
+  min-width: 0;
+}
+.coach-brief-bubble p {
+  max-width: 34rem;
+  font-size: 0.9rem;
+  line-height: 1.54;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.coach-brief-lead {
+  margin-bottom: 1px !important;
+  font-size: 0.92rem !important;
+  line-height: 1.42 !important;
+}
+.coach-followups {
+  width: min(610px, 100%) !important;
+  max-width: 100% !important;
+  margin-top: 5px;
+}
+.coach-followups .coach-suggest-grid {
+  border-color: rgba(124, 139, 160, 0.14);
+}
+.coach-followups .coach-suggest-card {
+  min-height: 44px;
+  padding: 11px 2px;
+  border-top-color: rgba(124, 139, 160, 0.14);
+  color: var(--fl-body);
+}
+.coach-followups .coach-suggest-card:hover {
+  background: var(--fl-card-black-quiet);
+}
+.coach-followups .coach-suggest-card:active {
+  background: var(--fl-card-black-selected-bg);
+}
+.coach-followups .coach-suggest-card:focus-visible {
+  outline: 2px solid var(--fl-accent-border);
+  outline-offset: 2px;
+}
+.coach-followup-chev,
+.coach-followups .coach-suggest-card .coach-followup-chev {
+  color: var(--fl-muted);
+  transition: transform 140ms ease, color 140ms ease;
+}
+.coach-followups .coach-suggest-card:hover .coach-followup-chev {
+  color: var(--fl-title);
+  transform: translateX(2px);
+}
+.coach-brief-status {
+  width: min(610px, 100%) !important;
+  max-width: 100% !important;
+  margin-top: 3px;
+  color: var(--fl-faint);
+  font-size: 0.71rem;
+  line-height: 1.38;
+}
+.coach-bottom-composer {
+  margin-top: 14px !important;
+}
+.coach-bottom-composer .coach-input-form,
+.coach-input-form-compact {
+  align-items: center;
+  min-height: 52px;
+  height: 52px;
+  padding: 0 8px 0 16px;
+  border-radius: 17px;
+  background: var(--fl-card-black-nested);
+}
+#coachInput {
+  height: 100%;
+  min-height: 0 !important;
+  max-height: none;
+  line-height: normal !important;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#coachInput::placeholder {
+  opacity: 0.92;
+  text-overflow: ellipsis;
+}
+.coach-send {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+}
+.coach-edu-note {
+  margin-top: 7px !important;
+}
+
+/* Learn */
+.v3-learn-tabs {
+  min-height: 38px;
+  padding: 3px;
+  gap: 3px;
+  border-color: var(--fl-card-black-border);
+  border-radius: 8px;
+  background: var(--fl-card-black);
+}
+.v3-learn-tabs button {
+  min-height: 32px;
+  border-radius: 6px;
+  color: var(--fl-muted);
+  font: 650 0.78rem/1 var(--font-b);
+}
+.v3-learn-tabs button:hover:not(.active) {
+  color: var(--fl-body);
+  background: var(--fl-card-black-quiet);
+}
+.v3-learn-tabs button.active {
+  background: var(--fl-card-black-selected-bg);
+  color: var(--fl-title);
+  box-shadow: none;
+}
+.v3-units-panel {
+  margin-top: 18px;
+}
+.v3-unit-create-card {
+  padding: 15px;
+  gap: 12px;
+  border-color: var(--fl-card-black-border);
+  border-radius: 8px;
+  background: var(--fl-card-black);
+}
+.v3-unit-create-copy {
+  gap: 7px;
+}
+.v3-unit-create-copy h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+.v3-unit-create-copy p {
+  max-width: 34rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.v3-unit-create-copy span {
+  font-size: 0.75rem;
+}
+.v3-unit-create-btn {
+  min-height: 40px;
+  padding: 9px 14px;
+  background: var(--fl-accent);
+  color: #06231A;
+}
+.v3-unit-create-btn:hover {
+  background: var(--fl-accent-hover);
+  color: #06231A;
+}
+.v3-empty-prompts {
+  gap: 7px;
+  padding: 0;
+}
+.v3-empty-prompts-label {
+  color: var(--fl-muted);
+  font: 650 0.72rem/1.2 var(--font-b);
+  letter-spacing: 0;
+}
+.v3-empty-prompt-list {
+  border-top: 1px solid rgba(124, 139, 160, 0.14);
+  border-bottom: 1px solid rgba(124, 139, 160, 0.14);
+}
+.v3-empty-prompt-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 2px;
+  border-top-color: rgba(124, 139, 160, 0.14);
+  color: var(--fl-body);
+  font-size: 0.86rem;
+  line-height: 1.28;
+}
+.v3-empty-prompt-list button span {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.v3-empty-prompt-list .v3-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--fl-muted);
+}
+.v3-empty-prompt-list button:hover {
+  background: var(--fl-card-black-quiet);
+  color: var(--fl-title);
+}
+.v3-empty-prompt-list button:active {
+  background: var(--fl-card-black-selected-bg);
+}
+
+/* Market */
+.market-global-section {
+  margin-bottom: 16px;
+}
+#marketSnapshotCards.market-global-grid {
+  padding-bottom: 4px;
+}
+.market-global-grid .snap-card.market-summary-item:nth-child(n) {
+  margin-right: 17px;
+  padding-right: 17px;
+}
+.market-v3-asset-row {
+  align-items: flex-start;
+  gap: 14px;
+}
+.market-v3-index-label {
+  min-height: 24px;
+  line-height: 1.2;
+}
+.market-v3-session-badge {
+  padding-top: 2px;
+  color: var(--fl-faint);
+  font-size: 0.72rem;
+}
+.market-v3-index-value {
+  margin-top: 7px;
+  font-size: 2.08rem;
+}
+.market-v3-change-line {
+  margin-top: 3px;
+}
+.market-v3-status {
+  margin-top: 5px;
+  font-size: 0.7rem;
+}
+.mkt-chart-canvas {
+  height: 132px;
+  margin-top: 10px;
+}
+.mkt-chart-legend {
+  top: 3px;
+  right: 2px;
+  font-size: 0.54rem;
+  opacity: 0.82;
+}
+.mkt-range-toggle {
+  margin-top: 7px;
+}
+.mkt-range-btn {
+  min-height: 23px;
+  font-size: 0.68rem;
+}
+.market-read-card {
+  margin-top: 15px;
+  padding: 14px;
+}
+.market-read-eyebrow {
+  display: none;
+}
+.market-read-head {
+  align-items: center;
+}
+.market-read-headline {
+  font-size: 1.08rem;
+}
+.market-read-score {
+  font-size: 0.96rem;
+}
+.market-read-card .market-sentiment-gauge {
+  height: 2px;
+  margin-top: 9px;
+}
+.market-read-card .market-sentiment-gauge-marker {
+  width: 6px;
+  height: 6px;
+}
+.market-read-card .market-insight-summary {
+  margin-top: 13px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.market-read-watch {
+  margin-top: 11px;
+  font-size: 0.86rem;
+  line-height: 1.48;
+}
+.market-read-watch-label {
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+}
+.market-learn-section {
+  margin-top: 17px;
+}
+.market-learn-eyebrow {
+  margin-bottom: 8px;
+}
+.market-learn-section .market-insight-learn {
+  min-height: 48px;
+  padding: 11px 2px;
+}
+.market-learn-section .market-insight-learn:hover {
+  background: var(--fl-card-black-quiet);
+}
+.market-v3-col-secondary {
+  margin-top: 17px;
+}
+.market-v3-topics {
+  margin-top: 0;
+}
+.market-v3-topics-disclosure {
+  border-top: 1px solid rgba(124, 139, 160, 0.14);
+}
+.market-v3-topics-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 2px;
+  color: var(--fl-muted);
+  font: 650 0.82rem/1.2 var(--font-b);
+  cursor: pointer;
+  list-style: none;
+}
+.market-v3-topics-summary::-webkit-details-marker {
+  display: none;
+}
+.market-v3-topics-summary .market-v3-topic-arrow {
+  transition: transform 140ms ease, color 140ms ease;
+}
+.market-v3-topics-disclosure[open] .market-v3-topics-summary .market-v3-topic-arrow {
+  transform: rotate(90deg);
+  color: var(--fl-title);
+}
+.market-v3-topics .market-v3-topic-grid {
+  border-top: 1px solid rgba(124, 139, 160, 0.14);
+}
+.market-v3-topics .market-v3-topic-card {
+  min-height: 44px;
+  padding: 10px 2px;
+  border-top-color: rgba(124, 139, 160, 0.14);
+}
+.market-v3-topics .market-v3-topic-card:first-child {
+  border-top: 0;
+}
+.market-v3-topics .market-v3-topic-card:hover {
+  background: var(--fl-card-black-quiet);
+}
+
+@media (max-width: 340px) {
+  .coach-page-shell.has-composer .coach-hero.coach-convo-intro,
+  .coach-brief-bubble,
+  .coach-followups,
+  .coach-brief-status {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+  .coach-brief-bubble {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .market-v3-index-value {
+    font-size: 1.9rem;
+  }
+  .mkt-chart-canvas {
+    height: 120px;
+  }
+}
+
+@media (min-width: 421px) {
+  .mkt-chart-canvas {
+    height: 132px;
+  }
+}

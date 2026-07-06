@@ -3425,9 +3425,13 @@ function renderV3LearnWorkspace(container) {
         <button type="button" class="v3-unit-create-btn" onclick="startAskForNewUnit()">Create unit${_chevron}</button>
       </div>
       <div class="v3-empty-prompts">
+        <div class="v3-empty-prompts-label">Try a topic</div>
         <div class="v3-empty-prompt-list">
           ${emptyPrompts.map(prompt => `
-            <button type="button" onclick="startAskForSuggestedUnit('${escapeAppHtml(prompt).replace(/'/g, "\\'")}')">${escapeAppHtml(prompt)}</button>
+            <button type="button" onclick="startAskForSuggestedUnit('${escapeAppHtml(prompt).replace(/'/g, "\\'")}')">
+              <span>${escapeAppHtml(prompt)}</span>
+              ${_chevron}
+            </button>
           `).join('')}
         </div>
       </div>
