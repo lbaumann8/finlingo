@@ -937,6 +937,7 @@ const _marketChart = {
 let _marketAskSheetOpen = false;
 let _marketAskExpanded = false;
 let _marketAssetMenuOpen = false;
+let _marketWatchlistExpanded = false;
 let _marketChartView = null;
 let _marketScrubPointerId = null;
 let _marketScrubRestoreTimer = null;
@@ -1725,6 +1726,11 @@ function selectMarketAsset(key) {
   _revealMarketSelectedAsset();
   const label = document.getElementById('marketAssetLabel');
   if (label) label.focus();
+}
+
+function toggleMarketWatchlist() {
+  _marketWatchlistExpanded = !_marketWatchlistExpanded;
+  _paintMarketWatchlist();
 }
 
 function _revealMarketSelectedAsset() {
@@ -3191,6 +3197,12 @@ function _paintMarketSnapshot() {
 function _watchlistTicker(symbol) {
   return String(symbol || '').replace('-USD', '').slice(0, 4).toUpperCase();
 }
+
+function _marketWatchlistIsCompact() {
+  if (typeof window === 'undefined' || !window.matchMedia) return true;
+  return window.matchMedia('(max-width: 600px)').matches;
+}
+
 function _renderMarketWatchlistInner() {
   const quotes = _marketSnapshot.quotes || {};
   const rows = MARKET_WATCHLIST.map(w => {
@@ -3202,7 +3214,9 @@ function _renderMarketWatchlistInner() {
     const pctText = `${pct >= 0 ? '+' : ''}${(Number.isFinite(pct) ? pct : 0).toFixed(2)}%`;
     const sel = w.assetKey === _marketChart.asset;
     const label = `${w.name}, ${_formatAssetValue(price)}, ${pctText}. View chart.`;
-    return `
+    return {
+      assetKey: w.assetKey,
+      html: `
       <button type="button" class="market-wl-row${sel ? ' is-selected' : ''}" aria-pressed="${sel ? 'true' : 'false'}"
               aria-label="${_escapeMarketHtml(label)}" onclick="selectMarketAsset('${w.assetKey}')">
         <span class="market-wl-badge" aria-hidden="true">${_escapeMarketHtml(_watchlistTicker(w.symbol))}</span>
@@ -3214,7 +3228,8 @@ function _renderMarketWatchlistInner() {
           <span class="market-wl-price">${_escapeMarketHtml(_formatAssetValue(price))}</span>
           <span class="market-wl-delta ${cls}">${_escapeMarketHtml(pctText)}</span>
         </span>
-      </button>`;
+      </button>`
+    };
   }).filter(Boolean);
   if (!rows.length) {
     const msg = _marketSnapshot.status === 'error'
@@ -3222,7 +3237,21 @@ function _renderMarketWatchlistInner() {
       : 'Loading live quotes…';
     return `<div class="market-wl-empty">${msg}</div>`;
   }
-  return rows.join('');
+  let visibleRows = rows;
+  const compact = _marketWatchlistIsCompact();
+  if (compact && !_marketWatchlistExpanded && rows.length > 3) {
+    visibleRows = rows.slice(0, 3);
+    const selected = rows.find(row => row.assetKey === _marketChart.asset);
+    if (selected && !visibleRows.some(row => row.assetKey === selected.assetKey)) {
+      visibleRows = visibleRows.concat(selected);
+    }
+  }
+  const disclosure = compact && rows.length > visibleRows.length
+    ? `<button type="button" class="market-wl-disclosure" aria-expanded="false" onclick="toggleMarketWatchlist()">View all ${rows.length} assets</button>`
+    : compact && _marketWatchlistExpanded && rows.length > 3
+      ? `<button type="button" class="market-wl-disclosure" aria-expanded="true" onclick="toggleMarketWatchlist()">Show fewer assets</button>`
+      : '';
+  return visibleRows.map(row => row.html).join('') + disclosure;
 }
 function _paintMarketWatchlist() {
   const el = document.getElementById('marketWatchlist');
@@ -3367,42 +3396,30 @@ function _buildSnapshotSparkline(points, positive) {
 
 function _renderSnapshotSkeleton(meta) {
   return `
-    <div class="snap-card snap-card-skeleton">
+    <div class="snap-card market-summary-item snap-card-skeleton">
       <div class="snap-card-head">
         <div class="snap-id">
-          <div class="snap-sym">${_escapeMarketHtml(meta.symbol)}</div>
-          <div class="snap-name">${_escapeMarketHtml(meta.name)}</div>
+          <div class="snap-sym">${_escapeMarketHtml(meta.symbol === '^TNX' ? '10Y' : meta.symbol)}</div>
         </div>
-        <span class="snap-skeleton-pill"></span>
-      </div>
-      <div class="snap-card-body">
-        <div class="snap-price-col">
-          <div class="snap-skeleton-line snap-skeleton-line-lg"></div>
-          <div class="snap-skeleton-line"></div>
-        </div>
-        <div class="snap-spark-wrap"><div class="snap-spark-loading"></div></div>
+        <div class="snap-skeleton-line snap-skeleton-line-lg"></div>
+        <div class="snap-skeleton-line"></div>
       </div>
     </div>`;
 }
 
 function _renderSnapshotCard(meta) {
-  const { symbol, name } = meta;
+  const { symbol } = meta;
   const quote = _marketSnapshot.quotes[symbol];
-  const asset = _findPracticeAsset(symbol) || { symbol };
-  const status = _getAssetMarketStatus(asset);
-  const statusBadge = `<span class="market-status-badge market-status-badge-${status.tone} compact">${_escapeMarketHtml(_snapshotStatusLabel(status.session))}</span>`;
 
   if (!quote) {
     return `
-      <div class="snap-card">
+      <div class="snap-card market-summary-item">
         <div class="snap-card-head">
           <div class="snap-id">
-            <div class="snap-sym">${_escapeMarketHtml(symbol)}</div>
-            <div class="snap-name">${_escapeMarketHtml(name)}</div>
+            <div class="snap-sym">${_escapeMarketHtml(symbol === '^TNX' ? '10Y' : symbol)}</div>
           </div>
-          ${statusBadge}
+          <div class="snap-unavailable">Unavailable</div>
         </div>
-        <div class="snap-unavailable">Price unavailable right now</div>
       </div>`;
   }
 
@@ -3419,29 +3436,14 @@ function _renderSnapshotCard(meta) {
     : `${quote.change >= 0 ? '+' : '-'}${_formatUsd(Math.abs(quote.change), decimals)}`;
   const pctText = `${quote.changePct >= 0 ? '+' : '-'}${Math.abs(quote.changePct).toFixed(2)}%`;
 
-  const chart = _marketSnapshot.charts[symbol];
-  let sparkHtml;
-  if (!chart || chart.status === 'loading') {
-    sparkHtml = `<div class="snap-spark-loading"></div>`;
-  } else if (chart.status === 'ready') {
-    sparkHtml = _buildSnapshotSparkline(chart.points, positive) || `<div class="snap-spark-empty"></div>`;
-  } else {
-    sparkHtml = `<div class="snap-spark-empty"></div>`;
-  }
-
   return `
-    <div class="snap-card market-mini-card">
+    <div class="snap-card market-summary-item">
       <div class="snap-card-head">
         <div class="snap-id">
           <div class="snap-sym">${_escapeMarketHtml(symbol === '^TNX' ? '10Y' : symbol)}</div>
-          <div class="snap-name">${_escapeMarketHtml(name)}</div>
         </div>
-      </div>
-      <div class="snap-card-body">
-        <div class="snap-price-col">
-          <div class="snap-price">${_escapeMarketHtml(priceText)}</div>
-          <div class="snap-change ${tone}">${_escapeMarketHtml(changeText)} (${_escapeMarketHtml(pctText)})</div>
-        </div>
+        <div class="snap-price">${_escapeMarketHtml(priceText)}</div>
+        <div class="snap-change ${tone}" title="${_escapeMarketHtml(changeText)}">${_escapeMarketHtml(pctText)}</div>
       </div>
     </div>`;
 }

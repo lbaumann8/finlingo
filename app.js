@@ -3375,26 +3375,35 @@ function renderV3LearnWorkspace(container) {
   // .v3-unit-card.v3-unit-card-ai shell + .v3-unit-main layout as a generated
   // unit). The whole card is clickable and opens a brand-new Ask Finlingo chat.
   const emptyPrompts = [
-    'Teach me how interest rates affect stocks',
-    'Build a unit on reading financial statements',
+    'How do interest rates affect stocks?',
+    'Teach me how to read financial statements',
     'Explain options for a beginner'
   ];
   const _emptyAiCard = `
     <div class="v3-empty-unit-state">
       <div class="v3-unit-list">
-        <div class="v3-unit-card v3-unit-card-ai v3-unit-card-empty">
-          <button type="button" class="v3-unit-main" aria-label="Create your first AI-generated unit. Ask Finlingo about any finance topic." onclick="startAskForNewUnit()">
-            <span class="v3-unit-icon">${_learnUnitIcon('ai')}</span>
-            <span class="v3-unit-copy">
-              <strong>Create your first AI-generated unit</strong>
-              <small>Ask Finlingo about any finance topic</small>
+        <div class="v3-unit-card v3-unit-card-ai v3-track-card v3-unit-card-empty">
+          <button type="button" class="v3-unit-main" aria-label="Create your first unit. Ask Finlingo about any finance topic." onclick="startAskForNewUnit()">
+            <span class="v3-track-head">
+              <span class="v3-track-eyebrow">Unit 01</span>
+              <span class="v3-track-count">No lessons yet</span>
+            </span>
+            <span class="v3-track-title">Create your first unit</span>
+            <span class="v3-track-desc">Build a short learning track from any finance question.</span>
+            <span class="fl-track v3-track-progress" role="progressbar" aria-label="0% complete" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span style="width:0%"></span></span>
+            <span class="v3-track-next">
+              <span class="v3-track-next-mark" aria-hidden="true">${_MODULE_ICON.active}</span>
+              <span class="v3-track-next-label">Starts with</span>
+              <span class="v3-track-next-title">Ask Finlingo about a topic</span>
+            </span>
+            <span class="v3-track-foot">
+              <span class="v3-track-state">Not started</span>
+              <span class="v3-track-cta v3-track-cta-start">Create unit${_chevron}</span>
             </span>
           </button>
         </div>
       </div>
       <div class="v3-empty-prompts">
-        <p>Turn a question into a short lesson path you can save and review.</p>
-        <span class="v3-empty-prompts-label">Try asking</span>
         <div class="v3-empty-prompt-list">
           ${emptyPrompts.map(prompt => `
             <button type="button" onclick="startAskForSuggestedUnit('${escapeAppHtml(prompt).replace(/'/g, "\\'")}')">${escapeAppHtml(prompt)}</button>
@@ -3437,8 +3446,8 @@ function renderV3LearnWorkspace(container) {
       <section class="v3-units-panel ${active === 'my' ? 'show-my' : 'show-preset'}">
         <div class="v3-units-head">
           <div>
-            <span>${active === 'my' ? 'AI-created units' : 'FinLingo curriculum'}</span>
-            <h2>${active === 'my' ? 'Built from your questions' : 'Preset units'}</h2>
+            <span>${active === 'my' ? 'My curriculum' : 'FinLingo curriculum'}</span>
+            <h2>${active === 'my' ? 'Your units' : 'Preset units'}</h2>
           </div>
           <div class="v3-units-head-actions">
             <small>${active === 'my' ? (customCount > 0 ? `${customCount} unit${customCount === 1 ? '' : 's'}` : '') : `${presetDefs.length} units`}</small>

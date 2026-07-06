@@ -8333,8 +8333,8 @@ body.auth-modal-visible .ask-tutor-backdrop {
    its progress track reads full mint (goal reached). */
 .v3-track-card.is-complete .v3-track-title { color: var(--fl-eyebrow); }
 
-/* Keep the "create your first unit" empty card as a horizontal row */
-.v3-unit-card-empty .v3-unit-main { flex-direction: row; align-items: center; gap: 14px; }
+/* Empty My Units uses the same vertical track-card grammar as built units. */
+.v3-unit-card-empty .v3-unit-main { flex-direction: column; align-items: stretch; gap: 11px; }
 
 
 /* ============================================================
@@ -8784,45 +8784,33 @@ body.auth-modal-visible .ask-tutor-backdrop {
 /* Learn: empty My Units state has value without becoming another card stack. */
 .v3-empty-unit-state {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 .v3-empty-prompts {
   display: grid;
-  gap: 9px;
-  padding: 2px 2px 0;
-}
-.v3-empty-prompts p {
-  margin: 0;
-  color: var(--fl-sub);
-  font: 400 0.88rem/1.5 var(--font-b);
-}
-.v3-empty-prompts-label {
-  color: var(--fl-muted);
-  font-family: var(--fl-font-label);
-  font-size: 0.58rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: 0;
+  padding: 0 2px;
 }
 .v3-empty-prompt-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  gap: 0;
 }
 .v3-empty-prompt-list button {
-  min-height: 34px;
-  padding: 7px 11px;
-  border: 1px solid rgba(124, 139, 160, 0.18);
-  border-radius: var(--fl-radius-pill);
+  min-height: 36px;
+  padding: 7px 2px;
+  border: 0;
+  border-top: 1px solid rgba(124, 139, 160, 0.12);
+  border-radius: 0;
   background: transparent;
-  color: var(--fl-body);
+  color: var(--fl-sub);
   font: 500 0.8rem/1.2 var(--font-b);
+  text-align: left;
   cursor: pointer;
 }
+.v3-empty-prompt-list button:first-child { border-top: 0; }
 .v3-empty-prompt-list button:hover {
   color: var(--fl-title);
-  border-color: rgba(105, 221, 165, 0.24);
-  background: rgba(105, 221, 165, 0.06);
+  background: transparent;
 }
 .v3-module-duration {
   flex: none;
@@ -8843,26 +8831,58 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 
 /* Market: lighter overview rows and compact integrated chart. */
-#marketSnapshotCards.market-global-grid {
+.market-global-section,
+.market-watchlist-section {
   gap: 8px;
+  margin-bottom: 18px;
 }
-.market-global-grid .snap-card {
+#marketSnapshotCards.market-global-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid rgba(124, 139, 160, 0.12);
+  border-bottom: 1px solid rgba(124, 139, 160, 0.12);
+}
+.market-global-grid .snap-card.market-summary-item {
   min-height: 0;
-  padding: 10px 11px;
-  border-color: rgba(124, 139, 160, 0.14);
-  background: rgba(11, 13, 16, 0.72);
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.market-global-grid .snap-card.market-summary-item:nth-child(odd) {
+  border-right: 1px solid rgba(124, 139, 160, 0.12);
+}
+.market-global-grid .snap-card.market-summary-item:nth-child(n+3) {
+  border-top: 1px solid rgba(124, 139, 160, 0.12);
 }
 .market-global-grid .snap-card-head {
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 8px;
 }
+.market-summary-item .snap-id { flex: none; }
+.market-summary-item .snap-sym { font-size: 0.82rem; letter-spacing: 0; }
+.market-summary-item .snap-price {
+  margin-left: auto;
+  font-size: 0.88rem;
+  line-height: 1;
+}
+.market-summary-item .snap-change {
+  flex: none;
+  margin-top: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+.market-summary-item .snap-unavailable { margin-left: auto; font-size: 0.68rem; }
 .market-watchlist {
   background: transparent;
   border-color: transparent;
   border-radius: 0;
 }
 .market-wl-row {
-  min-height: 54px;
-  padding: 9px 2px 9px 10px;
+  min-height: 44px;
+  padding: 6px 2px 6px 10px;
   border-top-color: rgba(124, 139, 160, 0.12);
 }
 .market-wl-row:hover {
@@ -8878,12 +8898,28 @@ body.auth-modal-visible .ask-tutor-backdrop {
   height: 30px;
 }
 .market-wl-badge {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   background: rgba(11, 13, 16, 0.78);
   border-color: rgba(124, 139, 160, 0.14);
 }
+.market-wl-sector {
+  display: none;
+}
+.market-wl-disclosure {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 2px 0 10px;
+  border: 0;
+  border-top: 1px solid rgba(124, 139, 160, 0.12);
+  background: transparent;
+  color: var(--fl-accent);
+  font: 600 0.78rem/1.2 var(--font-b);
+  text-align: left;
+  cursor: pointer;
+}
+.market-wl-disclosure:hover { color: var(--fl-title); }
 .market-v3-hero {
   scroll-margin-top: 18px;
   padding-bottom: 0;
@@ -8921,4 +8957,19 @@ body.auth-modal-visible .ask-tutor-backdrop {
 @media (max-width: 420px) {
   .mkt-chart-canvas { height: 138px; }
   .market-v3-index-value { font-size: 2rem; }
+}
+@media (min-width: 601px) {
+  #marketSnapshotCards.market-global-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .market-global-grid .snap-card.market-summary-item:nth-child(n) {
+    border-top: 0;
+    border-right: 1px solid rgba(124, 139, 160, 0.12);
+  }
+  .market-global-grid .snap-card.market-summary-item:last-child {
+    border-right: 0;
+  }
+  .market-wl-sector {
+    display: block;
+  }
 }
