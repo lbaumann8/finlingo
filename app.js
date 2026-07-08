@@ -830,11 +830,7 @@ function renderHomeRankProgressCard(summary = null) {
     : 'Top rank achieved';
 
   el.innerHTML = `
-    <div class="home-progress-snapshot"
-         onclick="showProgress()"
-         role="button"
-         tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' ')showProgress()">
+    <div class="home-progress-snapshot">
       <div class="home-progress-snapshot-top">
         <div>
           <div class="home-progress-kicker">Progress</div>
@@ -1084,7 +1080,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 /** Deactivate all nav buttons, then activate the one with the given id. */
 function setNav(id) {
-  const section = id === 'navCoach' ? 'ask' : id === 'navPath' ? 'learn' : id === 'navMarket' ? 'market' : '';
+  const section = id === 'navHome' ? 'home' : id === 'navCoach' ? 'ask' : id === 'navPath' ? 'learn' : id === 'navMarket' ? 'market' : '';
   if (section) document.body.dataset.primarySection = section;
   if (window.NavDrawer && typeof window.NavDrawer.refresh === 'function') window.NavDrawer.refresh();
 }
@@ -1242,13 +1238,14 @@ function _activateScreen(screenId, navId, onEnter, screenLabel, options = {}) {
   _runScreenEntry(onEnter, screenLabel || screenId);
 }
 
-// The Ask (Coach) page is the permanent AI-first front door. There is no
-// separate Home dashboard — showHome() delegates to showCoach() so that any
-// "back to home" action lands on the front door. (The former #homeScreen and
-// its updateHome() renderer chain were removed; guarded updateHome() calls that
-// remain in other flows safely no-op.)
+// Home is the default post-login screen: its own dashboard (new-user and
+// returning-user states), rendered by renderHome() in home.js. It is NOT an
+// alias of Coach. Legacy guarded updateHome() calls elsewhere still safely
+// no-op (updateHome was removed).
 function showHome(options = {}) {
-  return showCoach(options);
+  _activateScreen('homeScreen', 'navHome', () => {
+    if (typeof renderHome === 'function') renderHome();
+  }, 'Home', options);
 }
 function showCoach(options = {}) {
   _activateScreen('coachScreen', 'navCoach', () => {
@@ -1274,7 +1271,7 @@ function showPractice(options = {}) {
   // highlights no nav item.
   _activateScreen('ranksScreen', null, () => {
     renderPracticePage();
-  }, 'Mastery', options);
+  }, 'Progress', options);
 }
 function showClassroom(options = {}) {
   if (options && typeof options !== 'object') options = {};
@@ -3748,7 +3745,6 @@ function renderFocusedLearnWorkspace(container) {
           <p><strong>Unit ${fluency.unit}</strong> · ${escapeAppHtml(fluency.unitName)}</p>
           <div class="target-progress"><span style="width:${circlePct}%"></span></div>
           <small>${currentUnitProgress?.completedCount || 0} of ${currentUnitProgress?.total || 0} lessons complete</small>
-          <button type="button" class="target-text-link" onclick="showPractice({resetScroll:true})">View Journey <span>${FinLingoIcons.right()}</span></button>
         </section>
 
         <section class="target-rail-card">

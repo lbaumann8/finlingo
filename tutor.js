@@ -717,6 +717,18 @@ document.addEventListener('keydown', event => {
   }
 });
 
+// Close (hide) the Ask overlay whenever the user navigates to another primary
+// screen, so it can't linger on top of Learn/Market/Mastery/Classroom/Coach.
+// closeAskFinLingo() only removes the panel's `open` state — it does NOT clear
+// askFinLingoHistory/context, so the saved conversation is preserved and
+// re-opening restores it. Submission, Claude calls, and response parsing are
+// untouched.
+window.addEventListener('finlingo:screen-changed', () => {
+  if (document.getElementById('askTutorPanel')?.classList.contains('open')) {
+    closeAskFinLingo();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   refreshAskFinLingoContext(_currentAskFinLingoKind());
 });

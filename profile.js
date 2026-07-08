@@ -500,7 +500,7 @@ function renderProfileScreen() {
         padding:14px 16px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
           <div>
-            <div style="font-family:var(--font-m);font-size:0.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;">Mastery</div>
+            <div style="font-family:var(--font-m);font-size:0.58rem;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;">Topic Progress</div>
             <div style="font-family:var(--font-d);font-size:1.05rem;font-weight:800;color:var(--text);margin-top:3px;">
               ${masterySummary?.averageMastery || 0}% average
             </div>
@@ -515,7 +515,7 @@ function renderProfileScreen() {
         <div style="margin-top:10px;font-family:var(--font-m);font-size:0.64rem;color:var(--muted2);line-height:1.5;">
           ${weakest.length
             ? `Weakest topics: ${weakest.map(topic => topic.label || topic.topicId).join(' · ')}`
-            : 'Keep answering questions to build topic mastery.'}
+            : 'Keep answering questions to strengthen your weak topics.'}
         </div>
       </div>`;
   }
@@ -569,7 +569,7 @@ function renderProfileScreen() {
 
     _rpEl.innerHTML = `
       <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;
-        padding:14px 16px;margin-bottom:4px;cursor:pointer;" onclick="showProgress ? showProgress() : (showRanks ? showRanks() : openRankRoadmap())">
+        padding:14px 16px;margin-bottom:4px;">
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div>

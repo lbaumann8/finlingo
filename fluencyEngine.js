@@ -1140,7 +1140,7 @@
           </div>
           <div class="fluency-profile-stat">
             <span class="fluency-profile-value">${summary.averageScore}%</span>
-            <span class="fluency-profile-label">Average mastery</span>
+            <span class="fluency-profile-label">Average score</span>
           </div>
         </div>
       </div>`;
