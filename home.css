@@ -1,0 +1,680 @@
+/* ============================================================
+   home.css
+   Stitch "Obsidian Reserve" Home screen + the four-item bottom
+   nav (Home · Learn · Market · Coach).
+
+   Presentation only. Reuses the canonical --fl-* token layer from
+   theme.css (surfaces, mint accent, display/label faces, radii).
+   Loaded LAST so it wins the cascade for its own elements.
+
+   Surface language (matches the approved Stitch reference):
+     - Cards are DARK RAISED NAVY surfaces (surface-container family),
+       NOT the older near-black #0f1010 panels.
+     - Market card sits one step lighter for hierarchy.
+     - Borders are subtle low-contrast white-alpha hairlines.
+     - Card radius is the Stitch 12px, not the 16px app card radius.
+
+   Rules:
+     - Negative market values = red (--red-text)
+     - Positive market values = mint (--fl-accent)
+     - No fake data, no image cards, no marketing heroes.
+   ============================================================ */
+
+/* ── App-canvas metrics ─────────────────────────────────────── */
+:root {
+  --app-nav-h: 64px;
+}
+
+/* ── Home-scoped surface + geometry tokens (Stitch match) ───────
+   Kept local to #homeScreen so nothing else re-skins. Values map
+   onto the shared --fl-* navy ramp so the Home surfaces read as
+   part of the same system. ── */
+#homeScreen {
+  --home-card:        var(--fl-surface-raised);   /* #151C27 — dark raised navy card   */
+  --home-card-hi:     #1B2431;                     /* market card — one step lighter    */
+  --home-nested:      var(--fl-surface);           /* #10151D — recessed inner surface  */
+  --home-border:      rgba(255, 255, 255, 0.06);   /* subtle low-contrast hairline      */
+  --home-border-hover:rgba(255, 255, 255, 0.12);
+  --home-radius:      12px;                         /* Stitch card radius (rounded-xl)   */
+  --home-radius-sm:   10px;                         /* row / chip radius                 */
+}
+
+/* ── HOME SCREEN SHELL ──────────────────────────────────────── */
+#homeScreen.active {
+  padding: 0 !important;
+  overflow-y: auto;
+  background: var(--fl-bg);
+}
+
+.home-shell {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 20px calc(var(--app-nav-h) + 28px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ── Mono eyebrow (section-label language) ──────────────────── */
+.home-eyebrow {
+  font-family: var(--fl-font-label);
+  font-size: 0.66rem;
+  font-weight: var(--fl-label-weight);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+  margin: 0 0 10px;
+}
+.home-eyebrow.is-accent { color: var(--fl-accent); }
+
+/* ── GREETING ───────────────────────────────────────────────── */
+.home-greeting { display: flex; flex-direction: column; gap: 8px; }
+.home-greeting .home-eyebrow { margin: 0; }
+.home-greet-title {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 7.4vw, 2.2rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--fl-heading);
+  margin: 0;
+}
+.home-greet-sub {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--fl-sub);
+  margin: 2px 0 0;
+  max-width: 40ch;
+}
+.home-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fl-accent);
+  font-family: var(--fl-font-label);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.home-streak svg { width: 14px; height: 14px; fill: var(--fl-accent); stroke: none; }
+
+/* ── SECTION (eyebrow + body) ───────────────────────────────── */
+.home-section { display: block; }
+.home-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.home-section-head .home-eyebrow { margin: 0; }
+.home-section-head h3 {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  color: var(--fl-heading);
+  margin: 0;
+}
+.home-section-live {
+  font-family: var(--fl-font-label);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--fl-accent);
+}
+.home-section-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+  transition: color var(--fl-dur) var(--fl-ease);
+}
+.home-section-link:hover { color: var(--fl-title); }
+
+/* ── HOME BUTTON NORMALIZE (root fix for the white-rectangle bug) ─
+   base.css only resets box-sizing/margin/padding — it never
+   neutralizes the native <button> chrome. Container buttons that
+   don't declare their own surface (Ask-Finlingo row, Learn-Next
+   card) therefore inherited the user-agent ButtonFace fill
+   (rgb(239,239,239)) + a 2px border, painting a WHITE rectangle
+   inside the dark card. Strip the native appearance for every Home
+   button here; colored buttons re-assert their own background via
+   their own (equal-or-higher-specificity) rules below. ── */
+#homeScreen button {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+}
+
+/* ── CARD PRIMITIVES ────────────────────────────────────────── */
+.home-card {
+  background: var(--home-card);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Featured / primary action card (new-user "Build your first unit",
+   returning-user "Continue learning"). Same raised navy surface —
+   no heavy glow, no strong green tint: it reads as integrated. */
+.home-card-feature {
+  background: var(--home-card);
+  border-color: var(--home-border);
+  padding: 22px 20px;
+}
+.home-card-title {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--fl-heading);
+  margin: 0 0 8px;
+}
+.home-card-desc {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--fl-sub);
+  margin: 0 0 18px;
+  max-width: 34ch;
+  position: relative;
+}
+
+/* ── BUTTONS ────────────────────────────────────────────────── */
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--home-radius-sm);
+  font-family: var(--font-b);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background var(--fl-dur) var(--fl-ease), transform var(--fl-dur-fast) var(--fl-ease);
+  position: relative;
+}
+.home-btn:active { transform: scale(0.97); }
+.home-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
+.home-btn-primary {
+  background: var(--fl-accent);
+  color: #06231A;
+}
+.home-btn-primary:hover { background: var(--fl-accent-hover); }
+.home-btn-block { width: 100%; justify-content: center; }
+.home-btn-ghost {
+  background: none;
+  color: var(--fl-muted);
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px;
+}
+.home-btn-ghost:hover { color: var(--fl-title); }
+
+/* ── CONTINUE-LEARNING (returning) ──────────────────────────── */
+.home-continue-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.home-continue-unit {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: var(--fl-radius-pill);
+  border: 1px solid var(--home-border);
+  background: var(--home-nested);
+  color: var(--fl-accent);
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.home-continue-meta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.home-continue-lesson { font-size: 0.92rem; color: var(--fl-body); }
+.home-continue-pct {
+  font-family: var(--font-num);
+  font-size: 0.8rem;
+  color: var(--fl-muted);
+}
+.home-progress {
+  height: var(--fl-track-h);
+  width: 100%;
+  background: var(--fl-track-bg);
+  border-radius: var(--fl-track-radius);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.home-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--fl-track-fill);
+  border-radius: inherit;
+}
+.home-continue-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── TOPIC / EXPLORE ROW LISTS ──────────────────────────────── */
+.home-rows {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius);
+  overflow: hidden;
+  background: var(--home-card);
+}
+.home-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--home-border);
+  color: var(--fl-title);
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--fl-dur) var(--fl-ease);
+}
+.home-row:last-child { border-bottom: 0; }
+.home-row:hover { background: var(--fl-surface-hover); }
+.home-row svg {
+  width: 18px; height: 18px; flex-shrink: 0;
+  stroke: var(--fl-muted); fill: none; stroke-width: 2;
+  transition: transform var(--fl-dur) var(--fl-ease);
+}
+.home-row:hover svg { transform: translateX(2px); }
+
+/* Explore-topics variant: separated cards (returning user) */
+.home-rows-loose { border: 0; background: none; gap: 8px; }
+.home-rows-loose .home-row {
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius-sm);
+  background: var(--home-card);
+  padding: 14px 16px;
+}
+.home-rows-loose .home-row:hover {
+  background: var(--fl-surface-hover);
+  border-color: var(--home-border-hover);
+}
+
+/* ── ASK FINLINGO (new user) ────────────────────────────────── */
+.home-ask-title {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--fl-heading);
+  margin: 0 0 6px;
+}
+.home-ask-desc {
+  font-size: 0.9rem;
+  color: var(--fl-sub);
+  margin: 0 0 14px;
+}
+.home-ask-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.home-ask-field input {
+  width: 100%;
+  background: var(--home-nested);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius-sm);
+  color: var(--fl-title);
+  font-size: 0.92rem;
+  padding: 13px 56px 13px 16px;
+  outline: none;
+  transition: border-color var(--fl-dur) var(--fl-ease);
+}
+.home-ask-field input::placeholder { color: var(--fl-muted); }
+.home-ask-field input:focus { border-color: var(--fl-accent-border); }
+.home-ask-send {
+  position: absolute;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--fl-accent);
+  color: #06231A;
+  cursor: pointer;
+  transition: background var(--fl-dur) var(--fl-ease), transform var(--fl-dur-fast) var(--fl-ease);
+}
+.home-ask-send:hover { background: var(--fl-accent-hover); }
+.home-ask-send:active { transform: scale(0.93); }
+.home-ask-send svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+.home-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.home-chip {
+  border: 1px solid var(--home-border);
+  background: var(--home-nested);
+  border-radius: var(--fl-radius-pill);
+  color: var(--fl-sub);
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  padding: 8px 13px;
+  cursor: pointer;
+  transition: color var(--fl-dur) var(--fl-ease), border-color var(--fl-dur) var(--fl-ease);
+}
+.home-chip:hover { color: var(--fl-title); border-color: var(--home-border-hover); }
+
+/* Compact Ask row (returning user) — a dark horizontal row.
+   The button itself is transparent; the .home-card is its surface. */
+.home-ask-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+}
+.home-ask-icon {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: var(--fl-radius-pill);
+  background: var(--fl-accent-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-ask-icon svg { width: 20px; height: 20px; fill: var(--fl-accent); stroke: none; }
+.home-ask-row-body { flex: 1; min-width: 0; }
+.home-ask-row-body strong {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--fl-heading);
+  margin-bottom: 1px;
+}
+.home-ask-row-body span { font-size: 0.84rem; color: var(--fl-sub); line-height: 1.35; }
+.home-ask-row > svg.home-chevron { width: 18px; height: 18px; flex-shrink: 0; stroke: var(--fl-muted); fill: none; stroke-width: 2; }
+
+/* ── MARKET READ ────────────────────────────────────────────── */
+/* Market card sits one tonal step lighter than the other cards
+   (Stitch surface-container-high), giving the read-of-the-day its
+   own quiet emphasis without a heavy border or glow. */
+.home-card:has(> #homeMarketRead) {
+  background: var(--home-card-hi);
+}
+.home-market-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.home-market-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gold-text);
+  box-shadow: 0 0 0 0 rgba(212,168,67,0.5);
+  animation: home-pulse 2.4s ease-out infinite;
+}
+/* Returning (compact) Market Read has no status dot in Stitch — the
+   headline carries it, and a "Live" label sits on the section head. */
+#homeMarketRead[data-variant="compact"] .home-market-dot { display: none; }
+@keyframes home-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(212,168,67,0.45); }
+  70% { box-shadow: 0 0 0 7px rgba(212,168,67,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,168,67,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-market-dot { animation: none; }
+}
+.home-market-status strong {
+  font-weight: 600;
+  color: var(--fl-title);
+  font-size: 0.98rem;
+}
+.home-market-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.home-market-score b {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1.85rem;
+  letter-spacing: -0.02em;
+  color: var(--fl-heading);
+}
+.home-market-score span {
+  font-family: var(--fl-font-label);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fl-muted);
+}
+.home-market-copy {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--fl-sub);
+  margin: 0 0 16px;
+}
+.home-tickers {
+  display: flex;
+  gap: 0;
+  padding: 12px 4px;
+  background: var(--home-nested);
+  border: 1px solid var(--home-border);
+  border-radius: var(--home-radius-sm);
+  margin-bottom: 16px;
+}
+.home-ticker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.home-ticker + .home-ticker::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 1px; height: 22px;
+  background: var(--home-border);
+}
+.home-ticker-sym {
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  color: var(--fl-muted);
+}
+.home-ticker-pct {
+  font-family: var(--font-num);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.home-ticker-pct.up   { color: var(--fl-accent); }
+.home-ticker-pct.down { color: var(--red-text); }
+.home-ticker-pct.flat { color: var(--fl-muted); }
+
+/* Compact single-line movers (returning user) */
+.home-market-movers {
+  font-family: var(--fl-font-label);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--fl-muted);
+  margin: 0 0 10px;
+}
+.home-market-movers .up   { color: var(--fl-accent); }
+.home-market-movers .down { color: var(--red-text); }
+.home-market-movers .flat { color: var(--fl-muted); }
+
+.home-market-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--fl-accent);
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transition: opacity var(--fl-dur) var(--fl-ease);
+}
+.home-market-action:hover { opacity: 0.8; }
+.home-market-action svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── LEARN NEXT CARD ────────────────────────────────────────── */
+/* Transparent container button on the dark card surface. */
+.home-learnnext {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+}
+.home-learnnext-icon {
+  width: 48px; height: 48px; flex-shrink: 0;
+  border-radius: var(--fl-radius-icon);
+  background: var(--home-nested);
+  border: 1px solid var(--home-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-learnnext-icon svg { width: 21px; height: 21px; stroke: var(--fl-accent); fill: none; stroke-width: 2; }
+.home-learnnext-body { flex: 1; min-width: 0; }
+.home-learnnext-body h4 {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--fl-heading);
+  margin: 0 0 4px;
+}
+.home-learnnext-meta {
+  font-family: var(--fl-font-label);
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  color: var(--fl-muted);
+}
+.home-learnnext > svg.home-chevron { width: 18px; height: 18px; flex-shrink: 0; stroke: var(--fl-muted); fill: none; stroke-width: 2; }
+
+/* ============================================================
+   BOTTOM NAV — Home · Learn · Market · Coach
+   Fixed within the app canvas. Hidden by default; shown only when
+   body.has-app-nav (set by home.js on the four primary screens).
+   ============================================================ */
+.app-bottom-nav {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: calc(var(--app-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
+  background: rgba(21, 28, 39, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--home-border, rgba(255,255,255,0.06));
+  border-radius: 14px 14px 0 0;
+}
+body.has-app-nav .app-bottom-nav { display: grid; }
+
+.abn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--fl-muted);
+  transition: color var(--fl-dur) var(--fl-ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.abn-item svg {
+  width: 23px; height: 23px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+}
+.abn-item span {
+  font-family: var(--fl-font-label);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+.abn-item:hover { color: var(--fl-sub); }
+.abn-item.is-active { color: var(--fl-accent); }
+
+/* ── When the nav is visible, keep every screen's content clear of it ── */
+body.has-app-nav .v3-learn-shell,
+body.has-app-nav .market-v3-shell {
+  padding-bottom: calc(var(--app-nav-h) + 28px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Coach: lift its absolutely-positioned composer above the nav and
+   grow the shell's reserved bottom zone so the thread still clears it. */
+body.has-app-nav .coach-bottom-composer,
+body.has-app-nav .coach-compact-composer {
+  bottom: calc(var(--app-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
+}
+body.has-app-nav .coach-page-shell,
+body.has-app-nav .coach-page-shell.has-composer,
+body.has-app-nav .coach-page-shell.is-conversation {
+  padding-bottom: calc(126px + var(--app-nav-h) + env(safe-area-inset-bottom, 0px));
+}
+
+/* The legacy floating "Ask" button (viewport-fixed) would collide with the
+   nav, and Coach is now a nav item — so hide it wherever the nav shows. It
+   still appears on lesson/course screens where it asks about the lesson. */
+body.has-app-nav .ask-floating-button { display: none !important; }
+
+/* Desktop: the app is a centred ~440px canvas, so the absolute nav already
+   tracks the canvas width. Nothing else needed. */

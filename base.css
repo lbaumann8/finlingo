@@ -36,10 +36,13 @@ body {
 }
 
 /* ── TOPBAR ──────────────────────────────────────────────────── */
+/* Shared top app bar (Home · Learn · Market · Coach): compact height,
+   hamburger + Finlingo wordmark on the left, account button on the right,
+   same dark navy surface as the app shell + a subtle bottom divider. */
 .topbar {
-  padding: 12px 14px 10px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
-  background: var(--topbar-bg);
+  background: var(--bg);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -48,12 +51,55 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 9px;
-  gap: 8px;
+  gap: 10px;
 }
 .brand { font-family: var(--font-d); font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -0.018em; }
 .brand-fin { color: var(--text); }
 .brand-lingo { color: var(--text); }
+
+/* Wordmark next to the hamburger — Stitch display face, warm white. */
+.topbar-brand {
+  font-family: var(--fl-font-display);
+  font-size: 1.14rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--fl-heading);
+  white-space: nowrap;
+}
+
+/* Right-side action cluster (Ask-only New Chat + Account). */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* Account button — circular, neutral account icon (no fake avatar).
+   Opens the existing account overlay via openFinlingoAccount(). */
+.topbar-account {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.topbar-account svg { width: 19px; height: 19px; fill: none; stroke: currentColor; }
+.topbar-account:hover { color: var(--text); background: var(--bg3); border-color: var(--border2); }
+.topbar-account:active { background: var(--bg3); }
+.topbar-account:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 
 /* Pills */
 .pills { display: flex; gap: 5px; align-items: center; }

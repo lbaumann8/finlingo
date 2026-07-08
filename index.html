@@ -30,7 +30,7 @@
       ui.css      → floating/overlay components (toast, modal, edit sheet, share card, banners)
   -->
   <link rel="stylesheet" href="theme.css?v=navy-1"/>
-  <link rel="stylesheet" href="base.css?v=navy-1"/>
+  <link rel="stylesheet" href="base.css?v=navy-2"/>
   <link rel="stylesheet" href="screens.css?v=navy-1"/>
   <link rel="stylesheet" href="ui.css?v=navy-1"/>
   <link rel="stylesheet" href="practice.css?v=navy-1"/>
@@ -39,6 +39,8 @@
   <!-- Ask-first components — loaded after refine so they win. -->
   <link rel="stylesheet" href="coach.css?v=final-polish-1"/>
   <link rel="stylesheet" href="classroom.css?v=navy-1"/>
+  <!-- Home screen + bottom nav — loaded last so it wins the cascade. -->
+  <link rel="stylesheet" href="home.css?v=stitch-home-3"/>
 </head>
 <body class="entry-gate-visible">
 
@@ -59,15 +61,26 @@
         <button class="nav-hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawerRoot" onclick="NavDrawer && NavDrawer.open()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
         </button>
+        <span class="topbar-brand" aria-label="Finlingo"><span class="brand-fin">Fin</span><span class="brand-lingo">lingo</span></span>
       </div>
-      <!-- New Chat — shown only on the Ask page (toggled by syncTopbarNewChat()). -->
-      <button class="topbar-newchat" id="topbarNewChat" type="button" aria-label="Start new chat" hidden
-              onclick="window.CoachPage && CoachPage.newChat()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
-        </svg>
-      </button>
+      <div class="topbar-actions">
+        <!-- New Chat — shown only on the Ask page (toggled by syncTopbarNewChat()). -->
+        <button class="topbar-newchat" id="topbarNewChat" type="button" aria-label="Start new chat" hidden
+                onclick="window.CoachPage && CoachPage.newChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+          </svg>
+        </button>
+        <!-- Account — reuses the existing account overlay (same action as the nav drawer's Account row). -->
+        <button class="topbar-account" id="topbarAccount" type="button" aria-label="Account"
+                onclick="if (typeof openFinlingoAccount === 'function') openFinlingoAccount();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="8.5" r="3.5"/>
+            <path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -117,9 +130,17 @@
 
 
   <!-- ══════════════════════════════════════════════════════
-     SCREEN: ASK / HOME (the permanent front door)
-     showHome() delegates to showCoach(); there is no separate Home
-     dashboard. Built by renderCoach() in coachPage.js.
+       SCREEN: HOME (the default post-login screen)
+       A real dashboard with new-user and returning-user states.
+       Built by renderHome() in home.js. NOT aliased to Coach.
+  ═══════════════════════════════════════════════════════ -->
+  <div class="screen" id="homeScreen">
+    <div id="homeRoot"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+     SCREEN: ASK / COACH (the AI front door)
+     Built by renderCoach() in coachPage.js.
 ═══════════════════════════════════════════════════════ -->
   <div class="screen" id="coachScreen">
     <div id="coachRoot"></div>
@@ -511,6 +532,30 @@
   </button>
 
   <!-- ══════════════════════════════════════════════════════
+       BOTTOM NAV — Home · Learn · Market · Coach
+       Fixed within the app canvas. Shown only on the four primary
+       screens; wired + active-synced by home.js.
+  ═══════════════════════════════════════════════════════ -->
+  <nav class="app-bottom-nav" id="appBottomNav" aria-label="Primary navigation">
+    <button type="button" class="abn-item" id="abnHome" aria-label="Home" onclick="Home.nav('home')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+      <span>Home</span>
+    </button>
+    <button type="button" class="abn-item" id="abnLearn" aria-label="Learn" onclick="Home.nav('learn')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9 12 4 2 9l10 5 10-5Z"/><path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+      <span>Learn</span>
+    </button>
+    <button type="button" class="abn-item" id="abnMarket" aria-label="Market" onclick="Home.nav('market')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
+      <span>Market</span>
+    </button>
+    <button type="button" class="abn-item" id="abnCoach" aria-label="Coach" onclick="Home.nav('coach')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 10h8M8 14h5"/></svg>
+      <span>Coach</span>
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════
        GUIDED DEMO
        A polished, scripted walkthrough of the learning loop.
        Markup injected by claudeDemo.js.
@@ -562,6 +607,7 @@
 <script src="navDrawer.js?v=classroom-ia-3"></script>
 <script src="classroomData.js?v=classroom-ia-3"></script>
 <script src="classroom.js?v=navy-1"></script>
+<script src="home.js?v=stitch-home-3"></script>
 
 </body>
 </html>
