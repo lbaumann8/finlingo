@@ -399,13 +399,20 @@
   }
   function buildUnit(topic) {
     var t = (topic || '').trim();
+    // Preferred path: open Coach directly in the guided build-unit conversation
+    // (no depth modal, no market overview). startBuildUnit handles navigation
+    // and screen state itself so exactly one screen is active afterward.
+    if (global.CoachPage && typeof global.CoachPage.startBuildUnit === 'function') {
+      global.CoachPage.startBuildUnit({ topic: t, source: 'home' });
+      return;
+    }
+    // Fallback (older CoachPage without the build conversation): legacy handoff.
     _goCoach();
     setTimeout(function () {
       if (!(global.CoachPage && typeof global.CoachPage.ask === 'function')) return;
       if (t) {
         global.CoachPage.ask(t, { intent: 'build', topic: t, userLabel: 'Build a unit on ' + t, source: 'home' });
       } else {
-        // Generic first-unit build — the app's existing default topic.
         global.CoachPage.ask('investing for beginners', { intent: 'build', topic: 'investing for beginners', userLabel: 'Build a beginner unit', source: 'home' });
       }
     }, 0);

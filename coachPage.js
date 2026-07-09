@@ -166,6 +166,14 @@
   let composerVisible = true;
   let activeChatId = null;
   let depthSelector = null;
+  // Coach conversation mode. 'default' renders the market brief + suggestions.
+  // 'build-unit' replaces that surface with a guided, message-style unit builder
+  // launched from Home — the depth modal is NOT used in this mode. buildFlow holds
+  // the transient wizard state (never persisted); it is torn down when the flow
+  // hands off to generation, New Chat / a history chat is opened, or the user
+  // leaves the Coach screen. Mode is explicit state — never inferred from the DOM.
+  let coachMode = 'default';
+  let buildFlow = null;
   const conversationScrollByChat = new Map();
   const unitJobPollers = new Map();
   // Monotonic generation/session token. Bumped on a full app-data reset so any
@@ -1237,6 +1245,181 @@
       _closeDepthSelector();
       coachAsk(topic, buildOpts);
     }, 0);
+  }
+
+  // ── Guided "Build a unit" conversation (Home → Coach) ────────────────
+  // A message-style replacement for the depth modal. Home launches this via
+  // CoachPage.startBuildUnit(). It walks topic → depth as chat bubbles, then
+  // hands the chosen depth to the SAME coachAsk({intent:'build', depthSelection})
+  // generation path the modal used — no backend/generation logic is duplicated.
+  const BUILD_TOPIC_SUGGESTIONS = [
+    { label: 'How interest rates affect stocks', topic: 'how interest rates affect stocks' },
+    { label: 'How to read financial statements', topic: 'how to read financial statements' },
+    { label: 'Options for beginners', topic: 'options for beginners' }
+  ];
+
+  function _buildTopicLabel(topic) {
+    const t = String(topic || '').trim();
+    if (!t) return 'Build a unit';
+    // Prefer a matching suggestion label so a Home topic row reads cleanly.
+    const match = BUILD_TOPIC_SUGGESTIONS.find(s => s.topic === t.toLowerCase());
+    if (match) return match.label;
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  // Entry point from Home. Isolates a fresh chat, seeds the conversation, and
+  // routes into Coach in build-unit mode. Never opens the depth modal.
+  function startBuildUnit(opts) {
+    opts = opts || {};
+    // Isolate the build conversation in its own chat so the user's existing
+    // Coach history is never overwritten (the app already treats chats as
+    // separate). reuseOrCreateEmpty reuses a blank chat or spins up a new one.
+    if (_hasStore()) {
+      _stopAllUnitJobPolls();
+      const chat = global.ChatStore.reuseOrCreateEmpty();
+      global.ChatStore.setActive(chat.id, { silent: true });
+      _ensureActiveLoaded(true);
+    } else {
+      thread = [];
+    }
+    const presetTopic = String(opts.topic || '').trim();
+    buildFlow = {
+      step: presetTopic ? 'depth' : 'topic',
+      topic: presetTopic,
+      analysis: null,
+      source: opts.source || 'home',
+      messages: [{ kind: 'coach', text: 'What would you like to build a unit about?' }]
+    };
+    if (presetTopic) {
+      buildFlow.messages.push({ kind: 'user', text: _buildTopicLabel(presetTopic) });
+      _buildAdvanceToDepth();
+    } else {
+      buildFlow.messages.push({
+        kind: 'options',
+        step: 'topic',
+        options: BUILD_TOPIC_SUGGESTIONS.map((t, i) => ({ value: String(i), label: t.label }))
+      });
+    }
+    coachMode = 'build-unit';
+    composerVisible = false;
+    _markAskActivity(true);
+    if (typeof showCoach === 'function') showCoach({ resetScroll: true });
+    else renderCoach();
+  }
+
+  // Analyze the chosen topic (SAME analyzer the modal used) and append the depth
+  // question + three depth reply bubbles.
+  function _buildAdvanceToDepth() {
+    if (!buildFlow) return;
+    const analysis = _analyzeTopicScope(buildFlow.topic, '');
+    buildFlow.analysis = analysis;
+    buildFlow.step = 'depth';
+    const recommended = analysis.recommendedDepth;
+    const options = (analysis.availableDepths || []).map(item => ({
+      value: item.id,
+      label: item.label || _depthName(item.id),
+      recommended: item.id === recommended
+    }));
+    buildFlow.messages.push({ kind: 'coach', text: 'How deep should this unit go?' });
+    buildFlow.messages.push({ kind: 'options', step: 'depth', options });
+  }
+
+  // Replace the pending options row for a step with the user's committed choice.
+  function _buildReplaceOptions(step, userMsg) {
+    if (!buildFlow) return;
+    const i = buildFlow.messages.findIndex(m => m.kind === 'options' && m.step === step);
+    if (i >= 0) buildFlow.messages.splice(i, 1, userMsg);
+    else buildFlow.messages.push(userMsg);
+  }
+
+  function buildPickTopic(value) {
+    if (!buildFlow || buildFlow.step !== 'topic') return;
+    const chosen = BUILD_TOPIC_SUGGESTIONS[Number(value)];
+    if (!chosen) return;
+    buildFlow.topic = chosen.topic;
+    _buildReplaceOptions('topic', { kind: 'user', text: chosen.label });
+    _buildAdvanceToDepth();
+    renderCoach();
+    _buildScrollToEnd();
+  }
+
+  function buildPickDepth(depthId) {
+    if (!buildFlow || buildFlow.step !== 'depth' || !buildFlow.analysis) return;
+    const analysis = buildFlow.analysis;
+    const option = (analysis.availableDepths || []).find(o => o.id === depthId);
+    if (!option) return;
+    _buildReplaceOptions('depth', { kind: 'user', text: option.label || _depthName(depthId) });
+    buildFlow.step = 'generating';
+    renderCoach();
+    _buildScrollToEnd();
+    const topic = buildFlow.topic;
+    const request = _depthRequest(topic, analysis, depthId);
+    const buildOpts = {
+      intent: 'build',
+      source: buildFlow.source || 'home',
+      topic: topic,
+      userLabel: 'Build a unit on ' + topic,
+      depthSelection: request
+    };
+    // Leave build-conversation mode and hand off to the SAME generation path the
+    // modal used. The normal thread renderer takes over, showing the
+    // "Building your … unit" loader and the finished unit.
+    coachMode = 'default';
+    buildFlow = null;
+    setTimeout(() => { coachAsk(topic, buildOpts); }, 0);
+  }
+
+  function _buildScrollToEnd() {
+    requestAnimationFrame(() => {
+      const el = document.getElementById('coachBuildThread');
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  }
+
+  function _buildMessageHtml(msg) {
+    if (!msg) return '';
+    if (msg.kind === 'coach') {
+      return `<div class="cb-row cb-row-coach">
+        <div class="cb-bubble cb-bubble-coach">${esc(msg.text)}</div>
+      </div>`;
+    }
+    if (msg.kind === 'user') {
+      return `<div class="cb-row cb-row-user">
+        <div class="cb-bubble cb-bubble-user">${esc(msg.text)}</div>
+      </div>`;
+    }
+    if (msg.kind === 'options') {
+      const handler = msg.step === 'topic' ? 'buildPickTopic' : 'buildPickDepth';
+      const noun = msg.step === 'topic' ? 'a unit about' : 'a';
+      const bubbles = (msg.options || []).map(opt => {
+        const recommended = Boolean(opt.recommended);
+        const aria = msg.step === 'topic'
+          ? `Build a unit about ${opt.label}`
+          : `${opt.label} depth${recommended ? ', recommended' : ''}`;
+        return `<button type="button" class="cb-bubble cb-bubble-option${recommended ? ' is-recommended' : ''}" onclick="CoachPage.${handler}('${esc(opt.value)}')" aria-label="${esc(aria)}">
+          <span class="cb-option-label">${esc(opt.label)}</span>${recommended ? '<span class="cb-rec">Recommended</span>' : ''}
+        </button>`;
+      }).join('');
+      return `<div class="cb-row cb-row-user cb-options" role="group" aria-label="Choose ${noun}">${bubbles}</div>`;
+    }
+    return '';
+  }
+
+  function _renderBuildConversation(root) {
+    if (!root) return;
+    root.innerHTML = `
+      <div class="coach-page-shell coach-build-shell is-conversation">
+        <section class="coach-thread coach-build-thread" id="coachBuildThread" aria-live="polite">
+          <div class="coach-convo-header cb-header">
+            <span class="coach-convo-id">
+              <span class="coach-convo-name">Finlingo Coach</span>
+              <span class="coach-convo-role">Let’s build a learning unit together.</span>
+            </span>
+          </div>
+          ${(buildFlow.messages || []).map(_buildMessageHtml).join('')}
+        </section>
+      </div>`;
+    _buildScrollToEnd();
   }
 
   // ── Ask ─────────────────────────────────────────────────────────────
@@ -3258,6 +3441,10 @@
     const root = document.getElementById('coachRoot');
     if (!root) return;
     _ensureActiveLoaded();
+    // Build-unit mode: render the guided conversation instead of the default
+    // market brief. Returning here keeps the daily-overview renderer from ever
+    // painting over the build thread after navigation.
+    if (coachMode === 'build-unit' && buildFlow) { _renderBuildConversation(root); return; }
     // Boot / reopen / route-in: if the last interaction was >15 min ago, swap to
     // a fresh empty chat (the old one stays in history). newChat() re-renders, so
     // stop here to avoid briefly painting the stale conversation.
@@ -3420,10 +3607,16 @@
     busyLabel = '';
     busyMode = 'normal';
     lastTopic = '';
+    coachMode = 'default';
+    buildFlow = null;
     userScrollLockedDuringGeneration = false;
   }
 
   function newChat() {
+    // New Chat always returns to the default Coach experience (never the
+    // build-unit setup surface).
+    coachMode = 'default';
+    buildFlow = null;
     if (!_hasStore()) { thread = []; composerVisible = true; renderCoach(); return; }
     _stopAllUnitJobPolls();
     const chat = global.ChatStore.reuseOrCreateEmpty();
@@ -3439,6 +3632,8 @@
 
   function openChat(id) {
     if (!_hasStore()) return;
+    coachMode = 'default';    // opening a history chat exits any build-unit setup
+    buildFlow = null;
     _markAskActivity(true);   // explicitly viewing a history chat is activity — never auto-reset it
     _stopAllUnitJobPolls();
     global.ChatStore.setActive(id, { silent: true });
@@ -3451,6 +3646,10 @@
   if (global.addEventListener) {
     global.addEventListener('finlingo:active-chat-changed', function () {
       _stopAllUnitJobPolls();
+      // An external active-chat change means we're now viewing a real chat —
+      // leave any in-progress build-unit setup.
+      coachMode = 'default';
+      buildFlow = null;
       _ensureActiveLoaded(true);
       if (_askScreenActive()) renderCoach();
     });
@@ -3465,6 +3664,9 @@
         // ticking against the now-hidden #coachInput, and cancel any brief
         // repaint/reveal timers targeting DOM that is no longer active.
         _stopCoachTransientWork();
+        // Abandon any in-progress build-unit setup so returning to Coach via the
+        // bottom nav restores the default experience.
+        if (coachMode === 'build-unit') { coachMode = 'default'; buildFlow = null; }
       }
       // Leaving Ask: do NOT stop the active chat's unit-job pollers — let durable
       // background builds keep advancing so progress never freezes and Learn/Ask
@@ -3499,6 +3701,7 @@
     retryUnit: retryUnit, chooseAnotherDepth: chooseAnotherDepth, cancelUnitJob: cancelUnitJob,
     simplifyAnswer: simplifyAnswer, submit: submit, ask: coachAsk, askPrompt: askPrompt, newChat: newChat, openChat: openChat,
     selectDepth: selectDepth, confirmDepthSelection: confirmDepthSelection, closeDepthSelector: _closeDepthSelector,
+    startBuildUnit: startBuildUnit, buildPickTopic: buildPickTopic, buildPickDepth: buildPickDepth,
     buildCourseUnit: buildCourseUnit, isBusy: function () { return busy; },
     handleAppDataReset: handleAppDataReset
   };
