@@ -3406,6 +3406,65 @@ function _computeMarketSentiment() {
   }[band.key];
   return { available: true, score, band, driver, meaning, factors: factors.slice(0, 4) };
 }
+// ── Shared market-context provider ──────────────────────────────────────
+// Single source of truth for any screen (Home, Market, Coach) that needs a
+// structured, current market snapshot to hand to Claude. It reads the SAME
+// in-memory `_marketSnapshot` the Market page renders from, so every surface
+// reports the identical timestamp/figures and no screen fires its own quote
+// request. Callers that want fresh data should `await ensureMarketSnapshot()`
+// first, then read this. Shape is deliberately structured (not a flattened
+// sentence) so the backend can format it and stay honest about staleness.
+const MARKET_CONTEXT_STALE_MS = 15 * 60 * 1000; // figures older than 15m are flagged stale
+function getMarketContextSnapshot() {
+  const norm = (typeof _normalizedMarketSnapshot === 'function') ? _normalizedMarketSnapshot : null;
+  const rows = [
+    { key: 'sp500', symbol: 'SPY' },
+    { key: 'qqq',   symbol: 'QQQ' },
+    { key: 'btc',   symbol: 'BTC' }
+  ];
+  const assets = [];
+  let equitySession = 'unknown';
+  rows.forEach(({ key, symbol }) => {
+    const s = norm ? norm(key) : null;
+    if (key === 'sp500' && s && s.sessionStatus) equitySession = s.sessionStatus;
+    const pct = s && s.available && Number.isFinite(Number(s.percentChange)) ? Number(s.percentChange) : null;
+    const price = s && s.available && Number.isFinite(Number(s.currentPrice)) ? Number(s.currentPrice) : null;
+    assets.push({
+      symbol,
+      changePercent: pct != null ? Number(pct.toFixed(2)) : null,
+      price: price != null ? Number(price) : null,
+      available: !!(s && s.available)
+    });
+  });
+  const snap = (typeof _marketSnapshot !== 'undefined') ? _marketSnapshot : { status: 'idle', fetchedAt: 0 };
+  const ready = snap.status === 'ready';
+  const errored = snap.status === 'error';
+  const fetchedAt = Number(snap.fetchedAt) || 0;
+  const hasData = assets.some(a => a.available);
+  const ageMs = fetchedAt ? (Date.now() - fetchedAt) : Infinity;
+  const stale = !ready || errored || ageMs > MARKET_CONTEXT_STALE_MS;
+  let sentiment = null;
+  try {
+    if (typeof _computeMarketSentiment === 'function') {
+      const sent = _computeMarketSentiment();
+      if (sent && sent.available) sentiment = { score: sent.score, label: (sent.band && sent.band.label) || '' };
+    }
+  } catch (_) {}
+  return {
+    asOf: fetchedAt ? new Date(fetchedAt).toISOString() : null,
+    asOfEpochMs: fetchedAt || null,
+    sessionStatus: equitySession,                                  // open|premarket|afterhours|closed|crypto|unknown
+    sessionLabel: equitySession === 'unknown' ? 'Latest quotes' : _snapshotStatusLabel(equitySession),
+    sentiment,                                                     // { score, label } | null
+    assets,                                                        // [{ symbol, changePercent, price, available }]
+    source: errored ? 'quotes (delayed)' : 'quotes',
+    isLive: ready && hasData && !stale,
+    stale: hasData ? stale : false,
+    available: hasData
+  };
+}
+if (typeof window !== 'undefined') window.getMarketContextSnapshot = getMarketContextSnapshot;
+
 const _SENTIMENT_INFO = 'An educational market read derived from today’s S&P 500, Nasdaq-100, Bitcoin and 10-year Treasury moves on a fear-to-greed scale. Not investment advice.';
 const _SENTIMENT_INFO_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v4.5"/><path d="M12 8h.01"/></svg>';
 function _renderMarketSentimentInner() {

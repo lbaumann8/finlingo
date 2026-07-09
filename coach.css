@@ -147,6 +147,14 @@
 /* Preserve spacing between paragraphs of a full multi-paragraph answer. */
 .coach-answer-text + .coach-answer-text { margin-top: 0.85em; }
 
+/* Subtle provenance line under a market-grounded answer ("Market data as of …"). */
+.coach-market-meta {
+  margin-top: 0.5em;
+  color: var(--v3-muted, var(--fl-muted));
+  font: 400 0.72rem/1.4 var(--font-b);
+  letter-spacing: 0.01em;
+}
+
 /* Streamed reveal: subtle, understated caret on the line currently filling in. */
 .coach-answer.is-streaming .coach-answer-text:last-child::after {
   content: "";

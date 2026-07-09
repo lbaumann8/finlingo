@@ -1437,6 +1437,13 @@
     const marketOriginated = /market/.test(String(opts.source || ''))
       || /market/.test(String((opts.apiContext && opts.apiContext.source) || ''))
       || intent === 'market' || intent === 'connect_market';
+    // Attach the live market snapshot whenever the question is about the market
+    // — whether it was opened from a market surface (marketOriginated) or simply
+    // typed ("what happened in the market today"). Curly apostrophes and casing
+    // are handled so Home chips like "Explain today’s market move" also match.
+    const _marketRelevant = /\bmarkets?\b|nasdaq|s&p|s and p|dow jones|\bspy\b|\bqqq\b|bitcoin|\bbtc\b|\bstocks?\b|today.?s move/i
+      .test(String(rawText || '') + ' ' + String(opts.userLabel || ''));
+    const attachMarketData = marketOriginated || _marketRelevant;
     const effectiveText = (intent === 'build' && _isGenericBuildUnitLabel(text))
       ? String(opts.topic || lastTopic || 'investing for beginners').trim()
       : text;
@@ -1515,6 +1522,7 @@
     const topic = effectiveText || lastTopic;
     const contextOverride = opts.context || opts.contextText || '';
     let mode, prompt, context, responseMode, isInitialOverview = false;
+    let marketContext;
     if (intent === 'build') {
       mode = 'build_unit';
       prompt = `Build a beginner finance mini-unit on: ${topic}`;
@@ -1597,7 +1605,16 @@
         }
         payload = await _startUnitJob(jobEntry, requestChatId, requestThread);
       } else {
-        payload = await _coachFetch(mode, prompt, context, history, { responseMode, requestId, marketContext: marketOriginated || undefined, initial: isInitialOverview || undefined });
+        // Hand the backend the SAME structured market snapshot the Market/Home
+        // screens render from. When the app has valid quotes, `marketContext` is
+        // the full object; when the question is market-related but quotes are
+        // unavailable, it still carries { available:false } so the backend stays
+        // honest ("quotes temporarily unavailable") instead of the model
+        // claiming it lacks live-market access.
+        if (attachMarketData) {
+          marketContext = await _buildCoachMarketContext();
+        }
+        payload = await _coachFetch(mode, prompt, context, history, { responseMode, requestId, marketContext, initial: isInitialOverview || undefined });
       }
       if (!activeCoachRequest || activeCoachRequest.id !== requestId) return;
       const targetThread = requestThread;
@@ -1615,6 +1632,11 @@
         if (revealActionResult) pendingRevealEntryId = entry.id;
       } else {
         const entry = _stamp({ role: 'assistant', kind: 'text', text: payload.answer || 'No answer was returned.', topic: text || lastTopic, suggestionState: 'active', responseMode, requestId }, mode);
+        // Subtle provenance caption for market-grounded answers (rendered under
+        // the finished answer). Only when the app actually supplied live figures.
+        if (marketContext && marketContext.available && Number(marketContext.asOfEpochMs)) {
+          entry.marketMeta = { asOfEpochMs: marketContext.asOfEpochMs, stale: !!marketContext.stale, isLive: !!marketContext.isLive };
+        }
         entry._needsReveal = true;          // stream this answer in from the top
         targetThread.push(entry);
         revealAnswerEntry = entry;
@@ -2463,7 +2485,21 @@
     const shownText = revealing ? (entry._revealedText || '') : entry.text;
     const body = `<div class="coach-answer${revealing ? ' is-streaming' : ''}">${_plainAnswer(shownText)}</div>`;
     const actions = (entry.isError || revealing) ? '' : _smartNextSteps(entry, index);
-    return `${body}${actions}${_renderSimpleAnswer(entry)}`;
+    const caption = revealing ? '' : _marketMetaCaption(entry);
+    return `${body}${caption}${actions}${_renderSimpleAnswer(entry)}`;
+  }
+
+  // Subtle "Market data as of …" line under a market-grounded answer. Uses the
+  // same fetch timestamp the Market screen shows, so the provenance matches.
+  function _marketMetaCaption(entry) {
+    const meta = entry && entry.marketMeta;
+    if (!meta || !Number(meta.asOfEpochMs)) return '';
+    let timeText = '';
+    try {
+      timeText = new Date(Number(meta.asOfEpochMs)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch (_) { return ''; }
+    const prefix = meta.stale ? 'Market data (may be delayed) as of' : 'Market data as of';
+    return `<div class="coach-market-meta">${esc(prefix)} ${esc(timeText)}</div>`;
   }
 
   // ── Fast streamed-answer reveal ─────────────────────────────────────
@@ -3251,6 +3287,30 @@
     } catch (_) {}
     return '';
   }
+  // Build the structured, live market snapshot to hand to the Ask backend.
+  // Reads the SAME shared provider the Market and Home screens use, so the
+  // figures and timestamp are identical everywhere and no duplicate quote
+  // request is fired (ensureMarketSnapshot() dedupes on its own 60s window).
+  async function _buildCoachMarketContext() {
+    try { if (typeof ensureMarketSnapshot === 'function') await ensureMarketSnapshot(); } catch (_) {}
+    let snap = null;
+    try {
+      if (typeof getMarketContextSnapshot === 'function') snap = getMarketContextSnapshot();
+    } catch (_) {}
+    if (!snap) return { available: false, isLive: false, stale: false };
+    // Dev-only visibility into the exact context handed to /api/ask-finlingo.
+    // No secrets are logged — this is market figures the user already sees.
+    try {
+      const dev = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
+        || /[?&]marketdebug=1/.test(location.search);
+      if (dev) console.log('[coach→ask marketContext]', {
+        isLive: snap.isLive, stale: snap.stale, asOf: snap.asOf, source: snap.source,
+        sessionStatus: snap.sessionStatus, sentiment: snap.sentiment, assets: snap.assets
+      });
+    } catch (_) {}
+    return snap;
+  }
+
   function _coachMarketBrief() {
     // Kick a fetch if the market module is present (non-blocking).
     try { if (typeof ensureMarketSnapshot === 'function') ensureMarketSnapshot(); } catch (_) {}
