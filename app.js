@@ -3416,11 +3416,9 @@ function renderV3LearnWorkspace(container) {
       <div class="v3-unit-create-card">
         <div class="v3-track-head">
           <span class="v3-track-eyebrow">Custom Track</span>
-          <span class="v3-track-count"><b>0</b> Lessons</span>
         </div>
         <h3 class="v3-track-title v3-unit-create-title">Create your first unit</h3>
         <p class="v3-unit-create-desc">Turn any finance question into a focused lesson path you can save and revisit.</p>
-        <span class="fl-track v3-track-progress v3-unit-create-rail" aria-hidden="true"><span style="width:0%"></span></span>
         <button type="button" class="v3-unit-create-row" onclick="startAskForNewUnit()">
           <span>Create a unit</span>
           ${_chevron}

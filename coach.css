@@ -9859,7 +9859,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-unit-create-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   padding: 26px 24px;
   border-color: var(--fl-card-black-border);
   border-radius: 22px;
@@ -9876,13 +9876,6 @@ body.auth-modal-visible .ask-tutor-backdrop {
   color: var(--fl-sub);
   font: 400 0.98rem/1.5 var(--font-b);
 }
-.v3-unit-create-rail {
-  margin: 2px 0;
-}
-/* Setup rail reads as "not started": neutral, no accent fill. */
-.v3-unit-create-rail > span {
-  background: var(--fl-card-black-border-hover) !important;
-}
 .v3-unit-create-row {
   display: flex;
   align-items: center;
@@ -9890,8 +9883,8 @@ body.auth-modal-visible .ask-tutor-backdrop {
   gap: 12px;
   width: 100%;
   min-height: 48px;
-  margin: 2px 0 -6px;
-  padding: 16px 2px 2px;
+  margin: 4px 0 -6px;
+  padding: 15px 2px 2px;
   border: 0;
   border-top: 1px solid var(--fl-divider);
   border-radius: 0;
