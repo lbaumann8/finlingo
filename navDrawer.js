@@ -1,9 +1,8 @@
 // ============================================================
 // navDrawer.js
-// Single left-side navigation drawer for chats + account.
+// Single left-side Recent Chats drawer.
 //
-// Replaces the old top-right header buttons and the inline Ask
-// history row. Opened by the hamburger button in the header.
+// Opened by the recent-conversations button in the header.
 //
 //   NavDrawer.open() / .close() / .toggle()
 //
@@ -13,8 +12,6 @@
 // Depends on (looked up lazily at call-time):
 //   global.ChatStore   — list/create/rename/remove/active chat
 //   global.CoachPage   — openChat(id), newChat()
-//   global.S, getInitials — footer avatar
-//   openWorkspaceSettings()/showSettings() — account panel
 // ============================================================
 
 (function (global) {
@@ -43,75 +40,17 @@
     });
   }
 
-  // ── Footer identity ────────────────────────────────────────
-  // S is a top-level `let` in a classic script (global lexical env, NOT on
-  // `window`) — reference it bare, not as `global.S` (which is `undefined`).
-  function _userInitials() {
-    var u = (typeof S !== 'undefined' && S && S.user) || null;
-    // Signed-out guests always show "GU" — never derive initials from a stored
-    // fallback name (e.g. an old "You"), which could resurface "YO".
-    var authed = !!(u && (u.id || u.email));
-    if (!authed) return 'GU';
-    var name = u.name || u.email || 'User';
-    if (typeof global.getInitials === 'function') {
-      try { var i = global.getInitials(name); if (i) return i; } catch (_) {}
-    }
-    var parts = String(name).trim().split(/\s+/);
-    var out = ((parts[0] || '')[0] || '') + (parts.length > 1 ? (parts[parts.length - 1][0] || '') : '');
-    return (out || 'U').toUpperCase();
-  }
-  function _userAvatarColor() {
-    var u = (typeof S !== 'undefined' && S && S.user) || null;
-    return (u && u.avatarColor) || '#1f2937';
-  }
-
   // ── Icons ──────────────────────────────────────────────────
   var ICON_MORE ='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>';
-  var ICON_ASK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8M8 13h5"/></svg>';
-  var ICON_LEARN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4.5h7a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 4.5h-7a3 3 0 0 0-3 3V20a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>';
-  var ICON_MARKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg>';
-  var ICON_CLASSROOM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg>';
-
-  function _activeSection() {
-    if (document.getElementById('coachScreen')?.classList.contains('active')) return 'ask';
-    if (document.getElementById('classroomScreen')?.classList.contains('active')) return 'classroom';
-    if (document.getElementById('marketScreen')?.classList.contains('active')) return 'market';
-    if (['pathScreen', 'courseScreen', 'quizScreen', 'resultScreen', 'microLessonScreen'].some(function (id) {
-      return document.getElementById(id)?.classList.contains('active');
-    })) return 'learn';
-    return '';
-  }
-
-  // Classroom is available to every signed-in user. Personal accounts see the
-  // join-a-classroom view; Teacher / group-leader accounts see the dashboard.
-  function _showClassroom() {
-    var s = (typeof S !== 'undefined' && S) || {};
-    return !!(s.user && s.user.id);
-  }
-
-  function _primaryNavRows() {
-    var active = _activeSection();
-    var rows = [
-      ['ask', 'Ask', ICON_ASK],
-      ['learn', 'Learn', ICON_LEARN],
-      ['market', 'Market', ICON_MARKET]
-    ];
-    if (_showClassroom()) rows.push(['classroom', 'Classroom', ICON_CLASSROOM]);
-    return rows.map(function (item) {
-      var key = item[0], label = item[1], icon = item[2], selected = key === active;
-      return '<button type="button" class="nav-drawer-primary-row' + (selected ? ' is-active' : '') + '"' +
-        (selected ? ' aria-current="page"' : '') + ' onclick="NavDrawer._go(&#39;' + key + '&#39;)">' +
-          '<span class="nav-drawer-primary-icon">' + icon + '</span>' +
-          '<span class="nav-drawer-primary-label">' + label + '</span>' +
-        '</button>';
-    }).join('');
-  }
+  var ICON_CLOSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
   // ── Chat list markup ───────────────────────────────────────
   function _chatRows() {
     var store = _store();
     if (!store) return '<li class="nav-drawer-empty">No conversations yet.</li>';
-    var chats = store.all(); // already sorted most-recently-updated first
+    var chats = store.all().filter(function (c) {
+      return c && Array.isArray(c.messages) && c.messages.length > 0;
+    }); // already sorted most-recently-updated first
     var activeId = store.activeId();
 
     if (!chats.length) {
@@ -169,16 +108,16 @@
     if (!root) return;
     root.innerHTML =
       '<div class="nav-drawer-backdrop" onclick="NavDrawer.close()"></div>' +
-      '<aside class="nav-drawer-panel" role="dialog" aria-modal="true" aria-label="Conversations and account">' +
-        '<nav class="nav-drawer-primary" aria-label="Primary navigation">' + _primaryNavRows() + '</nav>' +
+      '<aside class="nav-drawer-panel" role="dialog" aria-modal="true" aria-label="Recent chats">' +
+        '<div class="nav-drawer-head">' +
+          '<h2>Recent chats</h2>' +
+          '<button type="button" class="nav-drawer-close" aria-label="Close recent chats" onclick="NavDrawer.close()">' + ICON_CLOSE + '</button>' +
+        '</div>' +
+        '<button type="button" class="nav-drawer-new" onclick="NavDrawer._newChat()">New conversation</button>' +
         '<div class="nav-drawer-recents">' +
-          '<div class="nav-drawer-recents-label">Recent chats</div>' +
+          '<div class="nav-drawer-recents-label">Recent</div>' +
           '<ul class="nav-drawer-list" id="navDrawerList" role="list">' + _chatRows() + '</ul>' +
         '</div>' +
-        '<button type="button" class="nav-drawer-footer" aria-label="Open account and settings" onclick="NavDrawer._openAccount()">' +
-          '<span class="nav-drawer-avatar" style="background:' + _esc(_userAvatarColor()) + '">' + _esc(_userInitials()) + '</span>' +
-          '<span class="nav-drawer-footer-label">Account</span>' +
-        '</button>' +
       '</aside>';
   }
 
@@ -270,35 +209,15 @@
     if (store) store.setActive(id);
   }
 
-  function _go(section) {
+  function _newChat() {
     close();
-    if (section === 'ask') {
-      if (typeof global.showCoach === 'function') global.showCoach({ resetScroll: false });
-      else {
-        var coach = _coach();
-        if (coach && typeof coach.render === 'function') coach.render();
-      }
-      return;
+    var coach = _coach();
+    if (coach && typeof coach.newChat === 'function') { coach.newChat(); return; }
+    var store = _store();
+    if (store) {
+      var chat = store.reuseOrCreateEmpty ? store.reuseOrCreateEmpty() : store.create();
+      store.setActive(chat.id);
     }
-    if (section === 'learn' && typeof global.showLearn === 'function') {
-      global.showLearn({ resetScroll: true });
-      return;
-    }
-    if (section === 'market' && typeof global.showMarket === 'function') {
-      global.showMarket({ resetScroll: false });
-      return;
-    }
-    if (section === 'classroom' && typeof global.showClassroom === 'function') {
-      global.showClassroom({ resetScroll: true });
-    }
-  }
-
-  function _openAccount() {
-    close();
-    if (typeof global.openFinlingoAccount === 'function') { global.openFinlingoAccount(); return; }
-    if (typeof global.openWorkspaceSettings === 'function') { global.openWorkspaceSettings(); return; }
-    if (typeof global.showSettings === 'function') { global.showSettings(); return; }
-    if (typeof global.showProfile === 'function') { global.showProfile('account'); }
   }
 
   // ── Three-dot menu ─────────────────────────────────────────
@@ -368,9 +287,8 @@
     close: close,
     toggle: toggle,
     refresh: refresh,
-    _go: _go,
     _open: _open,
-    _openAccount: _openAccount,
+    _newChat: _newChat,
     _toggleMenu: _toggleMenu,
     _closeMenus: _closeMenus,
     _startRename: _startRename,

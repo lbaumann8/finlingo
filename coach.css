@@ -6256,8 +6256,8 @@ body.unit-confirm-open { overflow: hidden; }
 .ml-upgrade-spinner .mc-spinner { width: 26px; height: 26px; border-width: 3px; }
 
 /* ════════════════════════════════════════════════════════════
-   HAMBURGER + LEFT NAVIGATION DRAWER  (chats + account)
-   Single entry point for chat history, new chat, and account.
+   RECENT CHATS HEADER CONTROL + LEFT DRAWER
+   Single entry point for chat history and new conversations.
    Added by navDrawer.js. See index.html #navDrawerRoot.
    ════════════════════════════════════════════════════════════ */
 
@@ -6278,12 +6278,13 @@ body.unit-confirm-open { overflow: hidden; }
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .nav-hamburger svg {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .nav-hamburger:hover { color: var(--text); background: var(--bg2); }
 .nav-hamburger:active { background: var(--bg3); }
@@ -6562,37 +6563,6 @@ body.nav-drawer-lock { overflow: hidden; }
 .nav-chat-rename-save { background: var(--text); color: var(--bg); border: 0; }
 .nav-chat-rename-cancel { background: transparent; color: var(--text-sub); border: 1px solid var(--border2); }
 
-/* ── Footer: account ─────────────────────────────────────── */
-.nav-drawer-footer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  /* Match the Account-page identity card surface (--bg2) with a subtle top
-     divider to set the footer apart from the chat list above it. */
-  padding: 16px 16px 14px;
-  background: var(--bg2);
-  border: 0;
-  border-top: 1px solid var(--border);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.nav-drawer-footer:hover { background: var(--bg3); }
-.nav-drawer-avatar {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  color: #fff;
-  font: 800 0.78rem var(--font-d);
-  letter-spacing: 0.01em;
-}
-.nav-drawer-footer-label { color: var(--text); font: 600 0.92rem var(--font-b); }
-
 /* ============================================================
    CANONICAL DRAWER NAVIGATION, ASK COMPOSER, AND CHEVRONS
    ============================================================ */
@@ -6728,67 +6698,76 @@ body:not(.entry-gate-visible) #mainTopbar {
   display: block !important;
 }
 
-.nav-drawer-primary {
+.nav-drawer-head {
   flex: 0 0 auto;
-  display: grid;
-  gap: 3px;
-  padding: 6px 8px 4px;
-}
-
-.nav-drawer-primary-row {
-  position: relative;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  width: 100%;
-  min-height: 46px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: #C5CAD1;
-  text-align: left;
-  cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  padding: 18px 14px 10px 16px;
 }
 
-.nav-drawer-primary-row:hover {
-  background: rgba(255, 255, 255, 0.045);
-  color: #FFFFFF;
+.nav-drawer-head h2 {
+  margin: 0;
+  color: var(--fl-title, #F5F5F5);
+  font: 700 1rem/1.1 var(--fl-font-display, var(--font-b));
+  letter-spacing: 0;
 }
 
-/* Active page = subtle lighter charcoal fill + white icon/text. No white
-   vertical bar, no bright border, no full-row pill. */
-.nav-drawer-primary-row.is-active {
-  background: #171A1F;
-  color: #FFFFFF;
-}
-
-.nav-drawer-primary-icon {
+.nav-drawer-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  color: #858C96;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-sub, #aab0bb);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
-.nav-drawer-primary-icon svg {
-  width: 20px;
-  height: 20px;
+.nav-drawer-close svg {
+  width: 19px;
+  height: 19px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.7;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.nav-drawer-primary-row.is-active .nav-drawer-primary-icon {
-  color: #FFFFFF;
+.nav-drawer-close:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text, #FFFFFF);
 }
 
-.nav-drawer-primary-label {
-  flex: 1;
-  font: 600 0.92rem var(--font-b);
+.nav-drawer-close:focus-visible,
+.nav-drawer-new:focus-visible {
+  outline: 2px solid var(--text-sub, #aab0bb);
+  outline-offset: 2px;
+}
+
+.nav-drawer-new {
+  flex: 0 0 auto;
+  width: calc(100% - 16px);
+  min-height: 40px;
+  margin: 0 8px 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #F5F5F5;
+  text-align: left;
+  cursor: pointer;
+  font: 600 0.92rem/1 var(--font-b);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.nav-drawer-new:hover {
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .nav-drawer-recents {
@@ -6801,9 +6780,7 @@ body:not(.entry-gate-visible) #mainTopbar {
 
 .nav-drawer-recents-label {
   flex: 0 0 auto;
-  /* Generous top space (replacing the old divider) separates Recent chats
-     from the primary nav; modest space below before the list. */
-  padding: 18px 16px 7px;
+  padding: 10px 16px 6px;
   color: #737A85;
   font: 700 0.66rem/1 var(--font-b);
   letter-spacing: 0.08em;
@@ -6857,7 +6834,8 @@ body:not(.entry-gate-visible) #mainTopbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav-drawer-primary-row,
+  .nav-drawer-new,
+  .nav-drawer-close,
   .coach-next-card,
   .coach-next-arrow {
     transition: none !important;
@@ -10315,11 +10293,20 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .coach-page-shell.has-composer .coach-hero.coach-convo-intro,
 .coach-page-shell.is-conversation .coach-thread,
 .coach-page-shell .coach-thread {
-  flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
+}
+.coach-page-shell.has-composer .coach-hero.coach-convo-intro {
+  flex: 0 1 auto !important;
+  max-height: calc(100% - 86px);
+  padding-top: calc(var(--coach-header-overlap, 0px) + 8px) !important;
+  padding-bottom: 18px !important;
+}
+.coach-page-shell.is-conversation .coach-thread,
+.coach-page-shell .coach-thread {
+  flex: 1 1 auto !important;
 }
 .coach-bottom-composer,
 .coach-compact-composer {

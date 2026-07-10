@@ -58,8 +58,8 @@
   <div class="topbar" id="mainTopbar" style="display:none;">
     <div class="topbar-row">
       <div class="topbar-lead">
-        <button class="nav-hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawerRoot" onclick="NavDrawer && NavDrawer.open()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <button class="nav-hamburger" type="button" aria-label="Recent chats" aria-expanded="false" aria-controls="navDrawerRoot" onclick="NavDrawer && NavDrawer.open()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h6"/><path d="M8 13h3"/><path d="M17 12a4 4 0 1 0 4 4"/><path d="M17 14v2l1.4 1"/></svg>
         </button>
         <span class="topbar-brand" aria-label="Finlingo"><span class="brand-fin">Fin</span><span class="brand-lingo">lingo</span></span>
       </div>
@@ -72,7 +72,7 @@
             <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
           </svg>
         </button>
-        <!-- Account — reuses the existing account overlay (same action as the nav drawer's Account row). -->
+        <!-- Account — reuses the existing account overlay. -->
         <button class="topbar-account" id="topbarAccount" type="button" aria-label="Account"
                 onclick="if (typeof openFinlingoAccount === 'function') openFinlingoAccount();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -84,7 +84,7 @@
     </div>
   </div>
 
-  <!-- ── LEFT NAV DRAWER (chats + account) — built by navDrawer.js ── -->
+  <!-- ── RECENT CHATS DRAWER — built by navDrawer.js ── -->
   <div id="navDrawerRoot" aria-hidden="true"></div>
 
 
