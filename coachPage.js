@@ -3440,10 +3440,12 @@
       { kind: 'learn',  label: 'Connect this to Money & Markets', q: b.unit ? `Connect today’s market move to what I’m learning in ${b.unit}.` : 'Connect today’s market move to Money & Markets.' },
       { kind: 'learn',  label: 'Quiz me on this topic', q: 'Quiz me on the concepts I’ve been learning.' }
     ];
+    // Suggested outgoing questions: right-aligned reply bubbles (see coach.css
+    // "SUGGESTED OUTGOING QUESTIONS" block). No chevron — they read as messages,
+    // not navigation rows. Each stays a real button with its existing action.
     return list.map(s => `
       <button type="button" class="coach-suggest-card coach-followup-card" data-kind="${s.kind}" data-q="${esc(s.q)}" onclick="CoachPage.askPrompt(this)">
         <span class="coach-suggest-text">${esc(s.label)}</span>
-        <span class="coach-followup-chev" aria-hidden="true">›</span>
       </button>`).join('');
   }
   // Repaint the brief + follow-ups in place once live data arrives (no full

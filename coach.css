@@ -10325,3 +10325,72 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .coach-compact-composer {
   flex: 0 0 auto !important;
 }
+
+/* ============================================================
+   SUGGESTED OUTGOING QUESTIONS  (Coach blank state)
+   The three follow-up suggestions read as suggested USER messages:
+   right-aligned muted-green reply bubbles that mirror the real
+   .coach-msg-user surface (rgba(105,221,165,.10) fill, .20 border),
+   replacing the old full-width divider rows + chevrons. Scoped to
+   .coach-followups so no other suggestion surface is affected.
+   Appended last so it wins the cascade (incl. the ≤520px width:100%
+   row rule). Presentation only — each stays a real <button> with its
+   existing data-q / askPrompt action, semantics and focus ring.
+   ============================================================ */
+.coach-followups .coach-suggest-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;      /* push each bubble to the right lane */
+  gap: 8px;                   /* ~8px between stacked bubbles */
+  border-top: 0;              /* drop the divider-row frame */
+  border-bottom: 0;
+}
+.coach-followups .coach-suggest-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;         /* size to content, not full width */
+  max-width: 84%;             /* leave open space on the left */
+  min-height: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(105, 221, 165, 0.20);
+  border-radius: 16px 16px 6px 16px;   /* user-message tail (lower-right) */
+  background: rgba(105, 221, 165, 0.10);
+  color: var(--fl-title);
+  font: 500 0.9rem/1.4 var(--font-b);
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+/* Restore the top border the old first-child rule stripped for the row look. */
+.coach-followups .coach-suggest-card:first-child {
+  border-top: 1px solid rgba(105, 221, 165, 0.20);
+}
+.coach-followups .coach-suggest-card:hover {
+  background: rgba(105, 221, 165, 0.16);
+  border-color: rgba(105, 221, 165, 0.30);
+}
+.coach-followups .coach-suggest-card:active {
+  transform: translateY(1px);
+  background: rgba(105, 221, 165, 0.22);
+}
+.coach-followups .coach-suggest-card:focus-visible {
+  outline: 2px solid var(--fl-accent-border);
+  outline-offset: 2px;
+}
+.coach-followups .coach-suggest-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: left;
+  white-space: normal;        /* long labels wrap cleanly inside the bubble */
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+/* Keep bubbles content-sized (not full-width) at the narrow target widths,
+   overriding the ≤520px .coach-suggest-card{width:100%} row rule. */
+@media (max-width: 520px) {
+  .coach-followups .coach-suggest-card {
+    width: fit-content;
+    max-width: 85%;
+  }
+}
