@@ -7291,7 +7291,12 @@ body:not(.entry-gate-visible) #mainNav,
   height: 100% !important;
   min-height: 0 !important;
   margin: 0 !important;
-  padding: 24px 22px 24px !important;
+  /* Reserve the fixed bottom-nav band (--app-nav-h) + safe-area + a visible
+     ~12px gap so the in-flow composer clears the absolutely-positioned
+     .app-bottom-nav (z-index 40) instead of being painted over by it. This is
+     the authoritative padding rule — the shorthand's !important is why the
+     earlier home.css:668-671 reservation never took effect. */
+  padding: 24px 22px calc(var(--app-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 12px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -9183,8 +9188,8 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .market-global-grid .snap-card.market-summary-item:nth-child(n) {
   flex: 0 0 auto;
   min-height: 0;
-  margin-right: 15px;
-  padding: 3px 15px 3px 0;
+  margin-right: 18px;
+  padding: 3px 18px 3px 0;
   border: 0;
   border-right: 1px solid var(--fl-card-black-border);
   border-radius: 0;
@@ -9192,7 +9197,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .market-global-grid .snap-card.market-summary-item:last-child:nth-child(n) {
   margin-right: 0;
-  padding-right: 0;
+  /* Keep the last item off the right edge so it never touches/clips when the
+     strip is scrolled fully. */
+  padding-right: 4px;
   border-right: 0;
 }
 .market-global-grid .snap-card-head {
@@ -9202,7 +9209,12 @@ body.auth-modal-visible .ask-tutor-backdrop {
   grid-template-columns: none;
 }
 .market-global-grid .snap-card .snap-price { display: none; }
-.market-global-grid .snap-card .snap-change { font-size: 0.74rem; }
+.market-global-grid .snap-card .snap-change,
+.market-global-grid .snap-card .snap-price {
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+.market-global-grid .snap-card .snap-sym { font-variant-numeric: tabular-nums; }
 
 /* ── Section 2: Market read — one near-black card ── */
 .market-read-card {
@@ -9509,9 +9521,15 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .market-v3-status-dot,
 .market-v3-change-context { display: none; }
+/* Chart card: a little more vertical room and proper inner padding, canvas
+   left transparent (no gradient/glow/shadow/extra grid). */
+.market-chart-card {
+  padding: 12px 12px 8px;
+}
 .mkt-chart-canvas {
-  height: 136px;
-  margin-top: 12px;
+  height: 158px;
+  margin-top: 4px;
+  background: transparent;
 }
 .mkt-chart-legend {
   top: 4px;
@@ -9527,15 +9545,19 @@ body.auth-modal-visible .ask-tutor-backdrop {
   border-top-color: rgba(209, 213, 219, 0.34);
 }
 .mkt-range-toggle {
-  min-height: 24px;
-  margin-top: 8px;
-  gap: 1px;
+  min-height: 32px;
+  margin-top: 10px;
+  gap: 2px;
 }
+/* Larger tap targets for the range selectors with a restrained active state. */
 .mkt-range-btn {
-  min-height: 24px;
-  font: 560 0.7rem/1 var(--font-b);
+  min-height: 32px;
+  padding: 0 11px;
+  font: 560 0.72rem/1 var(--font-b);
   color: var(--fl-faint);
+  border-radius: 8px;
 }
+.mkt-range-btn:hover:not(.is-active) { color: var(--fl-body); }
 .mkt-range-btn.is-active {
   background: var(--fl-card-black-selected-bg);
   color: var(--fl-title);
@@ -9598,23 +9620,23 @@ body.auth-modal-visible .ask-tutor-backdrop {
   letter-spacing: 0;
   text-transform: none;
 }
+/* Learning next-step: a compact card (more prominent than the disclaimer,
+   quieter than the chart). Explore-related-topics stays a secondary row below. */
 .market-learn-section {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 .market-learn-section .market-insight-learn {
-  padding: 10px 2px;
-  border: 0;
-  border-top: 1px solid var(--fl-divider);
-  border-bottom: 1px solid var(--fl-divider);
-  border-radius: 0;
-  background: transparent;
+  padding: 13px 14px;
+  border: 1px solid var(--fl-card-black-border);
+  border-radius: var(--fl-radius-card);
+  background: var(--fl-card-black);
 }
 .market-learn-section .market-insight-learn:hover {
-  background: transparent;
-  border-color: var(--fl-divider);
+  background: var(--fl-card-black);
+  border-color: var(--fl-card-black-border-hover);
 }
 .market-insight-learn-title {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   letter-spacing: 0;
 }
 .market-v3-section-fire { display: none; }
@@ -9623,8 +9645,20 @@ body.auth-modal-visible .ask-tutor-backdrop {
   letter-spacing: 0;
 }
 @media (max-width: 420px) {
-  .mkt-chart-canvas { height: 124px; }
+  .mkt-chart-canvas { height: 142px; }
   .market-v3-index-value { font-size: 2rem; }
+}
+
+/* Let Market content flow to its natural height instead of being stretched to
+   fill the viewport — the shell's reserved bottom padding (home.css) still
+   keeps the last row and disclaimer clear of the bottom nav. */
+#marketFeatureList,
+.market-v3-shell,
+#marketScreen .market-v3-col-primary {
+  min-height: auto !important;
+}
+.market-page-foot {
+  margin-top: 22px;
 }
 
 /* ============================================================
@@ -9683,11 +9717,16 @@ body.auth-modal-visible .ask-tutor-backdrop {
   text-align: center;
 }
 .coach-brief-bubble {
-  width: min(610px, 100%) !important;
-  max-width: 100% !important;
+  /* Reads as an incoming assistant message: left-aligned, sized to content, and
+     capped short of full width so open space is left on the right — not a
+     full-bleed dashboard card. */
+  width: fit-content !important;
+  max-width: 88% !important;
+  align-self: flex-start !important;
+  margin-right: auto !important;
   padding: 16px 16px 15px !important;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: 14px 14px 14px 4px;
   overflow: visible;
 }
 .coach-brief-part {
@@ -9760,6 +9799,10 @@ body.auth-modal-visible .ask-tutor-backdrop {
   background: var(--fl-card-black-nested);
 }
 #coachInput {
+  flex: 1 1 auto;
+  /* min-width:0 lets the flex input shrink and ellipsize instead of growing to
+     fit its text and overlapping the square send button. */
+  min-width: 0;
   height: 100%;
   min-height: 0 !important;
   max-height: none;
@@ -9809,38 +9852,66 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .v3-units-panel {
   margin-top: 18px;
 }
+/* Custom-unit empty card — matches the preset track-card system: same
+   near-black surface, hairline border, 22px radius, 26px 24px padding, mono
+   eyebrow + top-right state label, large display title, thin rail and a
+   divider-led action row (not a floating green pill). */
 .v3-unit-create-card {
-  padding: 15px;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 24px;
   border-color: var(--fl-card-black-border);
-  border-radius: 8px;
+  border-radius: 22px;
   background: var(--fl-card-black);
 }
-.v3-unit-create-copy {
-  gap: 7px;
+.v3-unit-create-card:hover {
+  border-color: var(--fl-card-black-border-hover);
 }
-.v3-unit-create-copy h3 {
-  font-size: 1rem;
-  line-height: 1.18;
-  letter-spacing: 0;
+.v3-unit-create-title {
+  margin: -2px 0 0;
 }
-.v3-unit-create-copy p {
-  max-width: 34rem;
-  font-size: 0.85rem;
-  line-height: 1.55;
+.v3-unit-create-desc {
+  margin: -6px 0 0;
+  color: var(--fl-sub);
+  font: 400 0.98rem/1.5 var(--font-b);
 }
-.v3-unit-create-copy span {
-  font-size: 0.75rem;
+.v3-unit-create-rail {
+  margin: 2px 0;
 }
-.v3-unit-create-btn {
-  min-height: 40px;
-  padding: 9px 14px;
-  background: var(--fl-accent);
-  color: #06231A;
+/* Setup rail reads as "not started": neutral, no accent fill. */
+.v3-unit-create-rail > span {
+  background: var(--fl-card-black-border-hover) !important;
 }
-.v3-unit-create-btn:hover {
-  background: var(--fl-accent-hover);
-  color: #06231A;
+.v3-unit-create-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  margin: 2px 0 -6px;
+  padding: 16px 2px 2px;
+  border: 0;
+  border-top: 1px solid var(--fl-divider);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fl-title);
+  font: 600 0.96rem/1 var(--font-b);
+  cursor: pointer;
+}
+.v3-unit-create-row:hover {
+  color: #fff;
+}
+.v3-unit-create-row svg,
+.v3-unit-create-row .v3-chevron {
+  flex: 0 0 auto;
+  color: var(--fl-accent);
+  transition: transform 140ms ease;
+}
+.v3-unit-create-row:hover svg,
+.v3-unit-create-row:hover .v3-chevron {
+  transform: translateX(2px);
 }
 .v3-empty-prompts {
   gap: 7px;
@@ -9848,8 +9919,12 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 .v3-empty-prompts-label {
   color: var(--fl-muted);
-  font: 650 0.72rem/1.2 var(--font-b);
-  letter-spacing: 0;
+  font-family: var(--fl-font-label);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 .v3-empty-prompt-list {
   border-top: 1px solid rgba(124, 139, 160, 0.14);
@@ -9920,14 +9995,14 @@ body.auth-modal-visible .ask-tutor-backdrop {
   font-size: 0.7rem;
 }
 .mkt-chart-canvas {
-  height: 132px;
+  height: 152px;
   margin-top: 10px;
 }
 .market-v3-hero .market-chart-card {
   width: 100%;
   max-width: none;
   margin: 14px 0 0;
-  padding: 12px 12px 10px;
+  padding: 14px 14px 10px;
   border: 1px solid var(--fl-card-black-border);
   border-color: var(--fl-card-black-border) !important;
   border-radius: 8px;
@@ -9956,18 +10031,26 @@ body.auth-modal-visible .ask-tutor-backdrop {
   opacity: 0.82;
 }
 .mkt-range-toggle {
-  margin-top: 7px;
+  margin-top: 9px;
 }
+/* Larger, easier-to-tap range selectors. */
 .mkt-range-btn {
-  min-height: 23px;
-  font-size: 0.68rem;
+  min-height: 30px;
+  padding: 0 11px;
+  font-size: 0.7rem;
 }
 .market-read-card {
   margin-top: 15px;
-  padding: 14px;
+  padding: 15px;
 }
+/* MARKET READ eyebrow, restored and matched to the section's eyebrow style. */
 .market-read-eyebrow {
-  display: none;
+  display: block;
+  margin: 0 0 10px;
+  color: var(--fl-muted);
+  font: 650 0.68rem/1.2 var(--font-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .market-read-head {
   align-items: center;
@@ -10007,11 +10090,12 @@ body.auth-modal-visible .ask-tutor-backdrop {
   margin-bottom: 8px;
 }
 .market-learn-section .market-insight-learn {
-  min-height: 48px;
-  padding: 11px 2px;
+  min-height: 56px;
+  padding: 13px 14px;
 }
 .market-learn-section .market-insight-learn:hover {
-  background: var(--fl-card-black-quiet);
+  background: var(--fl-card-black);
+  border-color: var(--fl-card-black-border-hover);
 }
 .market-v3-col-secondary {
   margin-top: 17px;
@@ -10075,13 +10159,13 @@ body.auth-modal-visible .ask-tutor-backdrop {
     font-size: 1.9rem;
   }
   .mkt-chart-canvas {
-    height: 120px;
+    height: 138px;
   }
 }
 
 @media (min-width: 421px) {
   .mkt-chart-canvas {
-    height: 132px;
+    height: 154px;
   }
 }
 
@@ -10217,4 +10301,34 @@ body.auth-modal-visible .ask-tutor-backdrop {
 @media (max-width: 360px) {
   .cb-bubble { max-width: 84%; padding: 11px 14px; }
   .cb-rec { padding: 2px 6px; font-size: 0.68rem; }
+}
+
+/* ============================================================
+   COACH COMPOSER — robust pinning (final, authoritative)
+   Root cause of the clipped composer: in the empty/hero state the shell was
+   set to overflow-y:auto with the hero as flex:0, so the WHOLE shell scrolled
+   and the in-flow composer scrolled down behind the fixed .app-bottom-nav
+   whenever the hero content was tall (narrow widths). Fix: the shell never
+   scrolls — only the hero (empty) / thread (conversation) scrolls internally —
+   so the composer is always a pinned bottom row, cleared above the nav by the
+   shell's bottom padding (see .coach-page-shell padding above + home.css nav
+   reservation). Applies to every width and both states.
+   ============================================================ */
+.coach-page-shell,
+.coach-page-shell.has-composer,
+.coach-page-shell.is-conversation {
+  overflow: hidden !important;
+}
+.coach-page-shell.has-composer .coach-hero.coach-convo-intro,
+.coach-page-shell.is-conversation .coach-thread,
+.coach-page-shell .coach-thread {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+.coach-bottom-composer,
+.coach-compact-composer {
+  flex: 0 0 auto !important;
 }

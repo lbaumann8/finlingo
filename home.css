@@ -659,16 +659,15 @@ body.has-app-nav .market-v3-shell {
   padding-bottom: calc(var(--app-nav-h) + 28px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* Coach: lift its absolutely-positioned composer above the nav and
-   grow the shell's reserved bottom zone so the thread still clears it. */
-body.has-app-nav .coach-bottom-composer,
-body.has-app-nav .coach-compact-composer {
-  bottom: calc(var(--app-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
-}
+/* Coach: the composer is now an in-flow flex item at the bottom of the shell
+   (see coach.css .coach-page-shell), so the shell reserves the nav band +
+   safe-area + a ~12px visible gap. The authoritative value lives on
+   .coach-page-shell in coach.css (an !important shorthand); this mirrors it so
+   the fallback stays coherent. */
 body.has-app-nav .coach-page-shell,
 body.has-app-nav .coach-page-shell.has-composer,
 body.has-app-nav .coach-page-shell.is-conversation {
-  padding-bottom: calc(126px + var(--app-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--app-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
 }
 
 /* The legacy floating "Ask" button (viewport-fixed) would collide with the

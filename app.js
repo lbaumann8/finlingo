@@ -3414,12 +3414,17 @@ function renderV3LearnWorkspace(container) {
   const _emptyAiCard = `
     <div class="v3-empty-unit-state">
       <div class="v3-unit-create-card">
-        <div class="v3-unit-create-copy">
-          <h3>Create your first unit</h3>
-          <p>Turn any finance question into a short lesson path you can save and revisit.</p>
-          <span>Ask Finlingo about a topic</span>
+        <div class="v3-track-head">
+          <span class="v3-track-eyebrow">Custom Track</span>
+          <span class="v3-track-count"><b>0</b> Lessons</span>
         </div>
-        <button type="button" class="v3-unit-create-btn" onclick="startAskForNewUnit()">Create unit${_chevron}</button>
+        <h3 class="v3-track-title v3-unit-create-title">Create your first unit</h3>
+        <p class="v3-unit-create-desc">Turn any finance question into a focused lesson path you can save and revisit.</p>
+        <span class="fl-track v3-track-progress v3-unit-create-rail" aria-hidden="true"><span style="width:0%"></span></span>
+        <button type="button" class="v3-unit-create-row" onclick="startAskForNewUnit()">
+          <span>Create a unit</span>
+          ${_chevron}
+        </button>
       </div>
       <div class="v3-empty-prompts">
         <div class="v3-empty-prompts-label">Try a topic</div>

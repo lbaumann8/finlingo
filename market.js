@@ -3577,6 +3577,12 @@ function _renderSnapshotCard(meta) {
     ? `${displayChange >= 0 ? '+' : '-'}${Math.abs(displayChange).toFixed(2)} pts`
     : `${quote.change >= 0 ? '+' : '-'}${_formatUsd(Math.abs(quote.change), decimals)}`;
   const pctText = `${quote.changePct >= 0 ? '+' : '-'}${Math.abs(quote.changePct).toFixed(2)}%`;
+  // The strip shows one number per item. Equities/BTC show the signed daily %
+  // move, tinted up/down. The 10-year shows its yield LEVEL (e.g. 4.48%),
+  // tinted neutral — a rate level must never be read as a daily % move. The
+  // daily change stays in the hover title for all items.
+  const stripValue = isYield ? priceText : pctText;
+  const stripTone = isYield ? 'flat' : tone;
 
   return `
     <div class="snap-card market-summary-item">
@@ -3585,7 +3591,7 @@ function _renderSnapshotCard(meta) {
           <div class="snap-sym">${_escapeMarketHtml(symbol === '^TNX' ? '10Y' : symbol)}</div>
         </div>
         <div class="snap-price">${_escapeMarketHtml(priceText)}</div>
-        <div class="snap-change ${tone}" title="${_escapeMarketHtml(changeText)}">${_escapeMarketHtml(pctText)}</div>
+        <div class="snap-change ${stripTone}" title="${_escapeMarketHtml(changeText)}">${_escapeMarketHtml(stripValue)}</div>
       </div>
     </div>`;
 }
