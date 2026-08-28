@@ -1,0 +1,19 @@
+{
+  "name": "finlingo",
+  "version": "1.0.0",
+  "description": "Learn the language of finance. Daily lessons in markets, banking, and investing for students and early-career professionals.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "finance",
+    "education",
+    "learning"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
