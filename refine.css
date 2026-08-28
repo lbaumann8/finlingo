@@ -705,7 +705,7 @@
 .ask-message-user {
   margin-left: auto;
   border-bottom-right-radius: 4px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
 }
 .ask-message-assistant {
@@ -883,7 +883,7 @@
   padding: 0;
   border: 0;
   border-radius: 9px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   cursor: pointer;
 }
@@ -941,7 +941,7 @@
   padding: 9px 12px;
   border: 0;
   border-radius: 8px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   font: 600 0.74rem var(--font-b);
   cursor: pointer;
@@ -957,7 +957,7 @@
   padding: 11px 14px;
   border: 1px solid var(--border2);
   border-radius: 999px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   box-shadow: 0 10px 28px rgba(0,0,0,0.18);
   font: 600 0.74rem var(--font-b);
@@ -1008,7 +1008,7 @@
   padding: 9px 14px;
   border: 0;
   border-radius: 8px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   font: 600 0.74rem var(--font-b);
   cursor: pointer;
@@ -1057,7 +1057,7 @@
   padding: 9px 14px;
   border: 0;
   border-radius: 8px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   font: 600 0.74rem var(--font-b);
   cursor: pointer;
@@ -1492,7 +1492,7 @@
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: var(--contrast-strong-bg, #0B111C);
+    background: var(--contrast-strong-bg, #0A0A0A);
     color: #fff;
     font: 700 0.9rem var(--font-d);
   }
@@ -2194,7 +2194,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   body {
     padding: 0;
-    background: #ffffff;
+    background: #0A0A0A;
   }
 
   .app {
@@ -2204,32 +2204,32 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 720px;
     border: 0;
     border-radius: 0;
-    background: #ffffff;
+    background: #0A0A0A;
     box-shadow: none;
   }
 
   .screen:not(#authScreen) {
     margin: 0 0 0 var(--workspace-side);
-    background: #ffffff;
+    background: #0A0A0A;
   }
 
   #pathScreen {
     padding: 0 !important;
-    background: #ffffff;
+    background: #0A0A0A;
   }
 
   .lesson-path {
     min-height: 100%;
     background:
       radial-gradient(circle at 34% 8%, rgba(18, 128, 68, 0.045), transparent 30%),
-      #ffffff;
+      #0A0A0A;
   }
 
   .workspace-sidebar {
     width: var(--workspace-side);
     padding: 28px 18px;
-    border-right: 1px solid #e5e7eb;
-    background: #fbfcfb;
+    border-right: 1px solid #2A2A2A;
+    background: #0A0A0A;
   }
 
   .workspace-sidebar-head {
@@ -2240,14 +2240,14 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .workspace-brand {
     gap: 12px;
-    color: #0b1117;
+    color: #FFFFFF;
   }
 
   .workspace-brand-mark {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: #ffffff;
+    background: #151515;
     color: #ffffff;
     font-size: 0;
     position: relative;
@@ -2269,13 +2269,13 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     letter-spacing: -0.055em;
   }
 
-  .workspace-brand-name .brand-fin { color: #0b1117; }
-  .workspace-brand-name .brand-lingo { color: #0f7d45; }
+  .workspace-brand-name .brand-fin { color: #FFFFFF; }
+  .workspace-brand-name .brand-lingo { color: #4ADE80; }
 
   .workspace-collapse {
     width: 28px;
     height: 28px;
-    color: #111827;
+    color: #FFFFFF;
   }
 
   .workspace-collapse svg {
@@ -2297,20 +2297,20 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     padding: 0 17px;
     border: 1px solid transparent;
     border-radius: 10px;
-    color: #111827;
+    color: #FFFFFF;
     font: 650 1rem/1 var(--font-b);
   }
 
   .workspace-primary-nav button:hover {
-    background: #f3f7f4;
-    color: #063f24;
+    background: rgba(34,197,94,0.12);
+    color: #4ADE80;
   }
 
   .workspace-primary-nav button.active {
-    border-color: #d9e7df;
+    border-color: #2A2A2A;
     background: linear-gradient(135deg, rgba(15, 125, 69, 0.10), rgba(15, 125, 69, 0.04));
-    color: #065f35;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
+    color: #4ADE80;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
   }
 
   .workspace-primary-nav svg {
@@ -2328,12 +2328,12 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     margin-top: auto;
     min-height: 246px;
     padding: 28px 20px 18px;
-    border: 1px solid #dfe7e2;
+    border: 1px solid #2A2A2A;
     border-radius: 11px;
     background:
       radial-gradient(circle at 18% 18%, rgba(15, 125, 69, 0.08), transparent 34%),
-      linear-gradient(160deg, #f9fcfa 0%, #f2f8f4 100%);
-    color: #111827;
+      linear-gradient(160deg, #151515 0%, #101010 100%);
+    color: #FFFFFF;
   }
 
   .workspace-motivation-spark {
@@ -2349,7 +2349,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     letter-spacing: -0.01em;
   }
 
-  .workspace-motivation-card strong { color: #065f35; font-weight: 800; }
+  .workspace-motivation-card strong { color: #4ADE80; font-weight: 800; }
 
   .workspace-motivation-card svg {
     display: block;
@@ -2357,13 +2357,13 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: 76px;
     margin: 16px 0 0 8px;
     fill: none;
-    stroke: #0b7d44;
+    stroke: #4ADE80;
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
-  .workspace-motivation-card svg circle { fill: #0b7d44; stroke: none; }
+  .workspace-motivation-card svg circle { fill: #4ADE80; stroke: none; }
 
   .workspace-account {
     top: 24px;
@@ -2378,8 +2378,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 42px;
     height: 42px;
     border: 0;
-    background: #f1f4f8;
-    color: #111827;
+    background: #202020;
+    color: #FFFFFF;
   }
 
   .workspace-account-button svg {
@@ -2396,7 +2396,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 100%;
     margin: 0 auto;
     padding: 96px 0 60px;
-    color: #0b1117;
+    color: #FFFFFF;
   }
 
   .target-learn-main {
@@ -2405,13 +2405,13 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-learn-header {
     padding-bottom: 30px;
-    border-bottom: 1px solid #e3e7ec;
+    border-bottom: 1px solid #2A2A2A;
   }
 
   .target-learn-header > span,
   .target-section-heading > span,
   .target-rail-label {
-    color: #006b37;
+    color: #4ADE80;
     font: 800 0.78rem/1 var(--font-b);
     letter-spacing: 0.055em;
     text-transform: uppercase;
@@ -2419,7 +2419,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-learn-header h1 {
     margin: 22px 0 14px;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 clamp(2.6rem, 4.1vw, 3.85rem)/0.97 var(--font-d);
     letter-spacing: -0.07em;
   }
@@ -2431,13 +2431,13 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: 8px;
     margin-left: 4px;
     border-radius: 50%;
-    background: #0b7d44;
+    background: #4ADE80;
     vertical-align: baseline;
   }
 
   .target-learn-header p {
     margin: 0;
-    color: #667085;
+    color: #71717A;
     font: 1.05rem/1.6 var(--font-b);
     letter-spacing: -0.015em;
   }
@@ -2454,7 +2454,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .target-section-heading small {
-    color: #667085;
+    color: #71717A;
     font: 0.92rem/1 var(--font-b);
   }
 
@@ -2462,9 +2462,9 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-daily-card,
   .target-lesson-list,
   .target-rail-card {
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 12px;
-    background: rgba(255,255,255,0.92);
+    background: rgba(21,21,21,0.92);
     box-shadow: 0 10px 30px rgba(16, 24, 40, 0.035);
   }
 
@@ -2499,7 +2499,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-continue-card h2 {
     margin: 0 0 8px;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.36rem/1.15 var(--font-d);
     letter-spacing: -0.035em;
   }
@@ -2507,21 +2507,21 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-continue-card p,
   .target-daily-card p {
     margin: 0;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.94rem/1.45 var(--font-b);
   }
 
   .target-continue-card small {
     display: block;
     margin-top: 18px;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.82rem/1 var(--font-b);
   }
 
   .target-continue-card small i,
   .target-lesson-meta i {
     margin: 0 9px;
-    color: #667085;
+    color: #71717A;
     font-style: normal;
   }
 
@@ -2531,7 +2531,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: 46px;
     border-radius: 8px;
     background: #ffffff;
-    color: #0A101B;
+    color: #0A0A0A;
     font: 750 0.92rem/1 var(--font-b);
     box-shadow: none;
   }
@@ -2544,7 +2544,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 100%;
     min-height: 92px;
     padding: 16px 20px;
-    color: #006b37;
+    color: #4ADE80;
     text-align: left;
     cursor: pointer;
   }
@@ -2552,7 +2552,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-daily-card strong {
     display: block;
     margin-bottom: 6px;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.12rem/1.15 var(--font-d);
     letter-spacing: -0.03em;
   }
@@ -2560,7 +2560,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-daily-card > span:last-child,
   .target-text-link,
   .target-view-all {
-    color: #006b37;
+    color: #4ADE80;
     font: 750 0.87rem/1 var(--font-b);
   }
 
@@ -2584,15 +2584,15 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 71px;
     padding: 14px 20px 14px 16px;
     border: 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #2A2A2A;
     background: transparent;
-    color: #111827;
+    color: #FFFFFF;
     text-align: left;
     cursor: pointer;
   }
 
   .target-lesson-row:hover {
-    background: #f8fbf9;
+    background: #202020;
   }
 
   .target-lesson-number {
@@ -2600,9 +2600,9 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     place-items: center;
     width: 36px;
     height: 36px;
-    border: 1px solid #dce9e1;
+    border: 1px solid #2A2A2A;
     border-radius: 50%;
-    background: #eff8f2;
+    background: rgba(34,197,94,0.12);
     color: #ffffff;
     font: 750 0.9rem/1 var(--font-num);
   }
@@ -2616,7 +2616,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-lesson-copy strong {
     overflow: hidden;
-    color: #05080E;
+    color: #FFFFFF;
     font: 750 0.98rem/1.1 var(--font-b);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2624,20 +2624,20 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-lesson-copy small {
     overflow: hidden;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.84rem/1.15 var(--font-b);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .target-lesson-meta {
-    color: #334155;
+    color: #A1A1AA;
     font: 0.83rem/1 var(--font-b);
     white-space: nowrap;
   }
 
   .target-arrow {
-    color: #111827;
+    color: #FFFFFF;
     font-size: 1.25rem;
   }
 
@@ -2648,7 +2648,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 100%;
     height: 48px;
     border: 0;
-    background: #ffffff;
+    background: #151515;
     cursor: pointer;
   }
 
@@ -2681,18 +2681,18 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: 94px;
     border-radius: 50%;
     background:
-      radial-gradient(circle closest-side, #ffffff 73%, transparent 75% 100%),
-      conic-gradient(#ffffff calc(var(--pct) * 1%), #e6e8ed 0);
+      radial-gradient(circle closest-side, #151515 73%, transparent 75% 100%),
+      conic-gradient(#ffffff calc(var(--pct) * 1%), #2A2A2A 0);
   }
 
   .target-fluency-ring strong {
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.5rem/1 var(--font-num);
   }
 
   .target-fluency-card p {
     margin: 6px 0 12px;
-    color: #111827;
+    color: #A1A1AA;
     font: 0.9rem/1.3 var(--font-b);
   }
 
@@ -2705,7 +2705,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     overflow: hidden;
     margin: 0 8px 12px 0;
     border-radius: 99px;
-    background: #e6e8ed;
+    background: #2A2A2A;
   }
 
   .target-progress span {
@@ -2716,7 +2716,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .target-rail-card small {
-    color: #667085;
+    color: #71717A;
     font: 0.84rem/1.35 var(--font-b);
   }
 
@@ -2744,7 +2744,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 100%;
     border: 0;
     background: transparent;
-    color: #111827;
+    color: #FFFFFF;
     text-align: left;
     cursor: pointer;
   }
@@ -2755,7 +2755,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 34px;
     height: 34px;
     border-radius: 9px;
-    background: #eef8f2;
+    background: rgba(34,197,94,0.12);
     color: #ffffff;
   }
 
@@ -2771,14 +2771,14 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-rec-row strong {
     overflow: hidden;
-    color: #05080E;
+    color: #FFFFFF;
     font: 750 0.9rem/1.2 var(--font-b);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .target-rec-row small {
-    color: #667085;
+    color: #71717A;
     font: 0.84rem/1 var(--font-b);
     white-space: nowrap;
   }
@@ -2787,19 +2787,19 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 0.98rem/1 var(--font-b);
   }
 
   .target-ask-title span {
-    color: #05080E;
+    color: #FFFFFF;
     font-size: 1.05rem;
   }
 
   .target-ask-title em {
     padding: 4px 8px;
     border-radius: 8px;
-    background: #eaf6ee;
+    background: rgba(34,197,94,0.12);
     color: #ffffff;
     font: 800 0.72rem/1 var(--font-b);
     font-style: normal;
@@ -2807,7 +2807,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-ask-card p {
     margin: 13px 0 14px;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.9rem/1.4 var(--font-b);
   }
 
@@ -2819,30 +2819,30 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 34px;
     margin-top: 8px;
     padding: 0 14px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 8px;
-    background: #fbfcfd;
-    color: #111827;
+    background: #202020;
+    color: #FFFFFF;
     font: 0.86rem/1 var(--font-b);
     text-align: left;
     cursor: pointer;
   }
 
   .target-ask-card button:hover {
-    border-color: #cbd5df;
-    background: #f8fafc;
+    border-color: #363636;
+    background: #202020;
   }
 
   .target-ask-card button span {
-    color: #334155;
+    color: #A1A1AA;
   }
 
   .target-ask-card .target-ask-input {
     justify-content: space-between;
     min-height: 54px;
     margin-top: 24px;
-    color: #667085;
-    background: #ffffff;
+    color: #71717A;
+    background: #202020;
   }
 
   .target-ask-card .target-ask-input span {
@@ -2858,7 +2858,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-roadmap-block strong,
   .target-roadmap-time {
-    color: #111827;
+    color: #FFFFFF;
     font: 750 0.9rem/1.25 var(--font-b);
   }
 
@@ -2873,7 +2873,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-roadmap-block li {
     position: relative;
     padding-left: 18px;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.88rem/1.35 var(--font-b);
   }
 
@@ -2881,7 +2881,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     content: "✓";
     position: absolute;
     left: 0;
-    color: #ffffff;
+    color: #4ADE80;
     font-weight: 800;
   }
 
@@ -2893,11 +2893,11 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .target-roadmap-time {
     padding-top: 12px;
-    border-top: 1px solid #e5e7eb;
-    color: #4b5565;
+    border-top: 1px solid #2A2A2A;
+    color: #A1A1AA;
   }
 
-  .target-roadmap-time strong { color: #111827; }
+  .target-roadmap-time strong { color: #FFFFFF; }
 
   .market-translator-card {
     padding-bottom: 32px;
@@ -2915,16 +2915,16 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 72px;
     resize: vertical;
     padding: 13px 14px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 10px;
     outline: 0;
-    background: #ffffff;
-    color: #111827;
+    background: #202020;
+    color: #FFFFFF;
     font: 0.92rem/1.45 var(--font-b);
   }
 
   .market-translator-input-row textarea:focus {
-    border-color: #ffffff;
+    border-color: rgba(255,255,255,0.30);
     box-shadow: none;
   }
 
@@ -2935,7 +2935,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: 44px;
     border-radius: 8px;
     background: #ffffff;
-    color: #0A101B;
+    color: #0A0A0A;
   }
 
   .market-translator-output {
@@ -2943,29 +2943,29 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     gap: 10px;
     margin-top: 14px;
     padding: 16px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 12px;
-    background: #fbfcfd;
+    background: #151515;
   }
 
   .market-translator-output strong {
-    color: #111827;
+    color: #FFFFFF;
     font: 800 0.82rem/1 var(--font-b);
   }
 
   .market-translator-output p {
     margin: 5px 0 0;
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.86rem/1.5 var(--font-b);
   }
 
   .market-translator-loading,
   .market-translator-error {
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.86rem/1.45 var(--font-b);
   }
 
-  .market-translator-error { color: #b42318; }
+  .market-translator-error { color: #F87171; }
 
   .market-learning-shell {
     display: grid;
@@ -2975,7 +2975,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: 100%;
     margin: 0 auto;
     padding: 88px 0 64px;
-    color: #0b1117;
+    color: #FFFFFF;
   }
 
   .market-learning-main,
@@ -2984,12 +2984,12 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-learning-header {
     max-width: 720px;
     padding-bottom: 28px;
-    border-bottom: 1px solid #e3e7ec;
+    border-bottom: 1px solid #2A2A2A;
   }
 
   .market-learning-header > span,
   .market-card-kicker {
-    color: #006b37;
+    color: #4ADE80;
     font: 800 0.78rem/1 var(--font-b);
     letter-spacing: 0.055em;
     text-transform: uppercase;
@@ -2997,23 +2997,23 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .market-learning-header h1 {
     margin: 20px 0 12px;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 clamp(2.25rem, 3.4vw, 3.35rem)/1 var(--font-d);
     letter-spacing: -0.065em;
   }
 
   .market-learning-header p {
     margin: 0;
-    color: #667085;
+    color: #71717A;
     font: 1.02rem/1.6 var(--font-b);
   }
 
   .market-story-card,
   .market-learning-card {
     margin-top: 24px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 14px;
-    background: rgba(255,255,255,0.94);
+    background: rgba(21,21,21,0.94);
     box-shadow: 0 10px 30px rgba(16, 24, 40, 0.035);
   }
 
@@ -3029,14 +3029,14 @@ body.entry-gate-visible #authScreen.auth-modal-open {
 
   .market-story-primary {
     padding-bottom: 20px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #2A2A2A;
   }
 
   .market-story-primary > span,
   .market-story-point > span {
     display: block;
     margin-bottom: 8px;
-    color: #667085;
+    color: #71717A;
     font: 750 0.78rem/1 var(--font-b);
     letter-spacing: 0.02em;
   }
@@ -3044,7 +3044,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-story-primary h2 {
     max-width: 660px;
     margin: 0;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.75rem/1.16 var(--font-d);
     letter-spacing: -0.045em;
   }
@@ -3052,7 +3052,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-story-point p {
     max-width: 650px;
     margin: 0;
-    color: #344054;
+    color: #A1A1AA;
     font: 0.96rem/1.58 var(--font-b);
   }
 
@@ -3071,7 +3071,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-section-head h2,
   .market-learning-card h2 {
     margin: 9px 0 0;
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.25rem/1.22 var(--font-d);
     letter-spacing: -0.035em;
   }
@@ -3079,7 +3079,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-learning-card > p,
   .market-personal-card p,
   .market-ask-card small {
-    color: #4b5565;
+    color: #A1A1AA;
     font: 0.9rem/1.5 var(--font-b);
   }
 
@@ -3092,9 +3092,9 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-mini-snapshot .snap-card {
     min-width: 0;
     padding: 14px;
-    border: 1px solid #e1e7ed;
+    border: 1px solid #2A2A2A;
     border-radius: 12px;
-    background: #fbfcfd;
+    background: #151515;
     box-shadow: none;
   }
 
@@ -3103,13 +3103,13 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .market-mini-snapshot .snap-sym {
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 0.86rem/1 var(--font-b);
   }
 
   .market-mini-snapshot .snap-name {
     margin-top: 4px;
-    color: #667085;
+    color: #71717A;
     font: 0.72rem/1.2 var(--font-b);
   }
 
@@ -3118,7 +3118,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .market-mini-snapshot .snap-price {
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 1.08rem/1 var(--font-num);
   }
 
@@ -3149,10 +3149,10 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     gap: 10px;
     min-height: 48px;
     padding: 0 13px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 10px;
-    background: #ffffff;
-    color: #111827;
+    background: #151515;
+    color: #FFFFFF;
     font: 700 0.88rem/1.25 var(--font-b);
     text-align: left;
     cursor: pointer;
@@ -3164,15 +3164,15 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #eef8f2;
+    background: rgba(34,197,94,0.12);
     color: #ffffff;
     font: 800 0.75rem/1 var(--font-b);
   }
 
   .market-decision-choice:hover,
   .market-decision-choice.is-selected {
-    border-color: #ffffff;
-    background: #f4fbf7;
+    border-color: rgba(255,255,255,0.30);
+    background: rgba(34,197,94,0.12);
   }
 
   .market-decision-choice:disabled {
@@ -3183,10 +3183,10 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     display: none;
     margin-top: 16px;
     padding: 14px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 11px;
-    background: #fbfcfd;
-    color: #344054;
+    background: #151515;
+    color: #A1A1AA;
     font: 0.88rem/1.55 var(--font-b);
   }
 
@@ -3207,10 +3207,10 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     gap: 12px;
     min-height: 54px;
     padding: 0 13px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 10px;
-    background: #ffffff;
-    color: #111827;
+    background: #151515;
+    color: #FFFFFF;
     text-align: left;
     cursor: pointer;
   }
@@ -3221,12 +3221,12 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .market-concept-links strong {
-    color: #05080E;
+    color: #FFFFFF;
     font: 800 0.93rem/1 var(--font-b);
   }
 
   .market-concept-links small {
-    color: #667085;
+    color: #71717A;
     font: 0.76rem/1 var(--font-b);
   }
 
@@ -3249,10 +3249,10 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 100%;
     margin-top: 16px;
     padding: 13px 14px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 10px;
-    background: #f8fbf9;
-    color: #006b37;
+    background: #151515;
+    color: #4ADE80;
     font: 750 0.84rem/1.35 var(--font-b);
     text-align: left;
     cursor: pointer;
@@ -3261,7 +3261,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-personal-card button strong {
     display: block;
     margin-top: 4px;
-    color: #05080E;
+    color: #FFFFFF;
   }
 
   .market-ask-prompts {
@@ -3273,18 +3273,18 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-ask-prompts button {
     min-height: 38px;
     padding: 0 12px;
-    border: 1px solid #dfe5eb;
+    border: 1px solid #2A2A2A;
     border-radius: 9px;
-    background: #ffffff;
-    color: #111827;
+    background: #151515;
+    color: #FFFFFF;
     font: 0.84rem/1 var(--font-b);
     text-align: left;
     cursor: pointer;
   }
 
   .market-ask-prompts button:hover {
-    border-color: #ffffff;
-    background: #f4fbf7;
+    border-color: rgba(255,255,255,0.30);
+    background: rgba(34,197,94,0.12);
   }
 
   .market-ask-card small {
@@ -3373,7 +3373,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     justify-content: center !important;
     background:
       none,
-      #f4f6f5 !important;
+      #050505 !important;
     overflow: hidden;
   }
 
@@ -3382,10 +3382,10 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     max-width: 440px !important;
     height: min(900px, calc(100vh - 48px)) !important;
     min-height: 720px !important;
-    border: 1px solid #dfe5eb !important;
+    border: 1px solid #2A2A2A !important;
     border-radius: 28px !important;
-    background: #ffffff !important;
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.13) !important;
+    background: #0A0A0A !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
@@ -3405,8 +3405,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     height: var(--header-h) !important;
     min-height: var(--header-h) !important;
     padding: 0 !important;
-    border-bottom: 1px solid #eef1f4 !important;
-    background: rgba(255, 255, 255, 0.94) !important;
+    border-bottom: 1px solid #2A2A2A !important;
+    background: rgba(10, 10, 10, 0.94) !important;
     backdrop-filter: blur(18px);
     z-index: 8;
   }
@@ -3431,8 +3431,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     width: 36px !important;
     height: 36px !important;
     border-radius: 50% !important;
-    border: 1px solid #e4e8ed !important;
-    background: #f8faf9 !important;
+    border: 1px solid #2A2A2A !important;
+    background: #151515 !important;
     box-shadow: none !important;
   }
 
@@ -3446,8 +3446,8 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     min-height: var(--nav-h) !important;
     padding: 7px 12px 10px !important;
     margin: 0 !important;
-    border-top: 1px solid #eef1f4 !important;
-    background: rgba(255, 255, 255, 0.96) !important;
+    border-top: 1px solid #2A2A2A !important;
+    background: rgba(10, 10, 10, 0.96) !important;
     backdrop-filter: blur(18px);
     z-index: 8;
   }
@@ -3459,7 +3459,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     border: 0 !important;
     border-radius: 14px !important;
     background: transparent !important;
-    color: #667085 !important;
+    color: #71717A !important;
     font: 700 0.68rem/1 var(--font-b) !important;
     letter-spacing: -0.01em;
     display: flex !important;
@@ -3488,7 +3488,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
+    background: #0A0A0A !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
@@ -3504,12 +3504,12 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   #practiceSessionScreen {
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
+    background: #0A0A0A !important;
   }
 
   .lesson-path {
     min-height: auto !important;
-    background: #ffffff !important;
+    background: #0A0A0A !important;
   }
 
   .target-learn-shell,
@@ -3540,7 +3540,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .simple-page-header {
     padding: 0 0 22px !important;
     margin: 0 !important;
-    border-bottom: 1px solid #edf1f4 !important;
+    border-bottom: 1px solid #2A2A2A !important;
   }
 
   .target-learn-header span,
@@ -3556,7 +3556,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-learning-header h1,
   .simple-page-header h1 {
     margin: 14px 0 8px !important;
-    color: #05080E !important;
+    color: #FFFFFF !important;
     font: 850 2.05rem/1.02 var(--font-d) !important;
     letter-spacing: -0.06em !important;
   }
@@ -3565,7 +3565,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-learning-header p,
   .simple-page-header p {
     max-width: 34ch !important;
-    color: #667085 !important;
+    color: #A1A1AA !important;
     font: 0.95rem/1.55 var(--font-b) !important;
   }
 
@@ -3582,7 +3582,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .target-section-heading span,
   .market-card-kicker,
   .target-rail-label {
-    color: #4b5563 !important;
+    color: #FFFFFF !important;
     font: 800 0.68rem/1 var(--font-b) !important;
     letter-spacing: 0.065em !important;
     text-transform: uppercase !important;
@@ -3642,9 +3642,9 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   .market-learning-card,
   .simple-rail-section,
   .simple-content-card {
-    border: 1px solid #dfe5eb !important;
+    border: 1px solid #2A2A2A !important;
     border-radius: 16px !important;
-    background: #ffffff !important;
+    background: #151515 !important;
     box-shadow: none !important;
   }
 
@@ -3663,7 +3663,7 @@ body.entry-gate-visible #authScreen.auth-modal-open {
   }
 
   .target-ask-card {
-    background: linear-gradient(180deg, #ffffff, #fbfdfc) !important;
+    background: #151515 !important;
   }
 
   .market-story-card {

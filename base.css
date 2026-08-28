@@ -578,7 +578,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .daily-odds-side.up .daily-odds-value {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 .daily-odds-side.down .daily-odds-value {
   color: #ff9a80;
@@ -694,7 +694,7 @@ body {
 .daily-community-pick-chip.up {
   border-color: rgba(0,168,68,0.24);
   background: rgba(0,168,68,0.1);
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 .daily-community-pick-chip.down {
   border-color: rgba(240,106,74,0.22);
@@ -757,7 +757,7 @@ body {
   color: var(--text);
 }
 .daily-community-side.up .daily-community-side-value {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 .daily-community-side.down .daily-community-side-value {
   color: #ff9a80;

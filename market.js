@@ -7897,7 +7897,6 @@ function renderMarketPortfolioOverviewMarkup() {
         </div>
       </div>
       ${_renderMarketHoldingsSection(summary)}
-      ${_renderMarketWatchlistSection(summary)}
       <div class="market-list-section">
         ${_renderMarketSectionHead(
           'Blue Chip Picks',
@@ -7910,7 +7909,7 @@ function renderMarketPortfolioOverviewMarkup() {
       <div class="market-list-section">
         ${_renderMarketSectionHead(
           'Explore Assets',
-          'Open any chart, save names to your watchlist, and jump straight into a trade from the detail view.'
+          'Open any chart and jump straight into a trade from the detail view.'
         )}
         ${_renderAssetListMarkup(summary)}
       </div>
@@ -8662,7 +8661,6 @@ function _renderStockDetailMarkup(summary) {
 
   const market = summary.portfolio.assets[asset.symbol] || _createPracticeAssetState(asset);
   const statusBadge = _renderAssetMarketStatusBadge(asset);
-  const isWatchlisted = _isPracticeAssetWatchlisted(asset.symbol, summary.portfolio);
   const holding = _getPracticeHoldingSnapshot(summary, asset.symbol);
   const selectedQuantity = _getSelectedShareQuantity(asset.symbol);
   const selectedCost = _roundPortfolioNumber(selectedQuantity * (Number(market.price) || 0), 2);
@@ -8719,17 +8717,6 @@ function _renderStockDetailMarkup(summary) {
           <div class="market-stock-sheet-title">${asset.symbol}</div>
         </div>
         <div class="market-stock-sheet-actions">
-          <button
-            type="button"
-            class="market-watch-toggle${isWatchlisted ? ' is-active' : ''}"
-            onclick="togglePracticeAssetWatchlist('${asset.symbol}')"
-            aria-pressed="${isWatchlisted ? 'true' : 'false'}"
-            aria-label="${isWatchlisted ? `Remove ${asset.symbol} from watchlist` : `Add ${asset.symbol} to watchlist`}">
-            <svg viewBox="0 0 24 24" fill="${isWatchlisted ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.9">
-              <path d="M12 17.2l-5.45 3.05 1.04-6.12L3 9.75l6.16-.9L12 3.3l2.84 5.55 6.16.9-4.59 4.38 1.05 6.12z"></path>
-            </svg>
-            <span>${isWatchlisted ? 'Watching' : 'Watch'}</span>
-          </button>
           <button class="mkt-close-btn market-stock-sheet-close" onclick="closePracticeStockDetail()" aria-label="Close asset detail">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:14px;height:14px;">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -9028,25 +9015,6 @@ function _renderPortfolioSimulatorModal() {
             'Add holding',
             "focusMarketSearch()",
             { extraClass: 'market-empty-state-holdings' }
-          )}
-        </div>
-      `}
-
-      ${_getPracticeWatchlistSymbols(summary?.portfolio).length ? `
-        <div class="market-list-section market-list-section-sim">
-          ${_renderMarketSectionHead(
-            'Watchlist',
-            'Saved names for quick re-entry into charts and trades.'
-          )}
-          ${_renderWatchlistMarkup(summary)}
-        </div>
-      ` : `
-        <div class="market-list-section market-list-section-sim market-list-section-empty">
-          ${_renderMarketEmptyStateWithAction(
-            'No watchlist',
-            'Add to watchlist',
-            'focusMarketSearch()',
-            { extraClass: 'market-empty-state-watchlist' }
           )}
         </div>
       `}

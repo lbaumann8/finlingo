@@ -206,9 +206,9 @@
 .coach-simple-card {
   margin-top: 24px;
   padding: 18px 18px 19px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 16px;
-  background: #10151D;
+  background: #151515;
   color: #F5F5F5;
 }
 .coach-simple-head {
@@ -444,7 +444,7 @@
   border: 1px solid #fff;
   border-radius: 13px;
   background: #fff;
-  color: #070B12;
+  color: #050505;
   font: 700 0.86rem var(--font-b);
   cursor: pointer;
   transition: background .12s ease, border-color .12s ease, color .12s ease;
@@ -617,7 +617,7 @@ body.coach-depth-open { overflow: hidden; }
   flex-direction: column;
   overflow: hidden; /* the options list scrolls; header + footer stay put */
   padding: 22px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 20px;
   background: #0F1114;
   color: #F5F5F5;
@@ -701,9 +701,9 @@ body.coach-depth-open { overflow: hidden; }
 .coach-depth-option-main {
   display: block;
   padding: 15px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 14px;
-  background: #10151D;
+  background: #151515;
   transition: border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }
 .coach-depth-option:hover .coach-depth-option-main {
@@ -760,9 +760,9 @@ body.coach-depth-open { overflow: hidden; }
   flex: 0 0 auto;
   margin: 14px 0 0;
   padding: 11px 12px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 12px;
-  background: #10151D;
+  background: #151515;
   color: #C2C7CE;
   font: 500 0.82rem/1.45 var(--font-b);
 }
@@ -783,8 +783,8 @@ body.coach-depth-open { overflow: hidden; }
 }
 /* Cancel: dark, light text, low-contrast border — deliberately weaker than Create. */
 .coach-depth-cancel {
-  border: 1px solid #222C39;
-  background: #10151D;
+  border: 1px solid #2A2A2A;
+  background: #151515;
   color: #D1D5DB;
 }
 .coach-depth-cancel:hover:not(:disabled) { background: #181B20; border-color: rgba(255,255,255,0.16); }
@@ -797,7 +797,7 @@ body.coach-depth-open { overflow: hidden; }
   gap: 8px;
   border: 1px solid #FFFFFF;
   background: #FFFFFF;
-  color: #0B111C;
+  color: #0A0A0A;
 }
 .coach-depth-build .coach-depth-build-label { color: inherit; }
 .coach-depth-build:hover:not(:disabled) { background: #ECECEC; border-color: #ECECEC; }
@@ -816,14 +816,14 @@ body.coach-depth-open { overflow: hidden; }
   cursor: default;
   background: #FFFFFF;
   border-color: #FFFFFF;
-  color: #0B111C;
+  color: #0A0A0A;
 }
 .coach-depth-spin {
   width: 15px;
   height: 15px;
   border-radius: 50%;
   border: 2px solid rgba(11, 13, 16, 0.25);
-  border-top-color: #0B111C;
+  border-top-color: #0A0A0A;
   animation: cd-spin 0.7s linear infinite;
 }
 
@@ -838,7 +838,7 @@ body.coach-depth-open { overflow: hidden; }
   justify-content: space-between;
   gap: 12px;
   padding: 13px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 13px;
   background: #0F1114;
 }
@@ -888,7 +888,7 @@ body.coach-depth-open { overflow: hidden; }
   .coach-depth-actions {
     margin-top: 14px;
     padding-top: 13px;
-    border-top: 1px solid #222C39;
+    border-top: 1px solid #2A2A2A;
   }
   .coach-depth-cancel,
   .coach-depth-build { flex: 1; }
@@ -1130,7 +1130,7 @@ body.coach-depth-open { overflow: hidden; }
   padding: 8px 16px;
   border: 0;
   border-radius: 9px;
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
   font: 650 0.76rem var(--font-b);
   cursor: pointer;
@@ -1873,11 +1873,11 @@ body.cd-open { overflow: hidden; }
    ============================================================ */
 :root,
 [data-theme="light"] {
-  --bg: #0A101B;
-  --bg2: #10151D;
+  --bg: #0A0A0A;
+  --bg2: #151515;
   --bg3: #1A1E22;
-  --surface: #10151D;
-  --border: #222C39;
+  --surface: #151515;
+  --border: #2A2A2A;
   --border2: #303640;
   --text: #F5F5F5;
   --text-sub: #D1D5DB;
@@ -1886,27 +1886,27 @@ body.cd-open { overflow: hidden; }
   --green: #FFFFFF;
   --green-text: #FFFFFF;
   --green-dim: rgba(255, 255, 255, 0.10);
-  --shell-bg: #0A101B;
-  --topbar-bg: #0A101B;
-  --nav-bg: #0A101B;
+  --shell-bg: #0A0A0A;
+  --topbar-bg: #0A0A0A;
+  --nav-bg: #0A0A0A;
   --btn-primary-bg: #FFFFFF;
-  --btn-primary-text: #0A101B;
+  --btn-primary-text: #0A0A0A;
   --shell-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
 html,
 body {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
   color: #F5F5F5 !important;
 }
 
 body {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .app {
-  background: #0A101B !important;
-  border-color: #222C39 !important;
+  background: #0A0A0A !important;
+  border-color: #2A2A2A !important;
   color: #F5F5F5 !important;
 }
 
@@ -1914,8 +1914,8 @@ body:not(.entry-gate-visible) #mainTopbar,
 body:not(.entry-gate-visible) #mainNav,
 .topbar,
 .nav {
-  background: rgba(10, 16, 27, 0.94) !important;
-  border-color: #222C39 !important;
+  background: rgba(10,10,10, 0.94) !important;
+  border-color: #2A2A2A !important;
 }
 
 .brand,
@@ -1931,8 +1931,8 @@ body:not(.entry-gate-visible) #mainNav,
 
 .topbar-icon-btn,
 .demo-mode-btn {
-  background: #10151D !important;
-  border-color: #222C39 !important;
+  background: #151515 !important;
+  border-color: #2A2A2A !important;
   color: #F5F5F5 !important;
 }
 
@@ -1949,7 +1949,7 @@ body:not(.entry-gate-visible) #mainNav,
 #practiceSessionScreen,
 #ranksScreen,
 .lesson-path {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
   color: #F5F5F5 !important;
 }
 
@@ -2002,14 +2002,14 @@ body:not(.entry-gate-visible) #mainNav,
   max-width: 620px;
   margin-top: 32px;
   padding: 0 10px 0 20px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 20px;
-  background: #10151D;
+  background: #151515;
   box-shadow: none;
 }
 
 .coach-input-form:focus-within {
-  background: #10151D;
+  background: #151515;
   border-color: rgba(255, 255, 255, 0.32);
   box-shadow: none;
 }
@@ -2096,14 +2096,14 @@ body:not(.entry-gate-visible) #mainNav,
 .question,
 .fb-box,
 .result-card {
-  background: #10151D !important;
-  border-color: #222C39 !important;
+  background: #151515 !important;
+  border-color: #2A2A2A !important;
   color: #F5F5F5 !important;
   box-shadow: none !important;
 }
 
 .coach-next-card {
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   padding: 15px 16px;
 }
 
@@ -2167,7 +2167,7 @@ body:not(.entry-gate-visible) #mainNav,
 .market-claude-shell,
 .market-learning-shell,
 .simple-page-shell {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .target-learn-header,
@@ -2178,7 +2178,7 @@ body:not(.entry-gate-visible) #mainNav,
 .target-section-heading,
 .market-snapshot-head,
 .cd-foot {
-  border-color: #222C39 !important;
+  border-color: #2A2A2A !important;
 }
 
 .btn.btn-primary,
@@ -2195,8 +2195,8 @@ body:not(.entry-gate-visible) #mainNav,
 .market-coach-btn,
 .ask-finlingo-btn,
 .lesson-preview-ask {
-  background: #10151D !important;
-  border-color: #222C39 !important;
+  background: #151515 !important;
+  border-color: #2A2A2A !important;
   color: #F5F5F5 !important;
 }
 
@@ -2216,8 +2216,8 @@ body:not(.entry-gate-visible) #mainNav,
 
 .claude-unit-card,
 .claude-unit-lessons li button {
-  background: #10151D !important;
-  border-color: #222C39 !important;
+  background: #151515 !important;
+  border-color: #2A2A2A !important;
   color: #F5F5F5 !important;
 }
 
@@ -2231,18 +2231,18 @@ body:not(.entry-gate-visible) #mainNav,
 
 @media (min-width: 900px) {
   body {
-    background: #0A101B !important;
+    background: #0A0A0A !important;
   }
 
   .app {
-    background: #0A101B !important;
-    border-color: #222C39 !important;
+    background: #0A0A0A !important;
+    border-color: #2A2A2A !important;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52) !important;
   }
 
   .screen:not(#authScreen),
   .lesson-path {
-    background: #0A101B !important;
+    background: #0A0A0A !important;
   }
 }
 
@@ -2377,7 +2377,7 @@ body:not(.entry-gate-visible) #mainNav,
   border: 1px solid #FFFFFF;
   border-radius: var(--v3-radius-control);
   background: #FFFFFF;
-  color: #0A101B;
+  color: #0A0A0A;
   font: 740 0.86rem/1 var(--font-b);
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -2409,8 +2409,8 @@ body:not(.entry-gate-visible) #mainNav,
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid rgba(10, 16, 27,0.25);
-  border-top-color: #0A101B;
+  border: 2px solid rgba(10,10,10,0.25);
+  border-top-color: #0A0A0A;
   animation: market-recap-spin 0.7s linear infinite;
 }
 
@@ -2474,7 +2474,7 @@ body:not(.entry-gate-visible) #mainNav,
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
-    rgba(16, 21, 29, 0.92);
+    rgba(21,21,21, 0.92);
   color: #F5F5F5;
   font: 720 0.78rem/1 var(--font-b);
   cursor: pointer;
@@ -2530,7 +2530,7 @@ body:not(.entry-gate-visible) #mainNav,
 
 .v3-learn-tabs button.active {
   background: #FFFFFF;
-  color: #0A101B;
+  color: #0A0A0A;
   box-shadow: none;
 }
 .v3-learn-tabs button:disabled,
@@ -2828,7 +2828,7 @@ body:not(.entry-gate-visible) #mainNav,
 .v3-empty-units button.is-primary {
   border-color: #FFFFFF;
   background: #FFFFFF;
-  color: #0A101B;
+  color: #0A0A0A;
 }
 
 /* ============================================================
@@ -2989,7 +2989,7 @@ body:not(.entry-gate-visible) #mainNav {
   height: 44px;
   border: 1px solid var(--v3-border);
   border-radius: 50%;
-  background: rgba(16, 21, 29, 0.78);
+  background: rgba(21,21,21, 0.78);
   color: var(--v3-title);
   cursor: pointer;
   transition: background var(--v3-dur) var(--v3-ease), border-color var(--v3-dur) var(--v3-ease);
@@ -3070,7 +3070,7 @@ body:not(.entry-gate-visible) #mainNav {
   cursor: pointer;
   transition: background var(--v3-dur-fast) var(--v3-ease);
 }
-.market-asset-option:hover { background: #222C39; }
+.market-asset-option:hover { background: #2A2A2A; }
 .market-asset-option:active { background: #22262d; }
 .market-asset-option:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
 .market-asset-option.is-selected { color: #fff; }
@@ -3403,7 +3403,7 @@ body:not(.entry-gate-visible) #mainNav {
 
 .mkt-crosshair-dot {
   fill: #F5F5F5;
-  stroke: rgba(10, 16, 27, 0.7);
+  stroke: rgba(10,10,10, 0.7);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -4477,7 +4477,7 @@ body.market-chart-scrubbing {
   --green-text: #FFFFFF;
   --green-dim: rgba(255, 255, 255, 0.10);
   --btn-primary-bg: #FFFFFF;
-  --btn-primary-text: #0A101B;
+  --btn-primary-text: #0A0A0A;
   --boost-border: rgba(255,255,255,0.18);
   --boost-icon-surface: rgba(255,255,255,0.08);
   --boost-icon-border: rgba(255,255,255,0.16);
@@ -4485,7 +4485,7 @@ body.market-chart-scrubbing {
 }
 
 body {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .brand-lingo,
@@ -4527,7 +4527,7 @@ body {
 .skill-fill-confident {
   background: #FFFFFF !important;
   border-color: #FFFFFF !important;
-  color: #0A101B !important;
+  color: #0A0A0A !important;
 }
 
 /* Cleanup (post-migration): the two ACTIVE elements below were removed from the
@@ -4551,7 +4551,7 @@ body {
 .market-v3-shell {
   background:
     radial-gradient(circle at 10% 0%, rgba(31, 120, 255, 0.05), transparent 28%),
-    #0A101B !important;
+    #0A0A0A !important;
 }
 
 .market-v3-action-card:hover,
@@ -4559,7 +4559,7 @@ body {
   border-color: rgba(255, 255, 255, 0.30) !important;
   background:
     linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.008)),
-    #192230 !important;
+    #202020 !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.045) !important;
 }
 
@@ -4579,11 +4579,15 @@ body {
   stop-color: rgba(255, 255, 255, 0) !important;
 }
 
-.mkt-hero-chart.down .mkt-hero-line,
-.market-v3-move.down,
-.market-v3-support strong.down {
+.mkt-hero-chart.down .mkt-hero-line {
   color: #FFFFFF !important;
   stroke: #FFFFFF !important;
+}
+
+/* Market movement, not generic UI — must stay red, not swept into white. */
+.market-v3-move.down,
+.market-v3-support strong.down {
+  color: var(--mkt-down, #F87171) !important;
 }
 
 .mkt-hero-chart.down .mkt-hero-fill-top {
@@ -4623,11 +4627,21 @@ body {
 
 /* Market redesign keeps Finlingo green even after the white-accent pass. */
 .market-v3-shell {
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .market-v3-change,
 .market-v3-action-icon {
+  color: #22F05A !important;
+}
+
+/* These three "up" selectors got swept into the white-forcing group above
+   (WHITE ACCENT OVERRIDE, ~line 4503) along with generic UI accents, but
+   they render real market movement (ticker %, mini chart change, market
+   read chip) and must stay green like the rest of the market surface. */
+.market-read-chip.up,
+.market-mini-snapshot-4 .snap-change.up,
+.mkt-chart-change.up {
   color: #22F05A !important;
 }
 
@@ -4782,7 +4796,7 @@ body.ch-open { overflow: hidden; }
   color: #c7cad1;
   cursor: pointer;
 }
-.ch-icon-btn:hover { background: #222C39; color: #fff; }
+.ch-icon-btn:hover { background: #2A2A2A; color: #fff; }
 .ch-icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ch-newchat {
   display: flex;
@@ -4848,7 +4862,7 @@ body.ch-open { overflow: hidden; }
   align-items: center;
   justify-content: center;
 }
-.ch-row-menu-btn:hover { background: #222C39; color: #fff; }
+.ch-row-menu-btn:hover { background: #2A2A2A; color: #fff; }
 .ch-row-menu-btn svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
 .ch-menu {
   position: absolute;
@@ -4859,7 +4873,7 @@ body.ch-open { overflow: hidden; }
   padding: 5px;
   border: 1px solid #24272e;
   border-radius: 11px;
-  background: #192230;
+  background: #202020;
   box-shadow: 0 12px 30px rgba(0,0,0,0.45);
   display: flex;
   flex-direction: column;
@@ -4875,21 +4889,21 @@ body.ch-open { overflow: hidden; }
   border-radius: 8px;
   cursor: pointer;
 }
-.ch-menu button:hover { background: #222C39; }
+.ch-menu button:hover { background: #2A2A2A; }
 .ch-menu .ch-menu-danger { color: #f08a8a; }
 .ch-confirm { min-width: 190px; padding: 11px; gap: 9px; }
 .ch-confirm-text { color: #f1f2f4; font: 500 0.84rem var(--font-b); }
 .ch-confirm-actions { display: flex; justify-content: flex-end; gap: 7px; }
 .ch-mini {
   border: 1px solid #2a2d35;
-  background: #192230;
+  background: #202020;
   color: #d7dae0;
   font: 600 0.76rem var(--font-b);
   padding: 7px 12px;
   border-radius: 8px;
   cursor: pointer;
 }
-.ch-mini:hover { background: #222C39; }
+.ch-mini:hover { background: #2A2A2A; }
 .ch-mini-primary { background: #2563eb; border-color: transparent; color: #fff; }
 .ch-mini-danger { background: #c0392b; border-color: transparent; color: #fff; }
 .ch-row-rename { display: block; padding: 8px; }
@@ -4921,7 +4935,7 @@ body.ch-open { overflow: hidden; }
    sparingly, soft charcoal cards, thin low-contrast borders.
    ============================================================ */
 #microLessonScreen {
-  background: #070B12;
+  background: #050505;
   padding: 0 !important;
   overflow: hidden;
 }
@@ -4967,7 +4981,7 @@ body.ch-open { overflow: hidden; }
   align-items: center;
   justify-content: center;
 }
-.ml-back:hover { background: #222C39; color: #fff; }
+.ml-back:hover { background: #2A2A2A; color: #fff; }
 .ml-back svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ml-progress-label {
   min-width: 0;
@@ -5238,7 +5252,7 @@ body.ch-open { overflow: hidden; }
   border: 0;
   border-radius: 14px;
   background: #ffffff;
-  color: #070B12;
+  color: #050505;
   font: 700 0.98rem var(--font-b);
   cursor: pointer;
   transition: background .12s ease, transform .08s ease, box-shadow .12s ease;
@@ -5301,7 +5315,7 @@ body.ch-open { overflow: hidden; }
 .ml-nav-fwd {
   background: #ffffff;
   border-color: #ffffff;
-  color: #070B12;
+  color: #050505;
 }
 .ml-nav-back:hover:not(:disabled) { background: #232E3B; color: #fff; }
 .ml-nav-fwd:hover:not(:disabled) { background: #f0f1f3; }
@@ -5326,7 +5340,7 @@ body.ch-open { overflow: hidden; }
   border: 1px solid #fff;
   border-radius: 13px;
   background: #fff;
-  color: #070B12;
+  color: #050505;
   font: 700 0.86rem var(--font-b);
   cursor: pointer;
   transition: background .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
@@ -5357,7 +5371,7 @@ body.ch-open { overflow: hidden; }
   font: 600 0.92rem var(--font-b);
   cursor: pointer;
 }
-.ml-secondary:hover { background: #192230; color: #fff; }
+.ml-secondary:hover { background: #202020; color: #fff; }
 
 /* Completion */
 .ml-recap-intro,
@@ -5441,7 +5455,7 @@ body.ch-open { overflow: hidden; }
 .ml-unit-review-delete:hover { color: #ef9a92; }
 .ml-start-over-confirm {
   background: #fff;
-  color: #070B12;
+  color: #050505;
 }
 .ml-start-over-confirm:hover { background: #eceef1; }
 
@@ -5476,7 +5490,7 @@ body.ch-open { overflow: hidden; }
   position: fixed;
   inset: 0;
   z-index: 1900;
-  background: #0A101B;
+  background: #0A0A0A;
   padding: 16px 0;
 }
 #accountPageOverlay.open { display: block; }
@@ -5489,8 +5503,8 @@ body.account-page-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
   color: #F5F5F5;
-  background: #0A101B;
-  border: 1px solid #222C39;
+  background: #0A0A0A;
+  border: 1px solid #2A2A2A;
   border-radius: 18px;
   box-shadow: var(--shell-shadow);
   overflow: hidden;
@@ -5503,8 +5517,8 @@ body.account-page-open { overflow: hidden; }
   align-items: center;
   gap: 10px;
   padding: 0 20px;
-  border-bottom: 1px solid #222C39;
-  background: rgba(10, 16, 27, 0.94);
+  border-bottom: 1px solid #2A2A2A;
+  background: rgba(10,10,10, 0.94);
 }
 .account-page-top h1 {
   margin: 0;
@@ -5539,16 +5553,16 @@ body.account-page-open { overflow: hidden; }
   min-height: 0;
   overflow-y: auto;
   padding: 20px 20px calc(26px + env(safe-area-inset-bottom, 0px));
-  background: #0A101B;
+  background: #0A0A0A;
 }
 .account-profile {
   display: flex;
   align-items: center;
   gap: 13px;
   padding: 15px 16px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 12px;
-  background: #10151D;
+  background: #151515;
 }
 .account-avatar {
   flex: 0 0 auto;
@@ -5604,9 +5618,9 @@ body.account-page-open { overflow: hidden; }
 }
 .account-list {
   overflow: hidden;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 12px;
-  background: #10151D;
+  background: #151515;
 }
 .account-row {
   width: 100%;
@@ -5617,7 +5631,7 @@ body.account-page-open { overflow: hidden; }
   gap: 9px;
   padding: 0 15px;
   border: 0;
-  border-bottom: 1px solid #222C39;
+  border-bottom: 1px solid #2A2A2A;
   background: transparent;
   color: #F5F5F5;
   text-align: left;
@@ -5749,9 +5763,9 @@ body.account-page-open { overflow: hidden; }
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid #222C39;
+  border: 1px solid #2A2A2A;
   border-radius: 12px;
-  background: #10151D;
+  background: #151515;
   color: #D1D5DB;
   cursor: pointer;
   transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms ease;
@@ -5828,7 +5842,7 @@ body.account-page-open { overflow: hidden; }
   width: min(394px, calc(100vw - 74px));
   margin-top: 0;
   padding: 10px 0 0;
-  background: linear-gradient(to top, #0A101B 82%, rgba(10, 16, 27, 0));
+  background: linear-gradient(to top, #0A0A0A 82%, rgba(10,10,10, 0));
 }
 
 .coach-bottom-composer .coach-input-form,
@@ -6183,7 +6197,7 @@ body:not(.entry-gate-visible) #mainNav {
   padding: 5px;
   border: 1px solid #24272e;
   border-radius: 12px;
-  background: #192230;
+  background: #202020;
   box-shadow: 0 14px 34px rgba(0,0,0,0.5);
 }
 .unit-menu-item {
@@ -6198,7 +6212,7 @@ body:not(.entry-gate-visible) #mainNav {
   border-radius: 8px;
   cursor: pointer;
 }
-.unit-menu-item:hover { background: #222C39; }
+.unit-menu-item:hover { background: #2A2A2A; }
 .unit-menu-item-danger { color: #f08a8a; }
 .unit-menu-item-danger:hover { background: rgba(192,71,60,0.16); }
 
@@ -6389,8 +6403,8 @@ body.unit-confirm-open { overflow: hidden; }
   flex-direction: column;
   width: 88%;          /* % of the app frame, not the browser */
   max-width: 380px;    /* keep a narrow strip of the screen visible */
-  background: #0A101B;
-  border-right: 1px solid var(--border2, #303D4C);
+  background: #0A0A0A;
+  border-right: 1px solid var(--border2, #363636);
   box-shadow: 6px 0 18px rgba(0, 0, 0, 0.35);
   transform: translateX(-100%);
   /* ease-in while sliding out (closing) */
@@ -6662,7 +6676,7 @@ body.nav-drawer-lock { overflow: hidden; }
   padding: 10px 0 0;
   transform: translateX(-50%);
   z-index: 16;
-  background: linear-gradient(to top, #0A101B 84%, rgba(10, 16, 27, 0));
+  background: linear-gradient(to top, #0A0A0A 84%, rgba(10,10,10, 0));
 }
 
 .coach-edu-note {
@@ -6946,7 +6960,7 @@ body:not(.entry-gate-visible) #mainTopbar {
     min-height: 0;
     margin: 0;
     padding: 16px 20px calc(122px + env(safe-area-inset-bottom, 0px));
-    background: #0A101B;
+    background: #0A0A0A;
   }
 
   .coach-bottom-composer,
@@ -7100,7 +7114,7 @@ body:not(.entry-gate-visible) #mainTopbar,
   margin: 0 !important;
   padding: 0 !important;
   border-radius: 0 !important;
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .topbar-row {
@@ -7278,7 +7292,7 @@ body:not(.entry-gate-visible) #mainNav,
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  background: #0A101B !important;
+  background: #0A0A0A !important;
 }
 
 .coach-page-shell.has-composer .coach-hero {
@@ -7432,7 +7446,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   width: 100% !important;
   height: auto !important;
   padding: 0 !important;
-  background: #0A101B !important;
+  background: #0A0A0A !important;
   border: 0 !important;
   overflow: hidden !important;
   backdrop-filter: none !important;
@@ -7453,7 +7467,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   align-items: center;
   padding: 0 14px;
   border-bottom: 0;
-  background: #0A101B;
+  background: #0A0A0A;
 }
 
 .auth-back-btn {
@@ -7475,7 +7489,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 
 .auth-back-btn:hover {
-  background: #10151D;
+  background: #151515;
 }
 
 .auth-back-btn:focus-visible {
@@ -7506,7 +7520,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   padding: 34px 24px calc(28px + env(safe-area-inset-bottom, 0px)) !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: #0A101B !important;
+  background: #0A0A0A !important;
   box-shadow: none !important;
 }
 
@@ -7542,9 +7556,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
   min-height: 46px;
   padding: 3px;
   margin-bottom: 22px;
-  border: 1px solid #303D4C;
+  border: 1px solid #363636;
   border-radius: 11px;
-  background: #10151D;
+  background: #151515;
 }
 
 #authScreen .auth-tab {
@@ -7559,7 +7573,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 
 #authScreen .auth-tab.active {
   background: #FFFFFF !important;
-  color: #0A101B !important;
+  color: #0A0A0A !important;
 }
 
 #authScreen .auth-form {
@@ -7580,9 +7594,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
 #authScreen .field-input {
   min-height: 48px;
   padding: 0 13px;
-  border: 1px solid #303D4C;
+  border: 1px solid #363636;
   border-radius: 11px;
-  background: #10151D;
+  background: #151515;
   color: #FFFFFF;
   font: 500 0.94rem/1.2 var(--font-b);
 }
@@ -7593,7 +7607,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 
 #authScreen .field-input:focus {
   border-color: #737A85;
-  background: #10151D;
+  background: #151515;
 }
 
 #authScreen .field-input.error {
@@ -7679,24 +7693,24 @@ body.auth-modal-visible .ask-tutor-backdrop {
 #authScreen .auth-primary-btn {
   margin-top: 4px;
   background: #FFFFFF;
-  color: #0A101B;
+  color: #0A0A0A;
 }
 
 #authScreen .auth-primary-btn:disabled {
   opacity: 1;
-  background: #222C39 !important;
+  background: #2A2A2A !important;
   color: #737A85 !important;
   cursor: not-allowed;
 }
 
 #authScreen .auth-primary-btn.btn-loading {
-  color: #0A101B !important;
+  color: #0A0A0A !important;
   background: #FFFFFF !important;
 }
 
 #authScreen .auth-primary-btn.btn-loading::after {
-  border-color: rgba(10, 16, 27,0.22);
-  border-top-color: #0A101B;
+  border-color: rgba(10,10,10,0.22);
+  border-top-color: #0A0A0A;
 }
 
 #authScreen .auth-divider {
@@ -7707,7 +7721,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 
 #authScreen .auth-divider::before,
 #authScreen .auth-divider::after {
-  background: #222C39;
+  background: #2A2A2A;
 }
 
 #authScreen .auth-google-btn {
@@ -7715,13 +7729,13 @@ body.auth-modal-visible .ask-tutor-backdrop {
   align-items: center;
   justify-content: center;
   gap: 11px;
-  border: 1px solid #303D4C;
+  border: 1px solid #363636;
   background: transparent;
   color: #FFFFFF;
 }
 
 #authScreen .auth-google-btn:hover {
-  background: #10151D;
+  background: #151515;
 }
 
 #authScreen .google-mark {
@@ -7824,7 +7838,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   width: 100%;
   max-width: 100%;
   margin: 0;
-  background: #070B12;
+  background: #050505;
 }
 #microLessonScreen.active > #microUnitRoot {
   width: 100%;
@@ -7965,7 +7979,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 
 /* ── Mint send button (primary/helpful action) ── */
-.coach-send { background: var(--fl-accent); color: #06231A; }
+.coach-send { background: var(--fl-accent); color: #0B0D0F; }
 .coach-send:hover { background: var(--fl-accent-hover); filter: none; transform: translateY(-1px); }
 
 /* ── Composer focus → mint ring ── */
@@ -8552,8 +8566,8 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .market-wl-row:hover { background: var(--fl-surface-hover); }
 .market-wl-row:focus-visible { outline: 2px solid var(--v3-focus); outline-offset: -2px; }
 .market-wl-row.is-selected {
-  background: rgba(105,221,165,0.035);
-  box-shadow: inset 0 0 0 1px rgba(105,221,165,0.10);
+  background: rgba(255,255,255,0.035);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
 }
 .market-wl-row.is-selected::before {
   content: ""; position: absolute; left: 0; width: 3px; height: 32px;
@@ -8563,7 +8577,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
 .market-wl-row.is-selected .market-wl-name,
 .market-wl-row.is-selected .market-wl-price { color: #F4F8F5; }
 .market-wl-row.is-selected .market-wl-badge {
-  border-color: rgba(105,221,165,0.28);
+  border-color: rgba(255,255,255,0.28);
   color: var(--fl-accent);
 }
 .market-wl-badge {
@@ -8910,8 +8924,8 @@ body.auth-modal-visible .ask-tutor-backdrop {
   display: none;
 }
 .coach-msg-user {
-  background: rgba(105, 221, 165, 0.10);
-  border-color: rgba(105, 221, 165, 0.20);
+  background: rgba(255,255,255, 0.10);
+  border-color: rgba(255,255,255, 0.20);
   color: var(--fl-title);
 }
 @media (max-width: 520px) {
@@ -8978,7 +8992,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
   stroke-linejoin: round;
 }
 .v3-unit-create-btn:hover {
-  background: rgba(105, 221, 165, 0.13);
+  background: rgba(255,255,255, 0.13);
   color: var(--fl-title);
 }
 .v3-empty-prompts {
@@ -10317,7 +10331,7 @@ body.auth-modal-visible .ask-tutor-backdrop {
    SUGGESTED OUTGOING QUESTIONS  (Coach blank state)
    The three follow-up suggestions read as suggested USER messages:
    right-aligned muted-green reply bubbles that mirror the real
-   .coach-msg-user surface (rgba(105,221,165,.10) fill, .20 border),
+   .coach-msg-user surface (rgba(255,255,255,.10) fill, .20 border),
    replacing the old full-width divider rows + chevrons. Scoped to
    .coach-followups so no other suggestion surface is affected.
    Appended last so it wins the cascade (incl. the ≤520px width:100%
@@ -10340,9 +10354,9 @@ body.auth-modal-visible .ask-tutor-backdrop {
   max-width: 84%;             /* leave open space on the left */
   min-height: 0;
   padding: 10px 14px;
-  border: 1px solid rgba(105, 221, 165, 0.20);
+  border: 1px solid rgba(255,255,255, 0.20);
   border-radius: 16px 16px 6px 16px;   /* user-message tail (lower-right) */
-  background: rgba(105, 221, 165, 0.10);
+  background: rgba(255,255,255, 0.10);
   color: var(--fl-title);
   font: 500 0.9rem/1.4 var(--font-b);
   text-align: left;
@@ -10351,15 +10365,15 @@ body.auth-modal-visible .ask-tutor-backdrop {
 }
 /* Restore the top border the old first-child rule stripped for the row look. */
 .coach-followups .coach-suggest-card:first-child {
-  border-top: 1px solid rgba(105, 221, 165, 0.20);
+  border-top: 1px solid rgba(255,255,255, 0.20);
 }
 .coach-followups .coach-suggest-card:hover {
-  background: rgba(105, 221, 165, 0.16);
-  border-color: rgba(105, 221, 165, 0.30);
+  background: rgba(255,255,255, 0.16);
+  border-color: rgba(255,255,255, 0.30);
 }
 .coach-followups .coach-suggest-card:active {
   transform: translateY(1px);
-  background: rgba(105, 221, 165, 0.22);
+  background: rgba(255,255,255, 0.22);
 }
 .coach-followups .coach-suggest-card:focus-visible {
   outline: 2px solid var(--fl-accent-border);
@@ -10380,4 +10394,59 @@ body.auth-modal-visible .ask-tutor-backdrop {
     width: fit-content;
     max-width: 85%;
   }
+}
+
+/* ============================================================
+   COACH COMPOSER — persistent, pinned above the bottom nav
+   #coachComposer (index.html) is a permanent sibling of #coachRoot, never
+   rewritten by renderCoach()'s innerHTML swap — the SAME element across
+   every Coach state: hero, conversation, build-unit flow, quiz prompts,
+   market commentary. Positioned like .app-bottom-nav itself — absolute
+   within the .screen box (coincident with .app's content box) rather than
+   position:fixed, which would anchor to the real viewport and drift off
+   the centered ~440px phone-canvas frame on desktop.
+   Targeted by #id so this beats every earlier .coach-bottom-composer /
+   .coach-compact-composer positioning pass regardless of source order;
+   appended last so its shared padding-bottom reservation also wins.
+   ============================================================ */
+#coachComposer {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: auto !important;
+  bottom: calc(var(--app-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 10px) !important;
+  transform: none !important;
+  z-index: 35;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 10px 22px 0 !important;
+  background: linear-gradient(to top, #0A0A0A 78%, rgba(10, 10, 10, 0)) !important;
+  pointer-events: none;
+}
+#coachComposer .coach-input-form,
+#coachComposer .coach-edu-note {
+  pointer-events: auto;
+}
+#coachComposer .coach-input-form {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto !important;
+}
+#coachComposer .coach-edu-note {
+  max-width: 760px;
+  margin: 7px auto 0 !important;
+  text-align: center;
+}
+body[data-active-screen="authScreen"] #coachComposer,
+body.auth-modal-visible #coachComposer {
+  display: none !important;
+}
+
+/* Reserve the composer's own footprint (gap + input pill + edu note) on
+   top of the nav band, so the last scrolled message in any state is never
+   hidden behind the fixed composer or nav. */
+.coach-page-shell,
+.coach-page-shell.has-composer,
+.coach-page-shell.is-conversation {
+  padding-bottom: calc(var(--app-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 120px) !important;
 }

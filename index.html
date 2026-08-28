@@ -29,18 +29,18 @@
       screens.css → styles for each screen (auth, profile, leaderboard, path, course, quiz, result)
       ui.css      → floating/overlay components (toast, modal, edit sheet, share card, banners)
   -->
-  <link rel="stylesheet" href="theme.css?v=navy-1"/>
-  <link rel="stylesheet" href="base.css?v=navy-2"/>
-  <link rel="stylesheet" href="screens.css?v=navy-1"/>
-  <link rel="stylesheet" href="ui.css?v=navy-1"/>
+  <link rel="stylesheet" href="theme.css?v=black-1"/>
+  <link rel="stylesheet" href="base.css?v=black-1"/>
+  <link rel="stylesheet" href="screens.css?v=watchlist-1"/>
+  <link rel="stylesheet" href="ui.css?v=black-1"/>
   <link rel="stylesheet" href="practice.css?v=navy-1"/>
   <!-- Visual refinement pass — loaded last so it wins the cascade. -->
-  <link rel="stylesheet" href="refine.css?v=navy-1"/>
+  <link rel="stylesheet" href="refine.css?v=black-1"/>
   <!-- Ask-first components — loaded after refine so they win. -->
-  <link rel="stylesheet" href="coach.css?v=suggest-bubbles-1"/>
-  <link rel="stylesheet" href="classroom.css?v=navy-1"/>
+  <link rel="stylesheet" href="coach.css?v=black-1"/>
+  <link rel="stylesheet" href="classroom.css?v=black-1"/>
   <!-- Home screen + bottom nav — loaded last so it wins the cascade. -->
-  <link rel="stylesheet" href="home.css?v=live-fix-1"/>
+  <link rel="stylesheet" href="home.css?v=watchlist-1"/>
 </head>
 <body class="entry-gate-visible">
 
@@ -141,9 +141,22 @@
   <!-- ══════════════════════════════════════════════════════
      SCREEN: ASK / COACH (the AI front door)
      Built by renderCoach() in coachPage.js.
+     #coachComposer is a persistent sibling of #coachRoot (never
+     rewritten by innerHTML swaps) so it stays mounted, pinned above
+     the bottom nav, across every Coach state — hero, conversation,
+     build-unit flow, quiz prompts, market commentary.
 ═══════════════════════════════════════════════════════ -->
   <div class="screen" id="coachScreen">
     <div id="coachRoot"></div>
+    <div class="coach-bottom-composer" id="coachComposer">
+      <form class="coach-input-form" id="coachComposerForm" onsubmit="return CoachPage.submit(event)">
+        <input id="coachInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask FinLingo…" aria-label="Ask FinLingo"/>
+        <button type="submit" class="coach-send" aria-label="Ask">
+          <svg class="ui-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+      <p class="coach-edu-note">Educational only. Not financial advice.</p>
+    </div>
   </div>
 
 
@@ -532,7 +545,7 @@
   </button>
 
   <!-- ══════════════════════════════════════════════════════
-       BOTTOM NAV — Home · Learn · Market · Coach
+       BOTTOM NAV — Home · Coach · Learn · Market
        Fixed within the app canvas. Shown only on the four primary
        screens; wired + active-synced by home.js.
   ═══════════════════════════════════════════════════════ -->
@@ -541,6 +554,10 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
       <span>Home</span>
     </button>
+    <button type="button" class="abn-item" id="abnCoach" aria-label="Coach" onclick="Home.nav('coach')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 10h8M8 14h5"/></svg>
+      <span>Coach</span>
+    </button>
     <button type="button" class="abn-item" id="abnLearn" aria-label="Learn" onclick="Home.nav('learn')">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9 12 4 2 9l10 5 10-5Z"/><path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
       <span>Learn</span>
@@ -548,10 +565,6 @@
     <button type="button" class="abn-item" id="abnMarket" aria-label="Market" onclick="Home.nav('market')">
       <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
       <span>Market</span>
-    </button>
-    <button type="button" class="abn-item" id="abnCoach" aria-label="Coach" onclick="Home.nav('coach')">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 10h8M8 14h5"/></svg>
-      <span>Coach</span>
     </button>
   </nav>
 
@@ -595,8 +608,9 @@
 <script src="personalization.js"></script>
 <script src="dailyLoop.js"></script>
 <script src="fluencyEngine.js"></script>
-<script src="app.js?v=live-fix-2"></script>
-<script src="market.js?v=live-fix-1"></script>
+<script src="app.js?v=black-1"></script>
+<script src="market.js?v=watchlist-1"></script>
+<script src="watchlist.js?v=1"></script>
 <script src="practice.js?v=release-1"></script>
 <script src="tutor.js?v=release-1"></script>
 <script src="microUnits.js?v=slides-1"></script>
@@ -607,7 +621,7 @@
 <script src="navDrawer.js?v=classroom-ia-3"></script>
 <script src="classroomData.js?v=classroom-ia-3"></script>
 <script src="classroom.js?v=navy-1"></script>
-<script src="home.js?v=stitch-home-3"></script>
+<script src="home.js?v=watchlist-1"></script>
 
 </body>
 </html>

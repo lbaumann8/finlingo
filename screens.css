@@ -2468,12 +2468,8 @@
   transition: color 0.3s ease;
 }
 
-/* Light mode adjustments for rank colors */
-[data-theme="light"] .rank-intern   { color: #555555; }
-[data-theme="light"] .rank-analyst  { color: #1a6fd4; }
-[data-theme="light"] .rank-vp       { color: #6050b8; }
-[data-theme="light"] .rank-director { color: #9a6f00; }
-[data-theme="light"] .rank-md       { color: #333333; }
+/* App is dark-only now — no light-mode rank color overrides needed;
+   the base .rank-* colors above are already tuned for a dark canvas. */
 
 
 /* ════════════════════════════════════════════════════════════
@@ -3122,7 +3118,7 @@
   font-weight: 700;
   color: var(--muted);
 }
-.market-mini-change.up { color: var(--green-text); }
+.market-mini-change.up { color: var(--mkt-up, #22F05A); }
 .market-mini-change.down { color: var(--red-text); }
 .market-edu-card .home-card-title { margin-top: 2px; }
 .market-edu-label {
@@ -3252,7 +3248,7 @@
   color: var(--muted);
 }
 
-.simple-indicator-change.up { color: var(--green-text); }
+.simple-indicator-change.up { color: var(--mkt-up, #22F05A); }
 .simple-indicator-change.down { color: var(--red-text); }
 
 .simple-market-list {
@@ -3501,7 +3497,7 @@
 
 .market-mover-pill.up .market-mover-pill-change,
 .market-mover-pill-change.up {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-mover-pill.down .market-mover-pill-change,
@@ -3574,7 +3570,7 @@
 
 .market-portfolio-hero-change.up,
 .market-sim-change.up {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-portfolio-hero-change.down,
@@ -3795,7 +3791,7 @@
 .market-summary-sub.up,
 .market-asset-change.up,
 .market-holding-gain.up {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-summary-value.down,
@@ -4648,7 +4644,7 @@
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.snap-change.up { color: var(--green-text); }
+.snap-change.up { color: var(--mkt-up, #22F05A); }
 .snap-change.down { color: var(--red-text); }
 .snap-spark-wrap { width: 96px; height: 34px; flex-shrink: 0; }
 .snap-spark { width: 96px; height: 34px; display: block; }
@@ -4659,7 +4655,7 @@
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.snap-spark-line.up { stroke: var(--green-text); }
+.snap-spark-line.up { stroke: var(--mkt-up, #22F05A); }
 .snap-spark-line.down { stroke: var(--red-text); }
 .snap-spark-loading,
 .snap-spark-empty {
@@ -4749,7 +4745,7 @@
 }
 
 .market-stock-change.up {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-stock-change.down {
@@ -4970,7 +4966,7 @@
 .market-stock-chart-change.up,
 .market-stock-chart-stat strong.up,
 .market-position-stat strong.up {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-stock-chart-change.down,
@@ -5000,7 +4996,7 @@
 }
 
 .market-stock-extended-line.up .market-stock-extended-value {
-  color: var(--green-text);
+  color: var(--mkt-up, #22F05A);
 }
 
 .market-stock-extended-line.down .market-stock-extended-value {
@@ -6645,9 +6641,9 @@
 }
 .learn-chip:hover:not(.is-active) { background: var(--bg3); }
 .learn-chip.is-active {
-  background: var(--contrast-strong-bg, #0B111C);
+  background: var(--contrast-strong-bg, #0A0A0A);
   color: var(--contrast-strong-text, #fff);
-  border-color: var(--contrast-strong-bg, #0B111C);
+  border-color: var(--contrast-strong-bg, #0A0A0A);
 }
 .learn-chip:focus-visible { outline: 2px solid rgba(15,138,72,0.35); outline-offset: 2px; }
 
@@ -6808,7 +6804,7 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
-.market-simplified-hero.market-tone-up   { border-left-color: var(--green); }
+.market-simplified-hero.market-tone-up   { border-left-color: var(--mkt-up, #22F05A); }
 .market-simplified-hero.market-tone-down { border-left-color: var(--red); }
 .market-simplified-hero.market-tone-flat { border-left-color: var(--muted2); }
 .market-tone-tag {
@@ -6819,7 +6815,7 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.market-tone-up .market-tone-tag   { color: var(--green-text); }
+.market-tone-up .market-tone-tag   { color: var(--mkt-up, #22F05A); }
 .market-tone-down .market-tone-tag { color: var(--red-text); }
 .market-simplified-headline {
   font-family: var(--font-d);
@@ -6946,3 +6942,271 @@
 /* Softer, taller collapsible education cards on Market */
 #marketScreen .market-collapse-toggle { padding-top: 6px; padding-bottom: 6px; }
 #marketScreen .home-simple-card { padding: 18px 20px; border-radius: 18px; box-shadow: var(--shadow-md); }
+
+/* ============================================================
+   MARKET → WATCHLIST entry link
+   A single quiet pill, top-right of the Market page. Opens the
+   dedicated Watchlist screen (watchlist.js).
+   ============================================================ */
+.market-watchlist-link-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2px;
+}
+.market-watchlist-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-family: var(--font-m);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.market-watchlist-link svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.market-watchlist-link:hover { background: #1c1c1c; }
+
+/* ============================================================
+   WATCHLIST SCREEN
+   Intentionally minimal: title, one search bar with an inline
+   add action, and a clean vertical list. No charts, no cards,
+   no market summary — see watchlist.js.
+   ============================================================ */
+.watchlist-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+
+.watchlist-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.watchlist-back,
+.watchlist-add-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+}
+.watchlist-back { color: var(--muted2); }
+.watchlist-back svg,
+.watchlist-add-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.watchlist-back:hover,
+.watchlist-add-btn:hover { background: #1c1c1c; }
+.watchlist-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-m);
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* ── Search bar ── */
+.watchlist-search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.watchlist-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: var(--radius);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+}
+.watchlist-search-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--muted2);
+}
+.watchlist-search-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.watchlist-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-m);
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 0;
+}
+.watchlist-search-input::placeholder { color: var(--muted2); font-weight: 500; }
+.watchlist-search-add {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.watchlist-search-add svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.watchlist-search-add:hover { background: #1c1c1c; }
+
+.watchlist-search-results { display: flex; flex-direction: column; }
+.watchlist-search-empty {
+  padding: 10px 2px 2px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.watchlist-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.watchlist-search-results .watchlist-result-row:last-child { border-bottom: 0; }
+.watchlist-result-id { min-width: 0; }
+.watchlist-result-symbol {
+  font-family: var(--font-m);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.watchlist-result-name {
+  margin-top: 1px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.watchlist-result-quote {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.watchlist-result-price { font-family: var(--font-m); font-weight: 700; font-size: 0.82rem; color: var(--text); }
+.watchlist-result-change { font-size: 0.72rem; font-weight: 600; color: var(--muted); }
+.watchlist-result-change.up { color: var(--mkt-up, #22F05A); }
+.watchlist-result-change.down { color: var(--mkt-down, #F87171); }
+
+.watchlist-row-add {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+}
+.watchlist-row-add svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.watchlist-row-add:hover { background: #1c1c1c; }
+.watchlist-row-add.is-added { color: var(--muted2); background: transparent; cursor: default; }
+
+/* ── Empty state ── */
+.watchlist-empty {
+  padding: 52px 12px 12px;
+  text-align: center;
+}
+.watchlist-empty-title {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.watchlist-empty-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ── Saved watchlist rows ── */
+.watchlist-rows { display: flex; flex-direction: column; }
+.watchlist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.watchlist-rows .watchlist-row:last-child { border-bottom: 0; }
+.watchlist-row-id { min-width: 0; }
+.watchlist-row-symbol {
+  font-family: var(--font-m);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.watchlist-row-name {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.watchlist-row-quote {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+.watchlist-row-price { font-family: var(--font-m); font-weight: 700; font-size: 0.86rem; color: var(--text); }
+.watchlist-row-change { margin-top: 2px; font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.watchlist-row-change.up { color: var(--mkt-up, #22F05A); }
+.watchlist-row-change.down { color: var(--mkt-down, #F87171); }
+
+.watchlist-row-remove {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--muted2);
+}
+.watchlist-row-remove svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+.watchlist-row-remove:hover { color: var(--red-text, #F87171); background: rgba(239, 68, 68, 0.1); }

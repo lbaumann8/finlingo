@@ -1,59 +1,74 @@
 /* ============================================================
    theme.css
-   Finlingo design system — restrained, editorial, finance-grade.
+   Finlingo design system — fully black/monochrome, finance-grade.
 
-   - Single accent: emerald green. Gold is reserved for streaks
-     only. Red is reserved for losses.
-   - No metallic gradients, no decorative shadows, no glow.
+   - Dominant identity is black/charcoal/gray/white. Green and red
+     are reserved strictly for meaningful financial signal: market
+     up/down (--mkt-*, coach.css) and success/completion/correctness
+     states (--green, --cl-green). Gold is reserved for streaks and
+     neutral/caution status only.
+   - No metallic gradients, no decorative shadows, no glow, no
+     glassmorphism.
    - Type: Inter (display + body), IBM Plex Mono (numerals only).
    ============================================================ */
 
 /* ── DARK MODE (DEFAULT) ─────────────────────────────────────── */
 :root {
   /* ── Surfaces ─────────────────────────────────────────────────
-     Deliberately near-black, with very small luminance steps so
-     elevation reads as structure rather than decoration.        */
-  --bg:       #0A101B;          /* page background — deep navy   */
-  --bg2:      #10151D;          /* card / input surface (filled, no border needed) */
-  --bg3:      #192230;          /* hover, inactive fill — raised navy */
-  --surface:  #10151D;           /* elevated layers              */
+     Deliberately near-black neutral charcoal, with small luminance
+     steps so elevation reads as structure rather than decoration.
+     No blue/navy tint — pure black/gray ramp.                    */
+  --bg:       #0A0A0A;          /* page background — near-black  */
+  --bg2:      #151515;          /* card / input surface           */
+  --bg3:      #202020;          /* hover, inactive fill, inputs   */
+  --surface:  #151515;           /* elevated layers               */
 
   /* ── Borders ─────────────────────────────────────────────────
-     Subtle blue-gray, hairline first. Not neutral gray.        */
-  --border:   #222C39;
-  --border2:  #303D4C;
+     Subtle neutral gray, hairline first.                        */
+  --border:   #2A2A2A;
+  --border2:  #363636;
 
   /* ── Text scale ──────────────────────────────────────────────
-     Warm-white primary, cool-gray secondary. Body recedes;
+     White primary, soft gray secondary. Body recedes;
      headings hold the column.                                  */
-  --text:       #F4F6F8;
-  --text-sub:   #B3BBC7;
-  --muted:      #7F8998;
-  --muted2:     #56606D;
+  --text:       #FFFFFF;
+  --text-sub:   #A1A1AA;
+  --muted:      #71717A;
+  --muted2:     #52525B;
 
   /* ── Accents ─────────────────────────────────────────────────
-     Emerald is the brand and the only positive signal.         */
-  --green:      #ffffff;
+     Monochrome is the brand: --green is the app's established
+     semantic "success/selected/positive" token and renders WHITE
+     (not literal green) almost everywhere — quiz correctness,
+     completed lessons, active tabs/chips, badges, brand accents.
+     ACTUAL financial green/red lives in separate, untouched tokens:
+     --mkt-up / --mkt-down (coach.css, market data) and --cl-green
+     (classroom.css, correctness). Do not repoint --green itself to
+     real green — coach.css re-asserts white here for the whole app
+     and hundreds of sites across base/screens/ui/refine rely on
+     that convention; changing it here would be a product-identity
+     change, not a theme pass. ── */
+  --green:      #FFFFFF;
   --green-dim:  rgba(255,255,255,0.10);
-  --green-text: #ffffff;
+  --green-text: #FFFFFF;
 
-  --red:        #c03b3b;
-  --red-dim:    rgba(192,59,59,0.12);
-  --red-text:   #e96a6a;
+  --red:        #EF4444;
+  --red-dim:    rgba(239,68,68,0.12);
+  --red-text:   #F87171;
 
-  /* Gold — reserved for streaks. Flat tone, no gradient. */
-  --gold:       #b08a2c;
-  --gold-dim:   rgba(176,138,44,0.12);
-  --gold-text:  #d4a843;
+  /* Gold — reserved for streaks/caution. Flat tone, no gradient. */
+  --gold:       #CA8A04;
+  --gold-dim:   rgba(202,138,4,0.12);
+  --gold-text:  #EAB308;
 
-  /* Platinum — flat slate. No metallic gradients. */
-  --plat:               #aab2bf;
-  --plat-dim:           rgba(170,178,191,0.10);
-  --plat-text:          #e6e8ec;
-  --plat-border:        rgba(170,178,191,0.18);
-  --plat-border-strong: rgba(170,178,191,0.34);
+  /* Platinum — flat neutral gray. No metallic gradients. */
+  --plat:               #A1A1AA;
+  --plat-dim:           rgba(161,161,170,0.10);
+  --plat-text:          #E4E4E7;
+  --plat-border:        rgba(161,161,170,0.18);
+  --plat-border-strong: rgba(161,161,170,0.34);
   --plat-card:          var(--bg2);
-  --plat-cta:           #e6e8ec;
+  --plat-cta:           #E4E4E7;
   --plat-cta-hover:     #ffffff;
   --plat-shadow:        none;
 
@@ -62,13 +77,13 @@
   --boost-border:       rgba(255,255,255,0.18);
   --boost-icon-surface: rgba(255,255,255,0.08);
   --boost-icon-border:  rgba(255,255,255,0.16);
-  --boost-label:        var(--green-text);
+  --boost-label:        var(--text);
 
-  /* High-contrast navy surfaces (active tabs, dark chips) */
-  --contrast-strong-bg:       #192230;
-  --contrast-strong-bg-hover: #1F2A3A;
-  --contrast-strong-text:     #f4f6fa;
-  --contrast-strong-border:   rgba(170,182,199,0.18);
+  /* High-contrast neutral surfaces (active tabs, dark chips) */
+  --contrast-strong-bg:       #202020;
+  --contrast-strong-bg-hover: #2A2A2A;
+  --contrast-strong-text:     #FFFFFF;
+  --contrast-strong-border:   rgba(255,255,255,0.14);
 
   /* ── Typography ──────────────────────────────────────────────
      Single sans-serif (Inter) for everything textual.
@@ -97,91 +112,98 @@
   --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
 
   /* ── App shell ── */
-  --shell-bg:     #05080E;
-  --shell-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  --shell-bg:     #050505;
+  --shell-shadow: 0 16px 48px rgba(0,0,0,0.5);
 
-  /* ── Topbar / Nav ── */
-  --topbar-bg:  #0B111C;
-  --nav-bg:     #0B111C;
+  /* ── Topbar / Nav — dark to match the whole shell, subtle divider only ── */
+  --topbar-bg:  #0A0A0A;
+  --nav-bg:     #0A0A0A;
 
-  /* ── Primary button — mint brand accent (Phase 2). Brand-constant
-     across themes: the accent is the same in light and dark. ── */
-  --btn-primary-bg:       var(--fl-accent);
-  --btn-primary-bg-hover: var(--fl-accent-hover);
-  --btn-primary-text:     #06231A;   /* dark green ink for contrast on mint */
+  /* ── Primary button — charcoal bg / white text. Brand-constant
+     across themes (the app has one theme: dark). ── */
+  --btn-primary-bg:       #202020;
+  --btn-primary-bg-hover: #2A2A2A;
+  --btn-primary-text:     #FFFFFF;
 }
 
 
-/* ── LIGHT MODE ──────────────────────────────────────────────── */
+/* ── "LIGHT MODE" ────────────────────────────────────────────────
+   The app is intentionally monochrome-dark throughout (see the
+   product spec: "the entire app should feel dark"). The theme
+   toggle control remains wired for backward compatibility, but
+   [data-theme="light"] now resolves to the same near-black palette
+   instead of a white surface, so there is no light state to fall
+   into. ── */
 [data-theme="light"] {
-  --bg:       #ffffff;
-  --bg2:      #f6f7f9;
-  --bg3:      #eef0f3;
-  --surface:  #ffffff;
+  --bg:       #0A0A0A;
+  --bg2:      #151515;
+  --bg3:      #202020;
+  --surface:  #151515;
 
-  --border:   #e6e8ec;
-  --border2:  #d2d6dd;
+  --border:   #2A2A2A;
+  --border2:  #363636;
 
-  --text:     #0b0d10;
-  --text-sub: #3a414c;
-  --muted:    #6b7280;
-  --muted2:   #98a0ad;
+  --text:     #FFFFFF;
+  --text-sub: #A1A1AA;
+  --muted:    #71717A;
+  --muted2:   #52525B;
 
-  --green:      #ffffff;
+  --green:      #FFFFFF;
   --green-dim:  rgba(255,255,255,0.10);
-  --green-text: #ffffff;
+  --green-text: #FFFFFF;
 
-  --red:        #c0322f;
-  --red-dim:    rgba(192,50,47,0.08);
-  --red-text:   #a82323;
+  --red:        #EF4444;
+  --red-dim:    rgba(239,68,68,0.12);
+  --red-text:   #F87171;
 
-  --gold:       #9a7616;
-  --gold-dim:   rgba(154,118,22,0.10);
-  --gold-text:  #7a5e10;
+  --gold:       #CA8A04;
+  --gold-dim:   rgba(202,138,4,0.12);
+  --gold-text:  #EAB308;
 
-  --plat:               #5d6775;
-  --plat-dim:           rgba(93,103,117,0.10);
-  --plat-text:          #1f2937;
-  --plat-border:        rgba(93,103,117,0.18);
-  --plat-border-strong: rgba(93,103,117,0.34);
+  --plat:               #A1A1AA;
+  --plat-dim:           rgba(161,161,170,0.10);
+  --plat-text:          #E4E4E7;
+  --plat-border:        rgba(161,161,170,0.18);
+  --plat-border-strong: rgba(161,161,170,0.34);
   --plat-card:          var(--bg2);
-  --plat-cta:           #0b0d10;
-  --plat-cta-hover:     #1d222c;
+  --plat-cta:           #E4E4E7;
+  --plat-cta-hover:     #ffffff;
   --plat-shadow:        none;
 
   --boost-surface:      var(--bg2);
-  --boost-border:       rgba(15,138,72,0.22);
-  --boost-icon-surface: rgba(15,138,72,0.10);
-  --boost-icon-border:  rgba(15,138,72,0.20);
-  --boost-label:        var(--green-text);
+  --boost-border:       rgba(255,255,255,0.18);
+  --boost-icon-surface: rgba(255,255,255,0.08);
+  --boost-icon-border:  rgba(255,255,255,0.16);
+  --boost-label:        var(--text);
 
-  --contrast-strong-bg:       #0b0d10;
-  --contrast-strong-bg-hover: #1d222c;
-  --contrast-strong-text:     #ffffff;
-  --contrast-strong-border:   rgba(11,13,16,0.18);
+  --contrast-strong-bg:       #202020;
+  --contrast-strong-bg-hover: #2A2A2A;
+  --contrast-strong-text:     #FFFFFF;
+  --contrast-strong-border:   rgba(255,255,255,0.14);
 
-  --shadow-sm:  0 1px 2px rgba(15,18,24,0.06);
-  --shadow-md:  0 4px 16px rgba(15,18,24,0.08);
-  --shadow-lg:  0 12px 40px rgba(15,18,24,0.10);
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.45);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.55);
 
-  --shell-bg:     #f1f3f6;
-  --shell-shadow: 0 16px 48px rgba(15,18,24,0.10);
+  --shell-bg:     #050505;
+  --shell-shadow: 0 16px 48px rgba(0,0,0,0.5);
 
-  --topbar-bg:  #ffffff;
-  --nav-bg:     #ffffff;
+  --topbar-bg:  #0A0A0A;
+  --nav-bg:     #0A0A0A;
 
-  --btn-primary-bg:       var(--fl-accent);
-  --btn-primary-bg-hover: var(--fl-accent-hover);
-  --btn-primary-text:     #06231A;
+  --btn-primary-bg:       #202020;
+  --btn-primary-bg-hover: #2A2A2A;
+  --btn-primary-text:     #FFFFFF;
 }
 
 
 /* ============================================================
    CANONICAL PRIMITIVE LAYER  (Phase 1 — unified token foundation)
    Single source of truth for the dark "phone-canvas" surfaces,
-   the mint brand accent, the type ramp, radii, spacing, motion,
-   and focus. The Learn/Market (--v3-*) and Classroom (--cl-*)
-   systems alias onto these primitives (see coach.css / classroom.css).
+   the neutral white brand accent, the type ramp, radii, spacing,
+   motion, and focus. The Learn/Market (--v3-*) and Classroom
+   (--cl-*) systems alias onto these primitives (see coach.css /
+   classroom.css).
 
    Deliberately NOT theme-switched: the dark canvas is constant on the
    surfaces that consume these (Learn, Market, Classroom are always
@@ -189,58 +211,60 @@
 
    Market ± deltas (--mkt-*, defined in coach.css) stay INDEPENDENT so
    bright green keeps its "market-positive only" meaning and never bleeds
-   into the restrained mint accent.
+   into the restrained white accent.
 
    NOTE: the accent is namespaced --fl-accent (not a bare --accent) on
    purpose — practice.css has pre-existing dangling var(--accent) refs
    that will be wired to --fl-accent in Phase 7, not silently altered now.
    ============================================================ */
 :root {
-  /* ── Surfaces — navy ramp, deep → raised. Deliberately tonal:
-     page navy → near-black card → lighter navy raised/hover, so
-     elevation reads as structure, not decoration. ── */
-  --fl-bg-deep:         #070B12;   /* outermost page, below the canvas    */
-  --fl-bg:              #0A101B;   /* canvas background — deep navy        */
-  --fl-surface-passive: #0B0D10;   /* quiet / completed / recessed — near-black */
-  --fl-surface:         #10151D;   /* interactive card base — near-black navy */
-  --fl-surface-raised:  #151C27;   /* featured / focal card — lighter navy */
-  --fl-surface-hover:   #192230;   /* hover fill — raised navy             */
+  /* ── Surfaces — neutral black/charcoal ramp, deep → raised. Deliberately
+     tonal: near-black page → charcoal card → lighter charcoal raised/hover,
+     so elevation reads as structure, not decoration. No blue/navy tint. ── */
+  --fl-bg-deep:         #050505;   /* outermost page, below the canvas    */
+  --fl-bg:              #0A0A0A;   /* canvas background — near-black      */
+  --fl-surface-passive: #101010;   /* quiet / completed / recessed        */
+  --fl-surface:         #151515;   /* interactive card base                */
+  --fl-surface-raised:  #1B1B1B;   /* featured / focal card                */
+  --fl-surface-hover:   #202020;   /* hover fill                           */
 
-  /* ── Borders — subtle blue-gray, not neutral gray ── */
-  --fl-border:          #222C39;
-  --fl-border-strong:   #303D4C;
-  --fl-border-hover:    rgba(160,182,214,0.30);
-  --fl-divider:         rgba(160,182,214,0.08);
+  /* ── Borders — neutral gray hairline ── */
+  --fl-border:          #2A2A2A;
+  --fl-border-strong:   #363636;
+  --fl-border-hover:    rgba(255,255,255,0.22);
+  --fl-divider:         rgba(255,255,255,0.08);
 
-  /* ── Shared card treatment (overlay sheen + top inset) ── */
-  --fl-overlay:         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-  --fl-overlay-hover:   linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
-  --fl-inset:           inset 0 1px 0 rgba(255,255,255,0.04);
+  /* ── Shared card treatment — no gradients/glow per spec; flat surfaces
+     separate through hairline borders + spacing only. ── */
+  --fl-overlay:         none;
+  --fl-overlay-hover:   none;
+  --fl-inset:           none;
 
-  /* ── Text ramp — warm-white heading → cool-gray faint (meta).
+  /* ── Text ramp — white heading → mid-gray faint (meta).
      Spec-named aliases (--fl-text-*) map onto the same ramp so
      new markup can use either name. ── */
   --fl-heading:         #FFFFFF;   /* important page headings only        */
-  --fl-title:           #F4F6F8;   /* section + card titles — warm white  */
-  --fl-eyebrow:         #C6CEDA;
-  --fl-body:            #C9D0DB;   /* cool-gray body                      */
-  --fl-sub:             #B3BBC7;   /* cool-gray secondary                 */
-  --fl-muted:           #7F8998;
-  --fl-faint:           #56606D;
+  --fl-title:           #FFFFFF;   /* section + card titles               */
+  --fl-eyebrow:         #D4D4D8;
+  --fl-body:            #D4D4D8;   /* body copy                           */
+  --fl-sub:             #A1A1AA;   /* secondary copy                      */
+  --fl-muted:           #71717A;
+  --fl-faint:           #52525B;
 
   /* Spec canonical text aliases (identical ramp, spec names). */
-  --fl-text-primary:    #F4F6F8;
-  --fl-text-secondary:  #B3BBC7;
-  --fl-text-muted:      #7F8998;
-  --fl-text-faint:      #56606D;
+  --fl-text-primary:    #FFFFFF;
+  --fl-text-secondary:  #A1A1AA;
+  --fl-text-muted:      #71717A;
+  --fl-text-faint:      #52525B;
 
-  /* ── Mint accent — the single restrained brand accent.
-     Navy pass tightens it to #69DDA5. Market ± deltas (--mkt-*)
-     stay independent so market-green never bleeds into this. ── */
-  --fl-accent:          #69DDA5;
-  --fl-accent-hover:    #80E8B7;
-  --fl-accent-soft:     rgba(105,221,165,0.10);
-  --fl-accent-border:   rgba(105,221,165,0.30);
+  /* ── Accent — restrained white/neutral. This is the "brand accent" for
+     UI state (active nav, selected chips, progress, focus) — NOT a color
+     accent. Green/red stay reserved for --mkt-* (market ±) and --cl-green
+     (correctness) so financial meaning never gets diluted. ── */
+  --fl-accent:          #FFFFFF;
+  --fl-accent-hover:    #E4E4E7;
+  --fl-accent-soft:     rgba(255,255,255,0.08);
+  --fl-accent-border:   rgba(255,255,255,0.30);
 
   /* ── Radii ── */
   --fl-radius-card:     16px;
@@ -285,7 +309,7 @@
   --chip-selected-bg:     var(--fl-accent-soft);    /* selected chip / segment surface                 */
   --chip-selected-border: var(--fl-accent-border);
   --chip-selected-text:   var(--fl-accent);
-  --focus-ring:           rgba(118,214,162,0.45);   /* mint focus-visible outline                       */
+  --focus-ring:           rgba(255,255,255,0.45);   /* focus-visible outline                            */
 }
 
 
@@ -392,15 +416,14 @@ body.theme-transitioning * {
   --fl-label-size:     0.68rem;
   --fl-label-weight:   500;
   --fl-label-tracking: 0.14em;
-  --fl-label-color:    var(--fl-muted);   /* default low-contrast (legible on navy) */
+  --fl-label-color:    var(--fl-muted);   /* default low-contrast (legible on black) */
   --fl-label-dim:      var(--fl-faint);    /* extra-quiet */
   --fl-label-bright:   var(--fl-eyebrow);  /* raised emphasis */
 
-  /* ── Hybrid CTA tokens (approved decision) ──────────────────────
+  /* ── Hybrid CTA tokens ──────────────────────────────────────────
      Marquee progression actions = WHITE fill / dark ink.
-     Everything else keeps the mint brand accent (--fl-accent).
-     This does NOT revert the mint migration — only marquee CTAs
-     that opt into .btn-marquee become white. ── */
+     Everything else keeps the neutral brand accent (--fl-accent,
+     now white/monochrome — see the Accent block above). ── */
   --cta-marquee-bg:         #FFFFFF;
   --cta-marquee-bg-hover:   #ECEEF1;
   --cta-marquee-text:       #0B0D0F;
@@ -423,36 +446,27 @@ body.theme-transitioning * {
   --fl-card-pad:       var(--fl-space-6);
 
   /* ── Near-black content-card system (quiet premium surface) ──────
-     Extends the Learn track-card treatment (coach.css:8357, a flat
-     #0f1010 panel over the navy page) into a SHARED token layer so
-     answer cards, content cards, market cards, coach cards, and
-     selectors all read from one neutral near-black surface. No
-     gradients, no glossy inset, no raised blue-gray fills, no heavy
-     shadows — the page and cards separate through hairline borders
-     and spacing, not large color differences.
+     Shared token layer so answer cards, content cards, market cards,
+     coach cards, and selectors all read from one neutral near-black
+     surface. No gradients, no glossy inset, no heavy shadows — the
+     page and cards separate through hairline borders and spacing,
+     not large color differences.
 
-       black-1  = primary content/interactive card surface
-       black-2  = nested option/row + recessed surface (slightly lighter)
-       black-3  = quiet/disabled surface (lowest, no blue tint)
-     Borders stay neutral white-alpha (not the blue-gray --fl-border)
-     so nothing reads as a raised navy panel. ── */
-  --fl-card-black:          #0f1010;
-  --fl-card-black-nested:   #121416;
-  --fl-card-black-quiet:    #0c0d0d;
-  --fl-card-black-border:        rgba(255,255,255,0.07);
-  --fl-card-black-border-hover:  rgba(255,255,255,0.12);
-  /* Selected = restrained mint border + faint mint tint (not a block) */
-  --fl-card-black-selected-bg:     rgba(105,221,165,0.06);
-  --fl-card-black-selected-border: rgba(105,221,165,0.32);
+       card-1  = primary content/interactive card surface (#151515)
+       card-2  = nested option/row + recessed surface (slightly lighter)
+       card-3  = quiet/disabled surface (lowest contrast)
+     Borders stay neutral white-alpha so nothing reads as a raised
+     colored panel. ── */
+  --fl-card-black:          #151515;
+  --fl-card-black-nested:   #1B1B1B;
+  --fl-card-black-quiet:    #101010;
+  --fl-card-black-border:        rgba(255,255,255,0.08);
+  --fl-card-black-border-hover:  rgba(255,255,255,0.14);
+  /* Selected = restrained white border + faint white tint (not a block) */
+  --fl-card-black-selected-bg:     rgba(255,255,255,0.05);
+  --fl-card-black-selected-border: rgba(255,255,255,0.28);
 }
 
-[data-theme="light"] {
-  /* Marquee CTA in light mode: invert to a dark primary so the
-     "high-impact primary" reading survives on a light canvas.
-     (The Learn/Market/Mastery canvases stay dark regardless — this
-     only matters on any light-themed surface that opts in.) */
-  --cta-marquee-bg:       #0B0D0F;
-  --cta-marquee-bg-hover: #1D222C;
-  --cta-marquee-text:     #FFFFFF;
-  --fl-track-bg:          rgba(11,13,16,0.10);
-}
+/* No [data-theme="light"] override here: the app is dark-only now, so the
+   marquee CTA (white fill / dark ink) and track tokens stay constant
+   regardless of the (vestigial) theme-toggle state. */

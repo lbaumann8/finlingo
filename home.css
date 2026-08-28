@@ -1,22 +1,21 @@
 /* ============================================================
    home.css
-   Stitch "Obsidian Reserve" Home screen + the four-item bottom
-   nav (Home · Learn · Market · Coach).
+   Home screen + the four-item bottom nav (Home · Coach · Learn ·
+   Market).
 
    Presentation only. Reuses the canonical --fl-* token layer from
-   theme.css (surfaces, mint accent, display/label faces, radii).
-   Loaded LAST so it wins the cascade for its own elements.
+   theme.css (surfaces, neutral white accent, display/label faces,
+   radii). Loaded LAST so it wins the cascade for its own elements.
 
-   Surface language (matches the approved Stitch reference):
-     - Cards are DARK RAISED NAVY surfaces (surface-container family),
-       NOT the older near-black #0f1010 panels.
+   Surface language:
+     - Cards are near-black charcoal surfaces (#151515/#1B1B1B family).
      - Market card sits one step lighter for hierarchy.
      - Borders are subtle low-contrast white-alpha hairlines.
      - Card radius is the Stitch 12px, not the 16px app card radius.
 
    Rules:
      - Negative market values = red (--red-text)
-     - Positive market values = mint (--fl-accent)
+     - Positive market values = green (--mkt-up / --green-text)
      - No fake data, no image cards, no marketing heroes.
    ============================================================ */
 
@@ -25,17 +24,17 @@
   --app-nav-h: 64px;
 }
 
-/* ── Home-scoped surface + geometry tokens (Stitch match) ───────
+/* ── Home-scoped surface + geometry tokens ───────────────────────
    Kept local to #homeScreen so nothing else re-skins. Values map
-   onto the shared --fl-* navy ramp so the Home surfaces read as
-   part of the same system. ── */
+   onto the shared --fl-* near-black ramp so the Home surfaces read
+   as part of the same system. ── */
 #homeScreen {
-  --home-card:        var(--fl-surface-raised);   /* #151C27 — dark raised navy card   */
-  --home-card-hi:     #1B2431;                     /* market card — one step lighter    */
-  --home-nested:      var(--fl-surface);           /* #10151D — recessed inner surface  */
+  --home-card:        var(--fl-surface-raised);   /* #1B1B1B — dark raised card         */
+  --home-card-hi:     #232323;                     /* market card — one step lighter    */
+  --home-nested:      var(--fl-surface);           /* #151515 — recessed inner surface  */
   --home-border:      rgba(255, 255, 255, 0.06);   /* subtle low-contrast hairline      */
   --home-border-hover:rgba(255, 255, 255, 0.12);
-  --home-radius:      12px;                         /* Stitch card radius (rounded-xl)   */
+  --home-radius:      12px;                         /* card radius (rounded-xl)          */
   --home-radius-sm:   10px;                         /* row / chip radius                 */
 }
 
@@ -208,7 +207,7 @@
 .home-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
 .home-btn-primary {
   background: var(--fl-accent);
-  color: #06231A;
+  color: #0B0D0F;
 }
 .home-btn-primary:hover { background: var(--fl-accent-hover); }
 .home-btn-block { width: 100%; justify-content: center; }
@@ -368,7 +367,7 @@
   border: 0;
   border-radius: 9px;
   background: var(--fl-accent);
-  color: #06231A;
+  color: #0B0D0F;
   cursor: pointer;
   transition: background var(--fl-dur) var(--fl-ease), transform var(--fl-dur-fast) var(--fl-ease);
 }
@@ -527,7 +526,7 @@
   font-size: 0.82rem;
   font-weight: 500;
 }
-.home-ticker-pct.up   { color: var(--fl-accent); }
+.home-ticker-pct.up   { color: var(--mkt-up, #22F05A); }
 .home-ticker-pct.down { color: var(--red-text); }
 .home-ticker-pct.flat { color: var(--fl-muted); }
 
@@ -539,7 +538,7 @@
   color: var(--fl-muted);
   margin: 0 0 10px;
 }
-.home-market-movers .up   { color: var(--fl-accent); }
+.home-market-movers .up   { color: var(--mkt-up, #22F05A); }
 .home-market-movers .down { color: var(--red-text); }
 .home-market-movers .flat { color: var(--fl-muted); }
 
@@ -604,7 +603,7 @@
 .home-learnnext > svg.home-chevron { width: 18px; height: 18px; flex-shrink: 0; stroke: var(--fl-muted); fill: none; stroke-width: 2; }
 
 /* ============================================================
-   BOTTOM NAV — Home · Learn · Market · Coach
+   BOTTOM NAV — Home · Coach · Learn · Market
    Fixed within the app canvas. Hidden by default; shown only when
    body.has-app-nav (set by home.js on the four primary screens).
    ============================================================ */
@@ -619,7 +618,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
   grid-template-columns: repeat(4, 1fr);
   align-items: stretch;
-  background: rgba(21, 28, 39, 0.94);
+  background: rgba(10, 10, 10, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--home-border, rgba(255,255,255,0.06));
@@ -655,7 +654,8 @@ body.has-app-nav .app-bottom-nav { display: grid; }
 
 /* ── When the nav is visible, keep every screen's content clear of it ── */
 body.has-app-nav .v3-learn-shell,
-body.has-app-nav .market-v3-shell {
+body.has-app-nav .market-v3-shell,
+body.has-app-nav .watchlist-shell {
   padding-bottom: calc(var(--app-nav-h) + 28px + env(safe-area-inset-bottom, 0px)) !important;
 }
 

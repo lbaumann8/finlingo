@@ -3205,6 +3205,10 @@
   function _startTypewriter() {
     const input = document.getElementById('coachInput');
     if (!input) return;
+    // #coachInput is now a persistent element (see _bindCoachComposer), so
+    // renderCoach() can call this again while already blank — clear any
+    // in-flight tick chain first or two loops would race on the same node.
+    if (tw.timer) { clearTimeout(tw.timer); tw.timer = null; }
     tw.active = true;
     if (_reducedMotion()) { input.setAttribute('placeholder', EXAMPLE_PROMPTS[0]); tw.active = false; return; }
     tw.i = 0; tw.c = 0; tw.deleting = false;
@@ -3240,7 +3244,7 @@
     tw.active = false;
     if (tw.timer) { clearTimeout(tw.timer); tw.timer = null; }
     const input = document.getElementById('coachInput');
-    if (input) input.setAttribute('placeholder', 'Ask about markets or your lessons…');
+    if (input) input.setAttribute('placeholder', 'Ask FinLingo…');
   }
 
   // ── Submit ──────────────────────────────────────────────────────────
@@ -3253,6 +3257,31 @@
     _checkAskInactivity();   // start a fresh chat first if idle past the threshold
     coachAsk(value);
     return false;
+  }
+
+  // ── Persistent composer binding ──────────────────────────────────────
+  // #coachInput lives in index.html as a sibling of #coachRoot, so it is
+  // never destroyed/recreated by renderCoach()'s innerHTML swap. Listeners
+  // are attached exactly once (guarded by dataset.coachBound) so repeated
+  // renders never stack duplicate handlers — that would otherwise fire
+  // submit() more than once per Enter key press.
+  function _bindCoachComposer(showHero) {
+    const input = document.getElementById('coachInput');
+    if (input && !input.dataset.coachBound) {
+      input.dataset.coachBound = 'true';
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); }
+      });
+      // First focus/typing after the typewriter starts is both an inactivity
+      // check (resets to a fresh chat if idle past the threshold) and the
+      // signal to stop the placeholder animation. Guarded by tw.active so it
+      // only ever acts while the typewriter is actually running.
+      const onFirstInteract = () => { if (tw.active) { _checkAskInactivity(); _stopTypewriter(); } };
+      input.addEventListener('focus', onFirstInteract);
+      input.addEventListener('input', onFirstInteract);
+    }
+    if (showHero) _startTypewriter();
+    else _stopTypewriter();
   }
 
   // ── Mentor front-door helpers (presentation only) ───────────────────
@@ -3496,9 +3525,13 @@
   }
 
   // ── Page render ─────────────────────────────────────────────────────
-  // Empty chat → large empty-state (heading, description, input, disclaimer).
-  // Existing chat → conversation, with a persistent compact composer below it
-  // (never the big heading mid-conversation) so follow-ups are always possible.
+  // Empty chat → large empty-state (heading, description, disclaimer).
+  // Existing chat → conversation thread only (never the big heading
+  // mid-conversation). The composer itself (#coachComposer) lives outside
+  // #coachRoot as a persistent sibling in index.html — it is never rewritten
+  // by this innerHTML swap, so it stays mounted and pinned above the bottom
+  // nav across every Coach state (hero, conversation, build-unit, quiz,
+  // market commentary). See _bindCoachComposer() below.
   function renderCoach() {
     const root = document.getElementById('coachRoot');
     if (!root) return;
@@ -3506,7 +3539,7 @@
     // Build-unit mode: render the guided conversation instead of the default
     // market brief. Returning here keeps the daily-overview renderer from ever
     // painting over the build thread after navigation.
-    if (coachMode === 'build-unit' && buildFlow) { _renderBuildConversation(root); return; }
+    if (coachMode === 'build-unit' && buildFlow) { _renderBuildConversation(root); _bindCoachComposer(false); return; }
     // Boot / reopen / route-in: if the last interaction was >15 min ago, swap to
     // a fresh empty chat (the old one stays in history). newChat() re-renders, so
     // stop here to avoid briefly painting the stale conversation.
@@ -3535,26 +3568,8 @@
             <div class="coach-suggest-grid" id="coachFollowups">${_coachFollowups()}</div>
           </div>
           <p class="coach-brief-status" id="coachBriefStatus">${_coachBriefStatusHtml()}</p>
-        </section>
-        <div class="coach-bottom-composer coach-bottom-composer-empty">
-          <form class="coach-input-form" onsubmit="return CoachPage.submit(event)">
-            <input id="coachInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask about markets or your lessons…" aria-label="Ask about markets, investing, or your lessons"/>
-            <button type="submit" class="coach-send" aria-label="Ask">
-              ${FinLingoIcons.right()}
-            </button>
-          </form>
-          <p class="coach-edu-note">Educational only. Not financial advice.</p>
-        </div>` : ''}
+        </section>` : ''}
         <section class="coach-thread" id="coachThread" aria-live="polite"></section>
-        ${showCompact ? `<div class="coach-compact-composer coach-bottom-composer">
-          <form class="coach-input-form coach-input-form-compact" onsubmit="return CoachPage.submit(event)">
-            <input id="coachInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask a follow-up…" aria-label="Ask a follow-up question"/>
-            <button type="submit" class="coach-send" aria-label="Ask">
-              ${FinLingoIcons.right()}
-            </button>
-          </form>
-          <p class="coach-edu-note">Educational only. Not financial advice.</p>
-        </div>` : ''}
       </div>`;
 
     _renderThread();
@@ -3570,21 +3585,7 @@
     }
     if (!_hasActiveUnitJob()) userScrollLockedDuringGeneration = false;
 
-    const input = document.getElementById('coachInput');
-    if (input) {
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(e); }
-      });
-      if (showHero) {
-        // First focus/typing is both an inactivity-check trigger (resets to a
-        // fresh chat before the user types if idle past the threshold) and the
-        // signal to stop the typewriter immediately.
-        const onFirstInteract = () => { _checkAskInactivity(); _stopTypewriter(); };
-        input.addEventListener('focus', onFirstInteract, { once: true });
-        input.addEventListener('input', onFirstInteract, { once: true });
-        _startTypewriter();
-      }
-    }
+    _bindCoachComposer(showHero);
     // Blank state shows today's brief; if live market data is still loading,
     // repaint the brief + follow-ups in place once it arrives.
     if (showHero) {

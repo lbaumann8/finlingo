@@ -689,8 +689,8 @@ function _renderBootFallback(message) {
     fallback.id = 'bootFallback';
     fallback.setAttribute('role', 'alert');
     fallback.style.padding = '24px';
-    fallback.style.color = '#111';
-    fallback.style.background = '#fff';
+    fallback.style.color = '#FFFFFF';
+    fallback.style.background = '#0A0A0A';
     mount.prepend(fallback);
   }
   fallback.textContent = message || 'Finlingo could not start. Please refresh the page.';
@@ -1675,8 +1675,8 @@ function generateShareCard() {
   const W = 600, H = 300;
   canvas.width = W; canvas.height = H;
 
-  // Background — matches --bg (deep navy)
-  ctx.fillStyle = '#0A101B'; ctx.fillRect(0, 0, W, H);
+  // Background — matches --bg (near-black)
+  ctx.fillStyle = '#0A0A0A'; ctx.fillRect(0, 0, W, H);
 
   // Top accent bar — matches --green
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, 3);
@@ -1697,12 +1697,12 @@ function generateShareCard() {
 
   // Brand — single color, no Fin/lingo split
   ctx.font = '600 22px Inter, sans-serif';
-  ctx.fillStyle = '#e6e8ec';
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillText('Finlingo', 36, 56);
 
   // User name
   const name = S.user?.name || 'Learner';
-  ctx.font = '600 30px Inter, sans-serif'; ctx.fillStyle = '#e6e8ec';
+  ctx.font = '600 30px Inter, sans-serif'; ctx.fillStyle = '#FFFFFF';
   ctx.fillText(name, 36, 108);
 
   // Level badge
@@ -1726,7 +1726,7 @@ function generateShareCard() {
   ];
   stats.forEach((s, i) => {
     const x = 200 + i * 110;
-    ctx.font = '600 24px Inter, sans-serif'; ctx.fillStyle = '#e6e8ec';
+    ctx.font = '600 24px Inter, sans-serif'; ctx.fillStyle = '#FFFFFF';
     ctx.fillText(s.val, x, 213);
     ctx.font = '11px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.fillText(s.label, x, 230);
@@ -4089,7 +4089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Inject PWA manifest dynamically ──────────────────────
   const manifest = {
     name: 'Finlingo', short_name: 'Finlingo', start_url: new URL('./', window.location.href).href,
-    display: 'standalone', background_color: '#ffffff', theme_color: '#0a0a0a',
+    display: 'standalone', background_color: '#0a0a0a', theme_color: '#0a0a0a',
     icons: [{
       src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0a'/><text y='.9em' font-size='72' x='12'>F</text></svg>",
       sizes: '192x192', type: 'image/svg+xml'

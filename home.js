@@ -457,7 +457,7 @@
   }
 
   // ── Bottom-nav routing + active/visibility sync ──────────────────────
-  var NAV_SCREENS = { homeScreen: 'home', pathScreen: 'learn', marketScreen: 'market', coachScreen: 'coach' };
+  var NAV_SCREENS = { homeScreen: 'home', pathScreen: 'learn', marketScreen: 'market', coachScreen: 'coach', watchlistScreen: 'market' };
   var NAV_ITEMS = { home: 'abnHome', learn: 'abnLearn', market: 'abnMarket', coach: 'abnCoach' };
 
   function nav(section) {
