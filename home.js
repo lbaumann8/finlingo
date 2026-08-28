@@ -344,12 +344,6 @@
 
       continueHtml +
 
-      // Compact Market Read
-      '<section class="home-section">' +
-        '<div class="home-section-head"><h3>Market Read</h3><span class="home-section-live">Live</span></div>' +
-        '<div class="home-card">' + _marketReadBlock('compact') + '</div>' +
-      '</section>' +
-
       // Compact Ask row
       '<section class="home-section">' +
         '<div class="home-card">' +
@@ -381,6 +375,13 @@
         '<div class="home-section-head"><h3>Explore Topics</h3>' +
           '<button type="button" class="home-section-link" onclick="Home.viewAllUnits()">View all</button></div>' +
         _topicRows(exploreTopics, true) +
+      '</section>' +
+
+      // Market Read — last section on the page (see screenshot 1: eyebrow,
+      // headline, sentiment score, interpretation, SPY/QQQ/BTC row, CTA).
+      '<section class="home-section">' +
+        '<p class="home-eyebrow">Market read</p>' +
+        '<div class="home-card">' + _marketReadBlock('full') + '</div>' +
       '</section>' +
     '</div>';
   }

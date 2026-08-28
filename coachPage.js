@@ -1453,6 +1453,7 @@
       opts.requestId = requestId;
       if (opts.commitBeforeDepth && !opts.committedUserEntryId) {
         _ensureActiveLoaded();
+        _ensureDailyOverviewInThread();
         const userLabel = opts.userLabel || text || `Build a unit on ${effectiveText || lastTopic || 'investing'}`;
         const userEntry = _stamp({
           role: 'user',
@@ -1473,7 +1474,13 @@
     }
 
     _ensureActiveLoaded();
+    // wasBlankBefore drives the full-remount-vs-incremental-update choice below
+    // (the shell swaps from hero to conversation mode) — must reflect the
+    // thread's state before we touch it, so compute it first.
     const wasBlankBefore = thread.length === 0;
+    // Lock in today's overview as real chat history before the user's message
+    // lands, so it reads: overview → question, and never appears twice.
+    _ensureDailyOverviewInThread();
     const submitScroll = _captureThreadScroll();
     const revealActionResult = Boolean(opts.source)
       || ['quiz', 'example', 'connect_market', 'simplify'].includes(intent);
@@ -3112,7 +3119,24 @@
     if (entry.kind === 'course_outline') return _renderCourseOutlineEntry(entry, index);
     if (entry.kind === 'quiz') return _renderQuizEntry(entry, index);
     if (entry.kind === 'market') return _renderMarketEntry(entry, index);
+    if (entry.kind === 'daily_overview') return _renderDailyOverviewEntry(entry, index);
     return _renderTextEntry(entry, index);
+  }
+
+  // The day's overview, frozen at insertion time (entry.leadHtml/secondHtml)
+  // so it reads correctly in scrollback on later days too. The suggested
+  // actions underneath are computed fresh from _coachFollowups() — the same
+  // three actions offered on the blank-state hero (Explain today's market
+  // move / Connect to Money & Markets / Quiz me on this topic).
+  function _renderDailyOverviewEntry(entry) {
+    return `
+      <div class="coach-brief-bubble coach-daily-overview-bubble">
+        <div class="coach-brief-part">${entry.leadHtml || ''}</div>
+        <div class="coach-brief-part coach-brief-part-secondary">${entry.secondHtml || ''}</div>
+      </div>
+      <div class="coach-followups coach-daily-overview-followups">
+        <div class="coach-suggest-grid">${_coachFollowups()}</div>
+      </div>`;
   }
 
   function _createMessageNode(entry) {
@@ -3430,8 +3454,57 @@
   }
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
-  function _coachBriefParts() {
-    const b = _coachMarketBrief();
+  // ── Daily market overview: stable-for-the-day + persisted into the thread ──
+  // _coachMarketBrief() reads the live snapshot and can phrase things slightly
+  // differently between calls (prices tick, the snapshot refetches). The daily
+  // overview must read the same all day and become real chat history rather
+  // than a transient hero, so: cache the first available brief of the day in
+  // localStorage (stability + "generated once per trading day"), then bake a
+  // frozen HTML snapshot into a real thread entry the first time it's needed
+  // (first message sent, or the next time this chat/day is opened).
+  const DAILY_BRIEF_CACHE_KEY = 'finlingo_coach_daily_brief_v1';
+  function _todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function _getStableTodayBrief() {
+    const todayKey = _todayKey();
+    try {
+      const cached = JSON.parse(localStorage.getItem(DAILY_BRIEF_CACHE_KEY) || 'null');
+      if (cached && cached.dateKey === todayKey && cached.brief && cached.brief.available) return cached.brief;
+    } catch (_) {}
+    const fresh = _coachMarketBrief();
+    if (fresh.available) {
+      try { localStorage.setItem(DAILY_BRIEF_CACHE_KEY, JSON.stringify({ dateKey: todayKey, brief: fresh })); }
+      catch (_) {}
+    }
+    return fresh;
+  }
+  function _hasTodayOverviewInThread() {
+    const todayKey = _todayKey();
+    return thread.some(e => e && e.kind === 'daily_overview' && e.dateKey === todayKey);
+  }
+  // Insert today's overview as a real, persisted thread message exactly once
+  // per trading day (never duplicated — guarded by _hasTodayOverviewInThread).
+  // No-ops while live data hasn't loaded yet, so nothing is ever fabricated;
+  // the transient hero (blank-thread state) covers that gap instead.
+  function _ensureDailyOverviewInThread() {
+    if (_hasTodayOverviewInThread()) return false;
+    const brief = _getStableTodayBrief();
+    if (!brief.available) return false;
+    const parts = _coachBriefPartsFrom(brief);
+    thread.push(_stamp({
+      role: 'coach',
+      kind: 'daily_overview',
+      dateKey: _todayKey(),
+      leadHtml: parts.first,
+      secondHtml: parts.second
+    }, 'daily_overview'));
+    _persistActive();
+    return true;
+  }
+
+  function _coachBriefPartsFrom(b) {
     if (!b.available) {
       // Evergreen, honest fallback while live data loads (or if it can't).
       return {
@@ -3451,6 +3524,9 @@
       second: `<p>${esc(b.connection)}</p>`,
       note: b.note || ''
     };
+  }
+  function _coachBriefParts() {
+    return _coachBriefPartsFrom(_getStableTodayBrief());
   }
   function _coachBriefBubbleHtml(part) {
     const parts = _coachBriefParts();
@@ -3544,6 +3620,12 @@
     // a fresh empty chat (the old one stays in history). newChat() re-renders, so
     // stop here to avoid briefly painting the stale conversation.
     if (_checkAskInactivity()) return;
+    // Returning to an already-started conversation on a new trading day: drop
+    // today's overview in as a real message (idempotent — no-op once it's
+    // already there, or while live data hasn't loaded). A still-blank thread
+    // keeps showing the hero below instead; coachAsk() converts that hero into
+    // this same persisted entry the moment the user sends their first message.
+    if (thread.length > 0) _ensureDailyOverviewInThread();
     const isBlank = thread.length === 0;
     const showHero = isBlank;
     const showCompact = !isBlank;
